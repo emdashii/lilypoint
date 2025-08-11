@@ -1,0 +1,26 @@
+/Music Project
+
+# Build output
+/dist
+*.js
+*.js.map
+
+# Node modules
+/node_modules
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Runtime data
+*.pid
+*.seed
+*.pid.lock
+
+# Output files
+*.txt
+
+CLAUDE.md
