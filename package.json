@@ -1,0 +1,17 @@
+{
+	"name": "lilypoint",
+	"version": "1.0.0",
+	"description": "website for counterpoint generator using lilypond",
+	"main": "index.js",
+	"scripts": {
+		"build": "tsc && cp -r public/* dist/",
+		"dev": "tsc --watch"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"devDependencies": {
+		"@types/node": "^24.2.1",
+		"typescript": "^5.9.2"
+	}
+}

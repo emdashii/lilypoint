@@ -1,0 +1,22 @@
+import { Species } from './species.js';
+
+export class SpeciesTwo extends Species {
+	
+	chooseNextNote(): number {
+		if ((this.noteTwoBefore - this.noteBefore) === 2) {
+			return this.noteBefore + 1;
+		} else if ((this.noteTwoBefore - this.noteBefore) === -2) {
+			return this.noteTwoBefore + 1;
+		} else if ((this.noteTwoBefore - this.noteBefore) === 1) {
+			return this.noteTwoBefore + 1;
+		} else if ((this.noteTwoBefore - this.noteBefore) === -1) {
+			return this.noteTwoBefore - 1;
+		} else if ((this.noteTwoBefore - this.noteBefore) < 0) {
+			return this.noteBefore + 1;
+		} else if ((this.noteTwoBefore - this.noteBefore) > 0) {
+			return this.noteBefore - 1;
+		} else {
+			return this.noteTwoBefore + 1;
+		}
+	}
+}
