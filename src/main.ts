@@ -1,13 +1,13 @@
 import { ExportToFile } from './export-to-file.js';
 import { WritePhrase } from './write-phrase.js';
-import { getNumberInput, getStringInput, tests1, tests2 } from './helper-functions.js';
+import { getNumberInput, getStringInput, generateExample, analyzeCounterpoint } from './helper-functions.js';
 
 async function main(): Promise<void> {
 	WritePhrase.setSeed(Date.now());
 	
 	try {
-		// await tests1();
-		// await tests2();
+		// await generateExample();
+		// await analyzeCounterpoint();
 	} catch (error) {
 		if (error instanceof Error) {
 			console.log(error.message);

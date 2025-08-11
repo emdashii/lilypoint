@@ -1,8 +1,6 @@
 import { Note } from './note.js';
 import { Phrase } from './phrase.js';
 import { NoteType } from './types-and-globals.js';
-import { promises as fs } from 'fs';
-import * as readline from 'readline';
 
 export class ExportToFile {
 	private fileName: string = "";
@@ -33,23 +31,27 @@ export class ExportToFile {
 			return;
 		}
 
-		while (await this.exists(fileName)) {
-			console.log(`Warning a file already exists with the chosen output filename: ${fileName}!`);
-			console.log("Please enter a different filename: ");
-			
-			const rl = readline.createInterface({
-				input: process.stdin,
-				output: process.stdout
-			});
+		// In browser environment, skip file existence check
+		if (typeof window === 'undefined') {
+			while (await this.exists(fileName)) {
+				console.log(`Warning a file already exists with the chosen output filename: ${fileName}!`);
+				console.log("Please enter a different filename: ");
 
-			const newFileName = await new Promise<string>((resolve) => {
-				rl.question('', (answer: string) => {
-					rl.close();
-					resolve(answer || fileName);
+				const readline = require('readline');
+				const rl = readline.createInterface({
+					input: process.stdin,
+					output: process.stdout
 				});
-			});
 
-			fileName = this.verifyEnding(newFileName);
+				const newFileName = await new Promise<string>((resolve) => {
+					rl.question('', (answer: string) => {
+						rl.close();
+						resolve(answer || fileName);
+					});
+				});
+
+				fileName = this.verifyEnding(newFileName);
+			}
 		}
 
 		this.fileName = fileName;
@@ -63,7 +65,7 @@ export class ExportToFile {
 		this.title = title;
 	}
 
-	async writeOutput(): Promise<void> {
+	async writeOutput(): Promise<string> {
 		try {
 			let output = "";
 
@@ -71,10 +73,10 @@ export class ExportToFile {
 			output += "\\header {\n";
 			output += `title = "${this.title}"\n`;
 			output += `composer = "${this.composer}"\n`;
-			output += 'tagline = "Written By Caleb Nelson and Elliott Claus\'s Counterpoint Generation Program"\n';
+			output += 'tagline = "Generated using lilypoint at lilypoint.mazzaella.com"\n';
 			output += "}\n";
 			output += "\\paper {\n";
-			output += "\tsystem-system-spacing #'basic-distance = #16\n";
+			output += "\tsystem-system-spacing.basic-distance = #16\n";
 			output += "}\n\n\n";
 
 			// Loop through phrases to be printed
@@ -111,14 +113,15 @@ export class ExportToFile {
 			output += "\t\\midi{}\n";
 			output += "}\n";
 
-			// In browser environment, log the output instead of writing to file
+			// In browser environment, return the output; in Node.js, write to file
 			if (typeof window !== 'undefined') {
-				console.log("Generated LilyPond Output:");
-				console.log(output);
-				console.log("(File writing not supported in browser environment)");
+				console.log("Generated LilyPond Output created successfully!");
+				return output;
 			} else {
+				const fs = require('fs').promises;
 				await fs.writeFile(this.fileName, output);
 				console.log("Final output file successfully created!");
+				return output;
 			}
 		} catch (error) {
 			throw new Error("Couldn't open file for output!");
@@ -133,22 +136,22 @@ export class ExportToFile {
 		// write comment with phrase info
 		output += `% Phrase ${phraseNumber}\n`;
 		output += `${topPhraseName} = { \\clef "treble" \\key ${phrase.getKey()} \\major \\time ${phrase.getTimeSig()}\n`;
-		
+
 		// Time to print out the notes for the top voice of this phrase
 		for (const note of phrase.getUpperVoice()) {
 			output += " " + this.convertNoteToOutput(note);
 		}
-		
+
 		// End top voice of this phrase
 		output += '\\bar "||" }\n';
 
 		output += `${bottomPhraseName} = { \\clef "treble" \\key ${phrase.getKey()} \\major \\time ${phrase.getTimeSig()}\n`;
-		
+
 		// Time to print out the notes for the bottom voice of this phrase
 		for (const note of phrase.getLowerVoice()) {
 			output += " " + this.convertNoteToOutput(note);
 		}
-		
+
 		// End bottom voice of this phrase
 		output += "}\n";
 
@@ -156,7 +159,13 @@ export class ExportToFile {
 	}
 
 	private async exists(fileName: string): Promise<boolean> {
+		// In browser environment, files don't exist in the traditional sense
+		if (typeof window !== 'undefined') {
+			return false;
+		}
+
 		try {
+			const fs = require('fs').promises;
 			await fs.access(fileName);
 			return true;
 		} catch {
@@ -177,7 +186,7 @@ export class ExportToFile {
 
 	private convertNoteToOutput(note: Note): string {
 		const noteLengthString = note.getLength().toString();
-		
+
 		switch (note.getNote()) {
 			case NoteType.Note_A0: return "a,,," + noteLengthString;
 			case NoteType.Note_A0_sharp: return "ais,,," + noteLengthString;

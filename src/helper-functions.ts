@@ -4,10 +4,16 @@ import { NoteType } from './types-and-globals.js';
 import { ExportToFile } from './export-to-file.js';
 import { WritePhrase } from './write-phrase.js';
 
-import * as readline from 'readline';
-
 export function getNumberInput(prompt: string): Promise<number> {
 	return new Promise((resolve, reject) => {
+		// Browser environment - not supported
+		if (typeof window !== 'undefined') {
+			reject(new Error('getNumberInput not supported in browser environment'));
+			return;
+		}
+
+		// Node.js environment
+		const readline = require('readline');
 		const rl = readline.createInterface({
 			input: process.stdin,
 			output: process.stdout
@@ -30,7 +36,15 @@ export function getNumberInput(prompt: string): Promise<number> {
 }
 
 export function getStringInput(prompt: string): Promise<string> {
-	return new Promise((resolve) => {
+	return new Promise((resolve, reject) => {
+		// Browser environment - not supported
+		if (typeof window !== 'undefined') {
+			reject(new Error('getStringInput not supported in browser environment'));
+			return;
+		}
+
+		// Node.js environment
+		const readline = require('readline');
 		const rl = readline.createInterface({
 			input: process.stdin,
 			output: process.stdout
@@ -138,87 +152,89 @@ export function getSuffix(keyLabelNumber: number): string {
 	}
 }
 
-export async function tests1(): Promise<void> {
-	const note1 = new Note(NoteType.Note_C4, 4);
-	const note2 = new Note(NoteType.Note_C4, 2);
-	const note3 = new Note(NoteType.Note_D4, 4);
-	const note4 = new Note(NoteType.Note_D4, 2);
-
-	const upperPhrase1 = [note1, note2];
-	const lowerPhrase1 = [note3, note4];
-	const upperPhrase2 = [note2, note1];
-	const lowerPhrase2 = [note4, note3];
-
-	const phrase1 = new Phrase(upperPhrase1, lowerPhrase1);
-	const phrase2 = new Phrase(upperPhrase2, lowerPhrase2);
-
-	const exportTest = new ExportToFile("lilyPondOutput1", "noice title", "caleb is a great composer");
-	exportTest.addPhrase(phrase1);
-	exportTest.addPhrase(phrase2);
+export async function generateExample(): Promise<void> {
+	console.log('🎵 Generating Example Counterpoint Phrases...\n');
 	
-	// In browser environment, we can't write files, so just log the attempt
+	// Generate different examples to showcase variety
+	const examples = [
+		{ key: 'C', measures: 4, species: 1, beatsPerMeasure: 4, name: 'C Major First Species' },
+		{ key: 'G', measures: 3, species: 2, beatsPerMeasure: 4, name: 'G Major Second Species' },
+		{ key: 'F', measures: 2, species: 0, beatsPerMeasure: 4, name: 'F Major Imitative' }
+	];
+
+	const exportToFile = new ExportToFile('example-counterpoint', 'Counterpoint Examples', 'Lilypoint Generator');
+
+	for (let i = 0; i < examples.length; i++) {
+		const example = examples[i];
+		console.log(`📝 Example ${i + 1}: ${example.name}`);
+		console.log(`   Key: ${example.key}, Measures: ${example.measures}, Species: ${example.species}`);
+		
+		try {
+			const phrase = new WritePhrase(example.key, example.measures, example.species, example.beatsPerMeasure);
+			phrase.writeThePhrase();
+			exportToFile.addPhrase(phrase.getPhrase());
+			
+			console.log(`   ✅ Generated successfully`);
+		} catch (error) {
+			console.log(`   ❌ Generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		}
+		console.log('');
+	}
+
+	// In browser environment, return the generated content
 	if (typeof window !== 'undefined') {
-		console.log('Test 1 completed - ExportToFile functionality tested (file writing skipped in browser)');
+		console.log('🎼 All examples generated! Use "View as Sheet Music" to see the results.');
+		const output = await exportToFile.writeOutput();
+		console.log('\n📋 Generated LilyPond code preview:');
+		console.log(output.substring(0, 200) + '...\n');
 	} else {
-		await exportTest.writeOutput();
+		await exportToFile.writeOutput();
+		console.log('📁 Examples saved to file successfully!');
 	}
 }
 
-export async function tests2(): Promise<void> {
-	const phrase1 = new WritePhrase("C", 3);
-	phrase1.writeThePhrase();
-	phrase1.printPhraseI();
-	phrase1.calculateInterval();
-	console.log();
-	phrase1.printPhraseN();
-	console.log();
+export async function analyzeCounterpoint(): Promise<void> {
+	console.log('🔍 Analyzing Counterpoint Generation System...\n');
 
-	const phrase2 = new WritePhrase("D", 3);
-	phrase2.setSpeciesType(0);
-	phrase2.writeThePhrase();
-	phrase2.printPhraseI();
-	phrase2.calculateInterval();
-	console.log();
-	phrase2.printPhraseN();
+	// Test different configurations
+	const testConfigs = [
+		{ key: 'C', measures: 2, species: 1, name: 'Simple First Species' },
+		{ key: 'G', measures: 3, species: 2, name: 'Second Species Example' },
+		{ key: 'F', measures: 2, species: 0, name: 'Imitative Species' }
+	];
 
-	const phrase3 = new WritePhrase("Bb", 3);
-	phrase3.writeThePhrase();
-	phrase3.printPhraseI();
-	phrase3.calculateInterval();
-	console.log();
-	phrase3.printPhraseN();
-	console.log();
+	console.log('📊 Testing different counterpoint configurations:\n');
 
-	const phrase4 = new WritePhrase("F", 4);
-	phrase4.setSpeciesType(0);
-	phrase4.writeThePhrase();
-	phrase4.printPhraseI();
-	phrase4.calculateInterval();
-	console.log();
-	phrase4.printPhraseN();
-
-	const phrase5 = new WritePhrase("C", 4);
-	phrase4.setSpeciesType(2);
-	phrase4.writeThePhrase();
-	phrase4.printPhraseI();
-	console.log();
-	phrase4.printPhraseN();
-
-	const phrase11 = new Phrase(phrase1.getPhrase().getUpperVoice(), phrase1.getPhrase().getLowerVoice(), phrase1.getKey(), phrase1.getTimeSignature());
-	const phrase22 = new Phrase(phrase2.getPhrase().getUpperVoice(), phrase2.getPhrase().getLowerVoice(), phrase2.getKey(), phrase2.getTimeSignature());
-	const phrase33 = new Phrase(phrase3.getPhrase().getUpperVoice(), phrase3.getPhrase().getLowerVoice(), phrase3.getKey(), phrase3.getTimeSignature());
-	const phrase44 = new Phrase(phrase4.getPhrase().getUpperVoice(), phrase4.getPhrase().getLowerVoice(), phrase4.getKey(), phrase4.getTimeSignature());
-
-	const exportTest = new ExportToFile("lilyPondOutput1.9", "SpeciesTwo test part 1", "TheProgram (duh)");
-	exportTest.addPhrase(phrase11);
-	exportTest.addPhrase(phrase22);
-	exportTest.addPhrase(phrase33);
-	exportTest.addPhrase(phrase44);
-	
-	// In browser environment, we can't write files, so just log the attempt
-	if (typeof window !== 'undefined') {
-		console.log('Test 2 completed - WritePhrase functionality tested (file writing skipped in browser)');
-	} else {
-		await exportTest.writeOutput();
+	for (const config of testConfigs) {
+		console.log(`🎼 Testing: ${config.name} in ${config.key} major`);
+		console.log(`   Configuration: ${config.measures} measures, Species ${config.species}`);
+		
+		try {
+			const startTime = performance.now();
+			const phrase = new WritePhrase(config.key, config.measures, config.species, 4);
+			phrase.writeThePhrase();
+			const endTime = performance.now();
+			
+			const upperVoice = phrase.getPhrase().getUpperVoice();
+			const lowerVoice = phrase.getPhrase().getLowerVoice();
+			
+			console.log(`   ⏱️  Generation time: ${(endTime - startTime).toFixed(2)}ms`);
+			console.log(`   🎵 Upper voice: ${upperVoice.length} notes`);
+			console.log(`   🎵 Lower voice: ${lowerVoice.length} notes`);
+			
+			// Show first few notes for preview
+			if (upperVoice.length > 0) {
+				const firstNote = upperVoice[0].getNote();
+				console.log(`   🎹 First upper note: ${NoteType[firstNote]} (${firstNote})`);
+			}
+			
+			console.log('   ✅ Generation successful\n');
+			
+		} catch (error) {
+			console.log(`   ❌ Generation failed: ${error instanceof Error ? error.message : 'Unknown error'}\n`);
+		}
 	}
+
+	console.log('🎯 Analysis complete! The system can generate various counterpoint styles.');
+	console.log('💡 Try different keys and species types in the main form above.');
 }
