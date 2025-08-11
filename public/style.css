@@ -5,31 +5,49 @@ body {
 }
 
 :root {
-	--theme-light-color: #332211;
-	--theme-light-background: rgb(238, 234, 224);
-	--theme-light-tr-primary: rgba(245, 241, 231, 0.756);
-	--theme-light-tr-other: rgba(241, 237, 227, 0.93);
-	--theme-light-link: #8b4513; /* Darker sepia for light theme */
-	--theme-dark-color: #e8dcc8;
-	--theme-dark-background: #2a2520;
-	--theme-dark-tr-primary: rgba(61, 56, 48, 0.479);
-	--theme-dark-tr-other: rgba(61, 56, 49, 0.05);
-	--theme-dark-link: #d2691e; /* Lighter sepia for dark theme */
-	/* setting light mode default */
+	/* Colors from https://stephango.com/flexoki */
+	/* Flexoki Light Theme Colors */
+	--theme-light-color: #1c1b1a;
+	--theme-light-background: #fffcf0;
+	--theme-light-tr-primary: rgba(242, 240, 229, 0.8);
+	--theme-light-tr-other: rgba(242, 240, 229, 0.4);
+	--theme-light-link: #66800b; /* Flexoki Green */
+	--theme-light-accent: #879a39; /* Flexoki Green */
+	--theme-light-border: #d2d0c5;
+	--theme-light-error: #d14d41;
+
+	/* Flexoki Dark Theme Colors */
+	--theme-dark-color: #cecdc3;
+	--theme-dark-background: #100f0f;
+	--theme-dark-tr-primary: rgba(35, 33, 32, 0.8);
+	--theme-dark-tr-other: rgba(35, 33, 32, 0.4);
+	--theme-dark-link: #879a39; /* Flexoki Green Light */
+	--theme-dark-accent: #3aa99f; /* Flexoki Cyan Light */
+	--theme-dark-border: #403e3c;
+	--theme-dark-error: #af3029;
+
+	/* Default to light theme - will be overridden by JS and media queries */
 	--color-text: var(--theme-light-color);
 	--color-background: var(--theme-light-background);
 	--color-primary: var(--theme-light-link);
+	--color-accent: var(--theme-light-accent);
+	--color-border: var(--theme-light-border);
 	--color-tr-primary: var(--theme-light-tr-primary);
 	--color-tr-other: var(--theme-light-tr-other);
+	--color-error: var(--theme-light-error);
 }
 
+/* Auto-detect system preference when no explicit choice is made */
 @media (prefers-color-scheme: dark) {
-	:root {
+	:root:not([data-theme]) {
 		--color-text: var(--theme-dark-color);
 		--color-background: var(--theme-dark-background);
 		--color-primary: var(--theme-dark-link);
+		--color-accent: var(--theme-dark-accent);
+		--color-border: var(--theme-dark-border);
 		--color-tr-primary: var(--theme-dark-tr-primary);
 		--color-tr-other: var(--theme-dark-tr-other);
+		--color-error: var(--theme-dark-error);
 	}
 }
 
@@ -37,16 +55,22 @@ body {
 	--color-text: var(--theme-light-color);
 	--color-background: var(--theme-light-background);
 	--color-primary: var(--theme-light-link);
+	--color-accent: var(--theme-light-accent);
+	--color-border: var(--theme-light-border);
 	--color-tr-primary: var(--theme-light-tr-primary);
 	--color-tr-other: var(--theme-light-tr-other);
+	--color-error: var(--theme-light-error);
 }
 
 #theme-dark:checked ~ main {
 	--color-text: var(--theme-dark-color);
 	--color-background: var(--theme-dark-background);
 	--color-primary: var(--theme-dark-link);
+	--color-accent: var(--theme-dark-accent);
+	--color-border: var(--theme-dark-border);
 	--color-tr-primary: var(--theme-dark-tr-primary);
 	--color-tr-other: var(--theme-dark-tr-other);
+	--color-error: var(--theme-dark-error);
 }
 
 body {
@@ -54,11 +78,18 @@ body {
 	font-size: larger;
 	line-height: 1.6;
 	margin: 0;
-	padding: 20px;
+	padding: 1px 5px 1px 1px;
 	min-height: 100vh;
 	color: var(--color-text);
 	background-color: var(--color-background);
 	transition: color 0.3s, background-color 0.3s;
+}
+
+/* Fix body padding for mobile */
+@media (max-width: 480px) {
+	body {
+		padding: 1px;
+	}
 }
 
 main {
@@ -80,7 +111,7 @@ table {
 th,
 td {
 	padding: 10px;
-	border: 1px solid var(--color-text);
+	border: 1px solid var(--color-border);
 	text-align: left;
 }
 
@@ -114,25 +145,34 @@ a:hover {
 	cursor: pointer;
 	padding: 5px 10px;
 	border-radius: 5px;
-	background-color: var(--color-background);
+	background-color: var(--color-tr-other);
 	color: var(--color-text);
-	border: 1px solid var(--color-text);
+	border: 1px solid var(--color-border);
+	transition: all 0.2s ease;
+}
+
+.theme-switch label:hover {
+	background-color: var(--color-tr-primary);
 }
 
 #theme-light:checked ~ .theme-switch label[for='theme-light'],
 #theme-dark:checked ~ .theme-switch label[for='theme-dark'] {
-	background-color: var(--color-text);
+	background-color: var(--color-primary);
 	color: var(--color-background);
 }
 
 h1 {
-	letter-spacing: 3px;
 	margin-bottom: 10px;
+}
+
+.spaced {
+	letter-spacing: 5px;
 }
 
 h2 {
 	font-size: 28pt;
-	margin-bottom: 20px;
+	margin-bottom: 15px;
+	margin-top: 0px;
 	color: var(--color-primary);
 }
 
@@ -144,7 +184,25 @@ h3 {
 .container {
 	max-width: 1200px;
 	margin: 0 auto;
-	padding: 20px;
+}
+
+@media (min-width: 768px) and (max-width: 1200px) {
+	.container {
+		margin: 2rem;
+	}
+}
+
+/* Responsive container padding */
+@media (max-width: 768px) {
+	.container {
+		margin: 1rem;
+	}
+}
+
+@media (max-width: 480px) {
+	.container {
+		margin: 0.5rem;
+	}
 }
 
 .header {
@@ -172,17 +230,64 @@ h3 {
 	}
 }
 
-.input-section,
-.output-section,
-.test-section {
+.section {
 	background: var(--color-tr-primary);
 	padding: 20px;
 	border-radius: 8px;
-	border: 1px solid var(--color-text);
+	border: 1px solid var(--color-border);
+}
+
+/* Responsive section padding */
+@media (max-width: 768px) {
+	.section {
+		padding: 15px;
+	}
+}
+
+@media (max-width: 480px) {
+	.section {
+		padding: 15px 10px; /* Maintain some internal padding on mobile */
+	}
 }
 
 .test-section {
 	grid-column: 1 / -1;
+}
+
+.utilities-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin: 0 0 15px 0;
+	cursor: pointer;
+	user-select: none;
+}
+
+.utilities-toggle {
+	background: none;
+	border: none;
+	color: var(--color-text);
+	font-size: 16px;
+	cursor: pointer;
+	padding: 5px;
+	border-radius: 3px;
+	transition: all 0.2s ease;
+}
+
+.utilities-toggle:hover {
+	background-color: var(--color-tr-other);
+}
+
+.utilities-content {
+	overflow: hidden;
+	transition: max-height 0.3s ease, opacity 0.3s ease;
+	max-height: 1000px;
+	opacity: 1;
+}
+
+.utilities-content.collapsed {
+	max-height: 0;
+	opacity: 0;
 }
 
 .form-group {
@@ -193,6 +298,13 @@ h3 {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
 	gap: 15px;
+}
+
+@media (max-width: 480px) {
+	.form-row {
+		grid-template-columns: 1fr;
+		gap: 10px;
+	}
 }
 
 .form-group label {
@@ -206,12 +318,13 @@ h3 {
 .form-group select {
 	width: 100%;
 	padding: 8px;
-	border: 1px solid var(--color-text);
+	border: 1px solid var(--color-border);
 	border-radius: 4px;
 	background: var(--color-background);
 	color: var(--color-text);
 	font-family: inherit;
 	font-size: 14px;
+	box-sizing: border-box; /* Fix for input width overflow */
 }
 
 .form-group input:focus,
@@ -226,7 +339,7 @@ h3 {
 	padding: 15px;
 	border-radius: 6px;
 	margin-bottom: 20px;
-	border: 1px solid var(--color-text);
+	border: 1px solid var(--color-border);
 }
 
 .phrase-input h3 {
@@ -271,18 +384,18 @@ button[type='submit'] {
 	min-height: 100px;
 	max-height: 400px;
 	overflow-y: auto;
-	border: 1px solid var(--color-text);
+	border: 1px solid var(--color-border);
 	padding: 15px;
 	border-radius: 4px;
 	background: var(--color-background);
 }
 
 .error {
-	background: #ffe6e6;
-	color: #cc0000;
+	background: var(--color-tr-other);
+	color: var(--color-error);
 	padding: 15px;
 	border-radius: 4px;
-	border: 1px solid #cc0000;
+	border: 1px solid var(--color-error);
 }
 
 .phrase-result {
@@ -290,7 +403,7 @@ button[type='submit'] {
 	padding: 10px;
 	border-radius: 4px;
 	margin-bottom: 10px;
-	border: 1px solid var(--color-text);
+	border: 1px solid var(--color-border);
 }
 
 .phrase-result h4 {
@@ -309,7 +422,7 @@ button[type='submit'] {
 	padding: 15px;
 	border-radius: 4px;
 	margin-top: 15px;
-	border: 1px solid var(--color-text);
+	border: 1px solid var(--color-border);
 }
 
 .lilypond-output h4 {
@@ -331,7 +444,7 @@ button[type='submit'] {
 
 .test-output {
 	background: var(--color-background);
-	border: 1px solid var(--color-text);
+	border: 1px solid var(--color-border);
 	padding: 15px;
 	border-radius: 4px;
 	min-height: 100px;
@@ -351,7 +464,7 @@ button[type='submit'] {
 	background: none;
 	border: none;
 	padding: 0;
-	color: #cc0000;
+	color: var(--color-error);
 	font-weight: bold;
 }
 
@@ -360,7 +473,7 @@ button[type='submit'] {
 	padding: 15px;
 	border-radius: 4px;
 	margin-top: 15px;
-	border: 1px solid var(--color-text);
+	border: 1px solid var(--color-border);
 }
 
 .lilypond-text h4 {
@@ -370,7 +483,7 @@ button[type='submit'] {
 
 .lilypond-text pre {
 	background: var(--color-background);
-	border: 1px solid var(--color-text);
+	border: 1px solid var(--color-border);
 	padding: 15px;
 	border-radius: 4px;
 	max-height: 300px;
@@ -429,7 +542,7 @@ button[type='submit'] {
 	background: var(--color-tr-primary);
 	padding: 20px;
 	border-radius: 8px;
-	border: 1px solid var(--color-text);
+	border: 1px solid var(--color-border);
 	margin-bottom: 40px;
 	grid-column: 1 / -1;
 }
@@ -482,10 +595,10 @@ button[type='submit'] {
 }
 
 .iframe-container {
-	border: 2px solid var(--color-text);
+	border: 2px solid var(--color-border);
 	border-radius: 4px;
 	overflow: hidden;
-	background: white;
+	background: var(--color-background);
 }
 
 .iframe-container iframe {
