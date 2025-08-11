@@ -1,205 +1,237 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>lilypoint - a counterpoint generator</title>
 		<link rel="stylesheet" href="style.css" />
-		
+
 		<!-- Favicon -->
-		<link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png">
-		<link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
-		<link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
-		<link rel="manifest" href="site.webmanifest">
-		<link rel="shortcut icon" href="favicon/favicon.ico">
+		<link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png" />
+		<link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png" />
+		<link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png" />
+		<link rel="manifest" href="site.webmanifest" />
+		<link rel="shortcut icon" href="favicon/favicon.ico" />
 	</head>
 	<body>
-		<div class="container">
-			<div class="header">
-				<h1>lilypoint - a counterpoint generator</h1>
-				<p>Generate musical counterpoint phrases using species counterpoint rules</p>
-			</div>
+		<input type="radio" id="theme-light" name="theme" checked style="display: none" />
+		<input type="radio" id="theme-dark" name="theme" style="display: none" />
+		<div class="theme-switch">
+			<label for="theme-light">light</label>
+			<label for="theme-dark">dark</label>
+		</div>
+		<main>
+			<div class="container">
+				<div class="header">
+					<h1>lilypoint - a counterpoint generator</h1>
+					<p>Generate musical counterpoint phrases using species counterpoint rules</p>
+				</div>
 
-			<div class="main-content">
-				<div class="input-section">
-					<h2>Generate Counterpoint</h2>
-					<form id="counterpointForm">
-						<div class="form-group">
-							<label for="numPhrases">Number of phrases:</label>
-							<input type="number" id="numPhrases" min="1" max="10" value="1" required>
-						</div>
+				<div class="main-content">
+					<div class="input-section">
+						<h2>Generate Counterpoint</h2>
+						<form id="counterpointForm">
+							<div class="form-group">
+								<label for="numPhrases">Number of phrases:</label>
+								<input type="number" id="numPhrases" min="1" max="10" value="1" required />
+							</div>
 
-						<div id="phraseInputs">
-							<div class="phrase-input" data-phrase="1">
-								<h3>Phrase 1</h3>
-								<div class="form-row">
-									<div class="form-group">
-										<label for="key1">Key:</label>
-										<select id="key1" required>
-											<option value="C">C</option>
-											<option value="Db">Db</option>
-											<option value="D">D</option>
-											<option value="Eb">Eb</option>
-											<option value="E">E</option>
-											<option value="F">F</option>
-											<option value="F#">F#</option>
-											<option value="G">G</option>
-											<option value="Ab">Ab</option>
-											<option value="A">A</option>
-											<option value="Bb">Bb</option>
-											<option value="B">B</option>
-										</select>
+							<div id="phraseInputs">
+								<div class="phrase-input" data-phrase="1">
+									<h3>Phrase 1</h3>
+									<div class="form-row">
+										<div class="form-group">
+											<label for="key1">Key:</label>
+											<select id="key1" required>
+												<option value="C">C</option>
+												<option value="Db">Db</option>
+												<option value="D">D</option>
+												<option value="Eb">Eb</option>
+												<option value="E">E</option>
+												<option value="F">F</option>
+												<option value="F#">F#</option>
+												<option value="G">G</option>
+												<option value="Ab">Ab</option>
+												<option value="A">A</option>
+												<option value="Bb">Bb</option>
+												<option value="B">B</option>
+											</select>
+										</div>
+
+										<div class="form-group">
+											<label for="species1">Species Type:</label>
+											<select id="species1" required>
+												<option value="0">0 (Imitative)</option>
+												<option value="1" selected>1 (First Species)</option>
+												<option value="2">2 (Second Species)</option>
+											</select>
+										</div>
 									</div>
 
-									<div class="form-group">
-										<label for="species1">Species Type:</label>
-										<select id="species1" required>
-											<option value="0">0 (Imitative)</option>
-											<option value="1" selected>1 (First Species)</option>
-											<option value="2">2 (Second Species)</option>
-										</select>
-									</div>
-								</div>
+									<div class="form-row">
+										<div class="form-group">
+											<label for="measures1">Number of measures:</label>
+											<input type="number" id="measures1" min="2" max="16" value="4" required />
+										</div>
 
-								<div class="form-row">
-									<div class="form-group">
-										<label for="measures1">Number of measures:</label>
-										<input type="number" id="measures1" min="2" max="16" value="4" required>
-									</div>
-
-									<div class="form-group">
-										<label for="beatsPerMeasure1">Notes per measure:</label>
-										<select id="beatsPerMeasure1" required>
-											<option value="2">2</option>
-											<option value="3">3</option>
-											<option value="4" selected>4</option>
-											<option value="6">6</option>
-										</select>
+										<div class="form-group">
+											<label for="beatsPerMeasure1">Notes per measure:</label>
+											<select id="beatsPerMeasure1" required>
+												<option value="2">2</option>
+												<option value="3">3</option>
+												<option value="4" selected>4</option>
+												<option value="6">6</option>
+											</select>
+										</div>
 									</div>
 								</div>
 							</div>
-						</div>
 
-						<div class="form-group">
-							<label for="composer">Composer:</label>
-							<input type="text" id="composer" value="Counterpoint Generator" required>
-						</div>
+							<div class="form-group">
+								<label for="composer">Composer:</label>
+								<input type="text" id="composer" value="Counterpoint Generator" required />
+							</div>
 
-						<div class="form-group">
-							<label for="title">Title:</label>
-							<input type="text" id="title" value="Generated Counterpoint" required>
-						</div>
+							<div class="form-group">
+								<label for="title">Title:</label>
+								<input type="text" id="title" value="Generated Counterpoint" required />
+							</div>
 
-						<button type="submit">Generate Counterpoint</button>
-					</form>
-				</div>
-
-				<div class="output-section">
-					<h2>Output</h2>
-					<div id="loading" class="loading" style="display: none;">
-						<p>Generating counterpoint...</p>
+							<button type="submit">Generate Counterpoint</button>
+						</form>
 					</div>
-					<div id="results" class="results">
-						<p>Configure your counterpoint settings above and click "Generate Counterpoint" to see the results.</p>
-					</div>
-					<div id="error" class="error" style="display: none;"></div>
-				</div>
 
-				<div class="test-section">
-					<h2>Test Functions</h2>
-					<div class="test-buttons">
-						<button id="testBtn1" type="button">Run Test 1 (ExportToFile)</button>
-						<button id="testBtn2" type="button">Run Test 2 (WritePhrase)</button>
-						<button id="clearOutput" type="button">Clear Output</button>
+					<div class="output-section">
+						<h2>Output</h2>
+						<div id="loading" class="loading" style="display: none">
+							<p>Generating counterpoint...</p>
+						</div>
+						<div id="results" class="results">
+							<p>Configure your counterpoint settings above and click "Generate Counterpoint" to see the results.</p>
+						</div>
+						<div id="lilypond-output" class="lilypond-text" style="display: none">
+							<h4>Generated LilyPond Code:</h4>
+							<pre id="lilypond-content"></pre>
+							<div class="button-group">
+								<button id="copy-btn" class="download-button">Copy text</button>
+								<button id="download-btn" class="download-button">Download as .txt file</button>
+								<button id="view-btn" class="download-button">View as Sheet Music</button>
+							</div>
+						</div>
+						<div id="error" class="error" style="display: none"></div>
 					</div>
-					<div id="testOutput" class="test-output"></div>
+
+					<div id="lilypond-viewer" class="lilypond-viewer-section" style="display: none">
+						<div class="viewer-header">
+							<h2><a href="https://www.hacklily.org/" target="_blank" rel="noopener noreferrer" class="hacklily-link">LilyPond Editor & Viewer</a></h2>
+							<button id="close-viewer-btn" class="close-button">✕</button>
+						</div>
+						<div class="iframe-container">
+							<iframe id="hacklily-iframe" src="" width="100%" height="600" frameborder="0" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe>
+						</div>
+					</div>
+
+					<div class="test-section">
+						<h2>Utilities</h2>
+						<div class="test-buttons">
+							<button id="testBtn1" type="button">Generate Examples</button>
+							<button id="testBtn2" type="button">Analyze System</button>
+							<button id="clearOutput" type="button">Clear Output</button>
+						</div>
+						<div id="testOutput" class="test-output"></div>
+					</div>
 				</div>
 			</div>
-		</div>
 
-		<!-- Import the compiled JavaScript modules -->
-		<script type="module">
-			import { Note } from './note.js';
-			import { Phrase } from './phrase.js';
-			import { WritePhrase } from './write-phrase.js';
-			import { ExportToFile } from './export-to-file.js';
-			import { tests1, tests2 } from './helper-functions.js';
-			import { NoteType } from './types-and-globals.js';
+			<!-- Import the compiled JavaScript modules -->
+			<script type="module">
+				import { Note } from './note.js';
+				import { Phrase } from './phrase.js';
+				import { WritePhrase } from './write-phrase.js';
+				import { ExportToFile } from './export-to-file.js';
+				import { generateExample, analyzeCounterpoint } from './helper-functions.js';
+				import { NoteType } from './types-and-globals.js';
 
-			// Make modules available globally for testing
-			window.musicModules = {
-				Note,
-				Phrase, 
-				WritePhrase,
-				ExportToFile,
-				tests1,
-				tests2,
-				NoteType
-			};
+				// Make modules available globally for testing
+				window.musicModules = {
+					Note,
+					Phrase,
+					WritePhrase,
+					ExportToFile,
+					generateExample,
+					analyzeCounterpoint,
+					NoteType,
+				};
 
-			// Handle form submission
-			document.getElementById('counterpointForm').addEventListener('submit', async (e) => {
-				e.preventDefault();
-				
-				const loading = document.getElementById('loading');
-				const results = document.getElementById('results');
-				const error = document.getElementById('error');
-				
-				loading.style.display = 'block';
-				results.innerHTML = '';
-				error.style.display = 'none';
+				// Global variable to store generated LilyPond content
+				let generatedLilyPondContent = '';
 
-				try {
-					const numPhrases = parseInt(document.getElementById('numPhrases').value);
-					const composer = document.getElementById('composer').value;
-					const title = document.getElementById('title').value;
+				// Handle form submission
+				document.getElementById('counterpointForm').addEventListener('submit', async e => {
+					e.preventDefault();
 
-					const exportToFile = new ExportToFile('generated-counterpoint', title, composer);
+					const loading = document.getElementById('loading');
+					const results = document.getElementById('results');
+					const error = document.getElementById('error');
+					const lilypondOutput = document.getElementById('lilypond-output');
+					const lilypondContent = document.getElementById('lilypond-content');
 
-					// Generate each phrase
-					for (let i = 1; i <= numPhrases; i++) {
-						const key = document.getElementById(`key${i}`).value;
-						const species = parseInt(document.getElementById(`species${i}`).value);
-						const measures = parseInt(document.getElementById(`measures${i}`).value);
-						const beatsPerMeasure = parseInt(document.getElementById(`beatsPerMeasure${i}`).value);
+					loading.style.display = 'block';
+					results.innerHTML = '';
+					error.style.display = 'none';
+					lilypondOutput.style.display = 'none';
 
-						const phrase = new WritePhrase(key, measures, species, beatsPerMeasure);
-						phrase.writeThePhrase();
-						exportToFile.addPhrase(phrase.getPhrase());
+					try {
+						const numPhrases = parseInt(document.getElementById('numPhrases').value);
+						const composer = document.getElementById('composer').value;
+						const title = document.getElementById('title').value;
 
-						// Display phrase info
-						results.innerHTML += `<div class="phrase-result">
+						const exportToFile = new ExportToFile('generated-counterpoint', title, composer);
+
+						// Generate each phrase
+						for (let i = 1; i <= numPhrases; i++) {
+							const key = document.getElementById(`key${i}`).value;
+							const species = parseInt(document.getElementById(`species${i}`).value);
+							const measures = parseInt(document.getElementById(`measures${i}`).value);
+							const beatsPerMeasure = parseInt(document.getElementById(`beatsPerMeasure${i}`).value);
+
+							const phrase = new WritePhrase(key, measures, species, beatsPerMeasure);
+							phrase.writeThePhrase();
+							exportToFile.addPhrase(phrase.getPhrase());
+
+							// Display phrase info
+							results.innerHTML += `<div class="phrase-result">
 							<h4>Phrase ${i} - ${key} ${species === 0 ? 'Imitative' : 'Species ' + species}</h4>
 							<p>Measures: ${measures}, Beats per measure: ${beatsPerMeasure}</p>
 						</div>`;
+						}
+
+						// Generate and display the LilyPond output
+						generatedLilyPondContent = await exportToFile.writeOutput();
+						lilypondContent.textContent = generatedLilyPondContent;
+						lilypondOutput.style.display = 'block';
+					} catch (err) {
+						error.innerHTML = `<p>Error: ${err.message}</p>`;
+						error.style.display = 'block';
+					} finally {
+						loading.style.display = 'none';
 					}
+				});
 
-					// Note: In browser environment, we can't write files directly
-					// Instead, we'll show the generated LilyPond output
-					results.innerHTML += '<div class="lilypond-output"><h4>Generated LilyPond Code:</h4><p><em>File writing not supported in browser - output would be saved as "generated-counterpoint.txt"</em></p></div>';
-					
-				} catch (err) {
-					error.innerHTML = `<p>Error: ${err.message}</p>`;
-					error.style.display = 'block';
-				} finally {
-					loading.style.display = 'none';
-				}
-			});
+				// Handle number of phrases change
+				document.getElementById('numPhrases').addEventListener('change', e => {
+					const numPhrases = parseInt(e.target.value);
+					const container = document.getElementById('phraseInputs');
 
-			// Handle number of phrases change
-			document.getElementById('numPhrases').addEventListener('change', (e) => {
-				const numPhrases = parseInt(e.target.value);
-				const container = document.getElementById('phraseInputs');
-				
-				// Clear existing phrase inputs
-				container.innerHTML = '';
-				
-				// Generate new phrase inputs
-				for (let i = 1; i <= numPhrases; i++) {
-					const phraseDiv = document.createElement('div');
-					phraseDiv.className = 'phrase-input';
-					phraseDiv.setAttribute('data-phrase', i);
-					phraseDiv.innerHTML = `
+					// Clear existing phrase inputs
+					container.innerHTML = '';
+
+					// Generate new phrase inputs
+					for (let i = 1; i <= numPhrases; i++) {
+						const phraseDiv = document.createElement('div');
+						phraseDiv.className = 'phrase-input';
+						phraseDiv.setAttribute('data-phrase', i);
+						phraseDiv.innerHTML = `
 						<h3>Phrase ${i}</h3>
 						<div class="form-row">
 							<div class="form-group">
@@ -244,60 +276,134 @@
 							</div>
 						</div>
 					`;
-					container.appendChild(phraseDiv);
-				}
-			});
+						container.appendChild(phraseDiv);
+					}
+				});
 
-			// Test button handlers
-			document.getElementById('testBtn1').addEventListener('click', async () => {
-				const output = document.getElementById('testOutput');
-				output.innerHTML = '<p>Running Test 1 (ExportToFile)...</p>';
-				try {
-					// Redirect console.log to capture output
-					const originalLog = console.log;
-					let logOutput = '';
-					console.log = (...args) => {
-						logOutput += args.join(' ') + '\n';
-						originalLog(...args);
-					};
+				// Utility button handlers
+				document.getElementById('testBtn1').addEventListener('click', async () => {
+					const output = document.getElementById('testOutput');
+					output.innerHTML = '<p>🎵 Generating counterpoint examples...</p>';
+					try {
+						// Redirect console.log to capture output
+						const originalLog = console.log;
+						let logOutput = '';
+						console.log = (...args) => {
+							logOutput += args.join(' ') + '\n';
+							originalLog(...args);
+						};
 
-					await tests1();
-					
-					console.log = originalLog;
-					output.innerHTML = `<pre>${logOutput}</pre>`;
-				} catch (err) {
-					output.innerHTML = `<p class="error">Test 1 failed: ${err.message}</p>`;
-				}
-			});
+						await generateExample();
 
-			document.getElementById('testBtn2').addEventListener('click', async () => {
-				const output = document.getElementById('testOutput');
-				output.innerHTML = '<p>Running Test 2 (WritePhrase)...</p>';
-				try {
-					const originalLog = console.log;
-					let logOutput = '';
-					console.log = (...args) => {
-						logOutput += args.join(' ') + '\n';
-						originalLog(...args);
-					};
+						console.log = originalLog;
+						output.innerHTML = `<pre>${logOutput}</pre>`;
+					} catch (err) {
+						output.innerHTML = `<p class="error">Example generation failed: ${err.message}</p>`;
+					}
+				});
 
-					await tests2();
-					
-					console.log = originalLog;
-					output.innerHTML = `<pre>${logOutput}</pre>`;
-				} catch (err) {
-					output.innerHTML = `<p class="error">Test 2 failed: ${err.message}</p>`;
-				}
-			});
+				document.getElementById('testBtn2').addEventListener('click', async () => {
+					const output = document.getElementById('testOutput');
+					output.innerHTML = '<p>🔍 Analyzing counterpoint system...</p>';
+					try {
+						const originalLog = console.log;
+						let logOutput = '';
+						console.log = (...args) => {
+							logOutput += args.join(' ') + '\n';
+							originalLog(...args);
+						};
 
-			document.getElementById('clearOutput').addEventListener('click', () => {
-				document.getElementById('testOutput').innerHTML = '';
-				document.getElementById('results').innerHTML = '<p>Configure your counterpoint settings above and click "Generate Counterpoint" to see the results.</p>';
-				document.getElementById('error').style.display = 'none';
-			});
+						await analyzeCounterpoint();
 
-			console.log('Lilypoint counterpoint generator loaded successfully!');
-			console.log('Available modules:', Object.keys(window.musicModules));
-		</script>
+						console.log = originalLog;
+						output.innerHTML = `<pre>${logOutput}</pre>`;
+					} catch (err) {
+						output.innerHTML = `<p class="error">Analysis failed: ${err.message}</p>`;
+					}
+				});
+
+				// Copy button functionality
+				document.getElementById('copy-btn').addEventListener('click', async () => {
+					if (generatedLilyPondContent) {
+						try {
+							await navigator.clipboard.writeText(generatedLilyPondContent);
+							// Temporarily change button text to show success
+							const copyBtn = document.getElementById('copy-btn');
+							const originalText = copyBtn.textContent;
+							copyBtn.textContent = 'Copied!';
+							copyBtn.style.background = '#28a745';
+							setTimeout(() => {
+								copyBtn.textContent = originalText;
+								copyBtn.style.background = '';
+							}, 2000);
+						} catch (err) {
+							console.error('Failed to copy text: ', err);
+							alert('Failed to copy text to clipboard');
+						}
+					}
+				});
+
+				// Download button functionality
+				document.getElementById('download-btn').addEventListener('click', () => {
+					if (generatedLilyPondContent) {
+						const filename = document.getElementById('title').value || 'generated-counterpoint';
+						const blob = new Blob([generatedLilyPondContent], { type: 'text/plain' });
+						const url = window.URL.createObjectURL(blob);
+						const a = document.createElement('a');
+						a.href = url;
+						a.download = filename + '.txt';
+						document.body.appendChild(a);
+						a.click();
+						document.body.removeChild(a);
+						window.URL.revokeObjectURL(url);
+					}
+				});
+
+				// View in LilyPond button functionality
+				document.getElementById('view-btn').addEventListener('click', () => {
+					if (generatedLilyPondContent) {
+						const lilypondViewer = document.getElementById('lilypond-viewer');
+						const iframe = document.getElementById('hacklily-iframe');
+
+						// Encode the LilyPond content for URL
+						const encodedContent = encodeURIComponent(generatedLilyPondContent);
+
+						// Set the iframe source to Hacklily with the content
+						iframe.src = `https://www.hacklily.org/?content=${encodedContent}`;
+
+						// Show the viewer section
+						lilypondViewer.style.display = 'block';
+
+						// Scroll to the viewer
+						lilypondViewer.scrollIntoView({ behavior: 'smooth' });
+					}
+				});
+
+				// Close viewer button functionality
+				document.getElementById('close-viewer-btn').addEventListener('click', () => {
+					const lilypondViewer = document.getElementById('lilypond-viewer');
+					const iframe = document.getElementById('hacklily-iframe');
+
+					// Hide the viewer
+					lilypondViewer.style.display = 'none';
+
+					// Clear the iframe source to stop loading
+					iframe.src = '';
+				});
+
+				document.getElementById('clearOutput').addEventListener('click', () => {
+					document.getElementById('testOutput').innerHTML = '';
+					document.getElementById('results').innerHTML = '<p>Configure your counterpoint settings above and click "Generate Counterpoint" to see the results.</p>';
+					document.getElementById('error').style.display = 'none';
+					document.getElementById('lilypond-output').style.display = 'none';
+					document.getElementById('lilypond-viewer').style.display = 'none';
+					document.getElementById('hacklily-iframe').src = '';
+					generatedLilyPondContent = '';
+				});
+
+				console.log('Lilypoint counterpoint generator loaded successfully!');
+				console.log('Available modules:', Object.keys(window.musicModules));
+			</script>
+		</main>
 	</body>
 </html>
