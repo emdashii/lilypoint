@@ -4,13 +4,19 @@ import { NoteType } from './types-and-globals.js';
 import { SpeciesOne } from './species-one.js';
 import { SpeciesTwo } from './species-two.js';
 import { GenerateLowerVoice } from './generate-lower-voice.js';
+import { Key, KeyInfo } from './key.js';
+import { FirstSpecies } from './first-species.js';
+import { SecondSpecies } from './second-species.js';
+import { ThirdSpecies } from './third-species.js';
+import { FourthSpecies } from './fourth-species.js';
+import { FifthSpecies } from './fifth-species.js';
 // Force recompilation
 
 export class WritePhrase {
-	private key: string;
+	private key: Key;
 	private phraseLength: number;
 	private beatsPerMeasure: number = 4;
-	private speciesType: number = 1;
+	private speciesType: number = -2;
 	private phraseN: Phrase = new Phrase();
 	private upperVoiceI: number[] = [];
 	private lowerVoiceI: number[] = [];
@@ -19,7 +25,7 @@ export class WritePhrase {
 	constructor(key: string, phraseLength: number);
 	constructor(key: string, phraseLength: number, speciesType: number, beatsPerMeasure: number);
 	constructor(key: string, phraseLength: number, speciesType?: number, beatsPerMeasure?: number) {
-		this.key = key;
+		this.key = new Key(key);
 		this.phraseLength = phraseLength;
 		if (speciesType !== undefined) this.speciesType = speciesType;
 		if (beatsPerMeasure !== undefined) this.beatsPerMeasure = beatsPerMeasure;
@@ -44,7 +50,7 @@ export class WritePhrase {
 	setLength(length: number): void { this.phraseLength = length; }
 	setBeatsPerMeasure(beatsPerMeasure: number): void { this.beatsPerMeasure = beatsPerMeasure; }
 	setSpeciesType(speciesType: number): void { this.speciesType = speciesType; }
-	setKey(key: string): void { this.key = key; }
+	setKey(key: string): void { this.key = new Key(key); }
 
 	getPhrase(): Phrase {
 		this.phraseN.setKey(this.getKey());
@@ -53,7 +59,8 @@ export class WritePhrase {
 	}
 
 	writeThePhrase(): void {
-		if (this.speciesType === 0) {
+		// Handle legacy species (negative numbers)
+		if (this.speciesType === -1) {
 			const imitative = new SpeciesOne();
 			imitative.writeImitativeTwoVoices(this.phraseLength * this.beatsPerMeasure);
 			this.lowerVoiceI = imitative.getImitativeLower();
@@ -63,14 +70,19 @@ export class WritePhrase {
 				this.phraseN.addNoteToLowerVoice(this.convertIntToNote(this.lowerVoiceI[i]));
 				this.phraseN.addNoteToUpperVoice(this.convertIntToNote(this.upperVoiceI[i]));
 			}
-		} else if (this.speciesType === 2) {
+		} else if (this.speciesType === -4) {
 			this.writeUpperVoiceTwo();
-		} else {
-			if (this.speciesType !== 1) {
-				console.log("Species unintelligible. Converting to Species 1");
-			}
+		} else if (this.speciesType === -2) {
 			this.writeLowerVoice();
 			this.writeUpperVoiceOne();
+		}
+		// Handle new proper species (positive numbers)
+		else if (this.speciesType >= 1 && this.speciesType <= 5) {
+			this.writeProperCounterpoint();
+		} else {
+			console.log(`Unknown species type: ${this.speciesType}. Converting to First Species (1)`);
+			this.speciesType = 1;
+			this.writeProperCounterpoint();
 		}
 	}
 
@@ -82,9 +94,9 @@ export class WritePhrase {
 
 	printPhraseN(): void {
 		console.log("Phrase in Notes: ");
-		console.log("Top   : " + NoteType.Note_C4 + " | " + 
+		console.log("Top   : " + NoteType.Note_C4 + " | " +
 			this.phraseN.getUpperVoice().map(note => note.getNote()).join(" "));
-		console.log("Bottom: " + 
+		console.log("Bottom: " +
 			this.phraseN.getLowerVoice().map(note => note.getNote()).join(" "));
 	}
 
@@ -94,27 +106,16 @@ export class WritePhrase {
 			intervals.push(this.upperVoiceI[i] - this.lowerVoiceI[i] + 1);
 		}
 		console.log("dist  : " + intervals.join("\t"));
-		
+
 		this.intervalStrings = intervals.map(i => i.toString());
 	}
 
-	getKey(): string {
-		switch (this.key) {
-			case "C": return "c";
-			case "Db": return "des";
-			case "D": return "d";
-			case "Eb": return "ees";
-			case "E": return "e";
-			case "F": return "f";
-			case "F#": return "fis";
-			case "G": return "g";
-			case "Ab": return "aes";
-			case "A": return "a";
-			case "Bb": return "bes";
-			case "B": return "b";
-			default:
-				throw new Error("Cannot convert key to LilyPond");
-		}
+	getKey(): KeyInfo {
+		return this.key.getKeyInfo();
+	}
+
+	getKeyString(): string {
+		return this.key.getKeyInfo().key;
 	}
 
 	getTimeSignature(): string {
@@ -148,7 +149,7 @@ export class WritePhrase {
 		if (expression <= 0) {
 			expression += 7;
 		}
-		
+
 		switch (expression) {
 			case 1: halfStep = 0; break;
 			case 2: halfStep = 2; break;
@@ -165,7 +166,8 @@ export class WritePhrase {
 	}
 
 	convertKeyToNote(): Note {
-		switch (this.key) {
+		const keyName = this.key.getKeyName();
+		switch (keyName) {
 			case "C": return new Note(NoteType.Note_C4);
 			case "Db": return new Note(NoteType.Note_D4_flat);
 			case "D": return new Note(NoteType.Note_D4);
@@ -174,10 +176,11 @@ export class WritePhrase {
 			case "F": return new Note(NoteType.Note_F4);
 			case "F#": return new Note(NoteType.Note_F4_sharp);
 			case "G": return new Note(NoteType.Note_G4);
-			case "Ab": return new Note(NoteType.Note_A3_flat);
-			case "A": return new Note(NoteType.Note_A3);
-			case "Bb": return new Note(NoteType.Note_B3_flat);
-			case "B": return new Note(NoteType.Note_B3);
+			case "Ab": return new Note(NoteType.Note_A4_flat);
+			case "A": return new Note(NoteType.Note_A4);
+			case "Bb": return new Note(NoteType.Note_B4_flat);
+			case "B": return new Note(NoteType.Note_B4);
+			case "Gb": return new Note(NoteType.Note_G4_flat);
 			default:
 				throw new Error("Cannot convert key to note!");
 		}
@@ -197,7 +200,7 @@ export class WritePhrase {
 		} else {
 			this.upperVoiceI.push(8);
 		}
-		
+
 		for (let i = 1; i < this.lowerVoiceI.length - 2; i++) {
 			const one = new SpeciesOne();
 			one.setNoteBefore(this.upperVoiceI[i - 1]);
@@ -209,10 +212,10 @@ export class WritePhrase {
 			const nextNote = one.chooseNextNote();
 			this.upperVoiceI.push(nextNote);
 		}
-		
+
 		this.upperVoiceI.push(7);
 		this.upperVoiceI.push(8);
-		
+
 		for (const i of this.upperVoiceI) {
 			this.phraseN.addNoteToUpperVoice(this.convertIntToNote(i));
 		}
@@ -245,6 +248,136 @@ export class WritePhrase {
 		this.lowerVoiceI = imitativeLower.getImitativeLower();
 		for (const i of this.lowerVoiceI) {
 			this.phraseN.addNoteToLowerVoice(this.convertIntToNoteTwo(i));
+		}
+	}
+
+	private writeProperCounterpoint(): void {
+		// Generate cantus firmus (lower voice)
+		this.generateCantusFirmus();
+		
+		// Generate counterpoint melody based on species
+		switch (this.speciesType) {
+			case 1:
+				this.writeFirstSpecies();
+				break;
+			case 2:
+				this.writeSecondSpecies();
+				break;
+			case 3:
+				this.writeThirdSpecies();
+				break;
+			case 4:
+				this.writeFourthSpecies();
+				break;
+			case 5:
+				this.writeFifthSpecies();
+				break;
+			default:
+				console.log(`Unknown species: ${this.speciesType}`);
+				this.writeFirstSpecies();
+		}
+	}
+
+	private generateCantusFirmus(): void {
+		// Generate cantus firmus based on total length (measures * beatsPerMeasure)
+		const totalLength = this.phraseLength * this.beatsPerMeasure;
+		this.lowerVoiceI = [1]; // Start on tonic
+		
+		for (let i = 1; i < totalLength - 1; i++) {
+			const lastNote = this.lowerVoiceI[this.lowerVoiceI.length - 1];
+			let nextNote: number;
+			
+			// Simple stepwise motion with occasional leaps
+			if (Math.random() < 0.7) {
+				// Stepwise motion
+				nextNote = lastNote + (Math.random() < 0.5 ? 1 : -1);
+			} else {
+				// Small leap (3rd or 4th)
+				const leap = Math.random() < 0.5 ? 2 : 3;
+				nextNote = lastNote + (Math.random() < 0.5 ? leap : -leap);
+			}
+			
+			// Keep in reasonable range
+			if (nextNote < -2) nextNote = -2;
+			if (nextNote > 6) nextNote = 6;
+			
+			this.lowerVoiceI.push(nextNote);
+		}
+		
+		// End with step to tonic
+		this.lowerVoiceI.push(1);
+		
+		// Convert to Note objects
+		for (const i of this.lowerVoiceI) {
+			this.phraseN.addNoteToLowerVoice(this.convertIntToNote(i));
+		}
+	}
+
+	private writeFirstSpecies(): void {
+		const firstSpecies = new FirstSpecies();
+		const totalLength = this.phraseLength * this.beatsPerMeasure;
+		const counterpoint = firstSpecies.generateCounterpoint(this.lowerVoiceI, totalLength);
+		
+		for (const note of counterpoint) {
+			this.phraseN.addNoteToUpperVoice(this.convertIntToNote(note));
+		}
+	}
+
+	private writeSecondSpecies(): void {
+		const secondSpecies = new SecondSpecies();
+		const totalLength = this.phraseLength * this.beatsPerMeasure;
+		const counterpoint = secondSpecies.generateCounterpoint(this.lowerVoiceI, totalLength);
+		
+		for (const note of counterpoint) {
+			if (note === 0) {
+				// Rest - skip or use a rest note
+				continue;
+			}
+			this.phraseN.addNoteToUpperVoice(this.convertIntToNoteTwo(note));
+		}
+	}
+
+	private writeThirdSpecies(): void {
+		const thirdSpecies = new ThirdSpecies();
+		const totalLength = this.phraseLength * this.beatsPerMeasure;
+		const counterpoint = thirdSpecies.generateCounterpoint(this.lowerVoiceI, totalLength);
+		
+		for (const note of counterpoint) {
+			this.phraseN.addNoteToUpperVoice(this.convertIntToNote(note));
+		}
+	}
+
+	private writeFourthSpecies(): void {
+		const fourthSpecies = new FourthSpecies();
+		const totalLength = this.phraseLength * this.beatsPerMeasure;
+		const counterpoint = fourthSpecies.generateCounterpoint(this.lowerVoiceI, totalLength);
+		
+		for (const note of counterpoint) {
+			if (note === 0) {
+				// Rest - skip or use a rest note
+				continue;
+			}
+			this.phraseN.addNoteToUpperVoice(this.convertIntToNoteTwo(note));
+		}
+	}
+
+	private writeFifthSpecies(): void {
+		const fifthSpecies = new FifthSpecies();
+		const totalLength = this.phraseLength * this.beatsPerMeasure;
+		const counterpoint = fifthSpecies.generateCounterpoint(this.lowerVoiceI, totalLength);
+		
+		for (const note of counterpoint) {
+			if (note === 0) {
+				// Rest - create a rest note (using Note with duration but no pitch)
+				// For now, we'll convert rests to actual notes to maintain count
+				// In a full implementation, we'd need a proper Rest class
+				const restAsNote = new Note(this.convertIntToNote(1).getNote(), 4); // Use tonic as placeholder
+				this.phraseN.addNoteToUpperVoice(restAsNote);
+			} else {
+				// Use quarter notes for fifth species
+				const quarterNote = new Note(this.convertIntToNote(note).getNote(), 4);
+				this.phraseN.addNoteToUpperVoice(quarterNote);
+			}
 		}
 	}
 }

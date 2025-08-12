@@ -1,15 +1,16 @@
 import { Note } from './note.js';
+import { KeyInfo } from './key.js';
 
 export class Phrase {
 	private upperVoice: Note[] = [];
 	private lowerVoice: Note[] = [];
-	private key: string = "c";
+	private key: KeyInfo = { key: 'c', type: 'natural', notes: [] };
 	private timeSignature: string = "4/4";
 
-	constructor(upperVoice: Note[] = [], lowerVoice: Note[] = [], key: string = "c", timeSignature: string = "4/4") {
+	constructor(upperVoice: Note[] = [], lowerVoice: Note[] = [], key: KeyInfo = { key: 'c', type: 'natural', notes: [] }, timeSignature: string = "4/4") {
 		this.upperVoice = upperVoice;
 		this.lowerVoice = lowerVoice;
-		this.key = this.verifyKey(key);
+		this.key = key;
 		this.timeSignature = timeSignature;
 	}
 
@@ -21,8 +22,8 @@ export class Phrase {
 		this.lowerVoice.push(note);
 	}
 
-	setKey(key: string): void {
-		this.key = this.verifyKey(key);
+	setKey(key: KeyInfo): void {
+		this.key = key;
 	}
 
 	setTimeSignature(timeSignature: string): void {
@@ -41,27 +42,12 @@ export class Phrase {
 		return this.timeSignature;
 	}
 
-	getKey(): string {
+	getKey(): KeyInfo {
 		return this.key;
 	}
 
-	private verifyKey(key: string): string {
-		key = key.toLowerCase();
-
-		if (key.charAt(0) < 'a' || key.charAt(0) > 'g') {
-			throw new Error("Invalid key letter passed to phrase class!");
-		}
-
-		if (key.length === 1) return key;
-
-		if (key.length !== 3) {
-			throw new Error("Invalid key length passed to phrase class!");
-		}
-
-		if (key.substring(1, 3) === "es" || key.substring(1, 3) === "is") {
-			return key;
-		}
-
-		throw new Error("Invalid key passed to phrase class!");
+	getKeyString(): string {
+		return this.key.key;
 	}
+
 }

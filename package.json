@@ -3,8 +3,9 @@
 	"version": "1.0.0",
 	"description": "website for counterpoint generator using lilypond",
 	"main": "index.js",
+	"type": "module",
 	"scripts": {
-		"build": "tsc && cp -r public/* dist/",
+		"build": "tsc && copyfiles -u 1 \"public/**/*\" dist",
 		"dev": "tsc --watch"
 	},
 	"keywords": [],
@@ -12,6 +13,7 @@
 	"license": "ISC",
 	"devDependencies": {
 		"@types/node": "^24.2.1",
+		"copyfiles": "^2.4.1",
 		"typescript": "^5.9.2"
 	}
 }

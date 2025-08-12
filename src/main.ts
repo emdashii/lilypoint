@@ -34,7 +34,7 @@ async function main(): Promise<void> {
 			console.log("	Options for Key: C, Db, D, Eb, E, F, F#, G, Ab, A, Bb, B");
 			
 			keyDesired = await getStringInput(`	Enter the key you want phrase ${i + 1} to be in: `);
-			speciesTypeDesired = await getNumberInput(`	Which species type would you like phrase ${i + 1} to be (0, 1 or 2): `);
+			speciesTypeDesired = await getNumberInput(`	Which species type would you like phrase ${i + 1} to be?\n\t\tNew species (1-5): 1=First, 2=Second, 3=Third, 4=Fourth, 5=Fifth\n\t\tLegacy species: -1=Imitative, -2=Legacy First, -4=Legacy Second\n\t\tEnter species: `);
 			lengthDesired = await getNumberInput(`	Enter how many measures you want phrase ${i + 1} to consist of: `);
 			beatsPerMeasureDesired = await getNumberInput(`	Enter how many notes you want per measure for phrase ${i + 1}: `);
 
