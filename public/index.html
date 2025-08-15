@@ -68,6 +68,14 @@
 										</div>
 
 										<div class="form-group">
+											<label for="mode1">mode:</label>
+											<select id="mode1" required>
+												<option value="major" selected>major</option>
+												<option value="minor">minor</option>
+											</select>
+										</div>
+
+										<div class="form-group">
 											<label for="species1">species type:</label>
 											<select id="species1" required>
 												<optgroup label="Five Species Counterpoint">
@@ -76,11 +84,6 @@
 													<option value="3">Third Species (4 against 1)</option>
 													<option value="4">Fourth Species (syncopated)</option>
 													<option value="5">Fifth Species (florid)</option>
-												</optgroup>
-												<optgroup label="Legacy Species">
-													<option value="-1">Legacy Imitative</option>
-													<option value="-2">Legacy First Species</option>
-													<option value="-4">Legacy Second Species</option>
 												</optgroup>
 											</select>
 										</div>
@@ -224,31 +227,42 @@
 						// Generate each phrase
 						for (let i = 1; i <= numPhrases; i++) {
 							const key = document.getElementById(`key${i}`).value;
+							const mode = document.getElementById(`mode${i}`).value;
 							const species = parseInt(document.getElementById(`species${i}`).value);
 							const measures = parseInt(document.getElementById(`measures${i}`).value);
 							const beatsPerMeasure = parseInt(document.getElementById(`beatsPerMeasure${i}`).value);
 
 							const phrase = new WritePhrase(key, measures, species, beatsPerMeasure);
+							phrase.setMode(mode);
 							phrase.writeThePhrase();
 							exportToFile.addPhrase(phrase.getPhrase());
 
 							// Display phrase info
-							const getSpeciesName = (species) => {
+							const getSpeciesName = species => {
 								switch (species) {
-									case 1: return 'First Species';
-									case 2: return 'Second Species';
-									case 3: return 'Third Species';
-									case 4: return 'Fourth Species';
-									case 5: return 'Fifth Species';
-									case -1: return 'Legacy Imitative';
-									case -2: return 'Legacy First Species';
-									case -4: return 'Legacy Second Species';
-									default: return 'Species ' + species;
+									case 1:
+										return 'First Species';
+									case 2:
+										return 'Second Species';
+									case 3:
+										return 'Third Species';
+									case 4:
+										return 'Fourth Species';
+									case 5:
+										return 'Fifth Species';
+									case -1:
+										return 'Legacy Imitative';
+									case -2:
+										return 'Legacy First Species';
+									case -4:
+										return 'Legacy Second Species';
+									default:
+										return 'Species ' + species;
 								}
 							};
-							
+
 							results.innerHTML += `<div class="phrase-result">
-							<h4>Phrase ${i} - ${key} Major ${getSpeciesName(species)}</h4>
+							<h4>Phrase ${i} - ${key} ${mode.charAt(0).toUpperCase() + mode.slice(1)} ${getSpeciesName(species)}</h4>
 							<p>Measures: ${measures}, Beats per measure: ${beatsPerMeasure}</p>
 						</div>`;
 						}
@@ -299,6 +313,13 @@
 								</select>
 							</div>
 							<div class="form-group">
+								<label for="mode${i}">mode:</label>
+								<select id="mode${i}" required>
+									<option value="major" selected>major</option>
+									<option value="minor">minor</option>
+								</select>
+							</div>
+							<div class="form-group">
 								<label for="species${i}">species type:</label>
 								<select id="species${i}" required>
 									<optgroup label="Five Species Counterpoint">
@@ -307,11 +328,6 @@
 										<option value="3">Third Species (4 against 1)</option>
 										<option value="4">Fourth Species (syncopated)</option>
 										<option value="5">Fifth Species (florid)</option>
-									</optgroup>
-									<optgroup label="Legacy Species">
-										<option value="-1">Legacy Imitative</option>
-										<option value="-2">Legacy First Species</option>
-										<option value="-4">Legacy Second Species</option>
 									</optgroup>
 								</select>
 							</div>

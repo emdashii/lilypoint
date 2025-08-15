@@ -5,15 +5,16 @@ import { SpeciesOne } from './species-one.js';
 import { SpeciesTwo } from './species-two.js';
 import { GenerateLowerVoice } from './generate-lower-voice.js';
 import { Key, KeyInfo } from './key.js';
+import { CantusFirmus } from './cantus-firmus.js';
 import { FirstSpecies } from './first-species.js';
 import { SecondSpecies } from './second-species.js';
 import { ThirdSpecies } from './third-species.js';
 import { FourthSpecies } from './fourth-species.js';
 import { FifthSpecies } from './fifth-species.js';
-// Force recompilation
 
 export class WritePhrase {
 	private key: Key;
+	private mode: string = "major";
 	private phraseLength: number;
 	private beatsPerMeasure: number = 4;
 	private speciesType: number = -2;
@@ -25,7 +26,7 @@ export class WritePhrase {
 	constructor(key: string, phraseLength: number);
 	constructor(key: string, phraseLength: number, speciesType: number, beatsPerMeasure: number);
 	constructor(key: string, phraseLength: number, speciesType?: number, beatsPerMeasure?: number) {
-		this.key = new Key(key);
+		this.key = new Key(key, this.mode);
 		this.phraseLength = phraseLength;
 		if (speciesType !== undefined) this.speciesType = speciesType;
 		if (beatsPerMeasure !== undefined) this.beatsPerMeasure = beatsPerMeasure;
@@ -46,11 +47,17 @@ export class WritePhrase {
 	getBeatsPerMeasure(): number { return this.beatsPerMeasure; }
 	getSpeciesType(): number { return this.speciesType; }
 	getTotalLength(): number { return this.phraseLength * this.beatsPerMeasure; }
+	getMode(): string { return this.mode; }
 
 	setLength(length: number): void { this.phraseLength = length; }
 	setBeatsPerMeasure(beatsPerMeasure: number): void { this.beatsPerMeasure = beatsPerMeasure; }
 	setSpeciesType(speciesType: number): void { this.speciesType = speciesType; }
-	setKey(key: string): void { this.key = new Key(key); }
+	setKey(key: string): void { this.key = new Key(key, this.mode); }
+	setMode(mode: string): void { 
+		this.mode = mode; 
+		// Update the key with the new mode
+		this.key = new Key(this.key.getKeyName(), mode);
+	}
 
 	getPhrase(): Phrase {
 		this.phraseN.setKey(this.getKey());
@@ -59,8 +66,9 @@ export class WritePhrase {
 	}
 
 	writeThePhrase(): void {
-		// Handle legacy species (negative numbers)
+		// Handle legacy species (negative numbers) - keep existing functionality
 		if (this.speciesType === -1) {
+			// Legacy imitative counterpoint
 			const imitative = new SpeciesOne();
 			imitative.writeImitativeTwoVoices(this.phraseLength * this.beatsPerMeasure);
 			this.lowerVoiceI = imitative.getImitativeLower();
@@ -71,20 +79,126 @@ export class WritePhrase {
 				this.phraseN.addNoteToUpperVoice(this.convertIntToNote(this.upperVoiceI[i]));
 			}
 		} else if (this.speciesType === -4) {
+			// Legacy second species
 			this.writeUpperVoiceTwo();
 		} else if (this.speciesType === -2) {
+			// Legacy first species
 			this.writeLowerVoice();
 			this.writeUpperVoiceOne();
 		}
-		// Handle new proper species (positive numbers)
+		// Handle new proper species (positive numbers) - NEW IMPLEMENTATION
 		else if (this.speciesType >= 1 && this.speciesType <= 5) {
-			this.writeProperCounterpoint();
+			this.writeProperSpeciesCounterpoint();
 		} else {
 			console.log(`Unknown species type: ${this.speciesType}. Converting to First Species (1)`);
 			this.speciesType = 1;
-			this.writeProperCounterpoint();
+			this.writeProperSpeciesCounterpoint();
 		}
 	}
+
+	private writeProperSpeciesCounterpoint(): void {
+		// NEW METHOD: Generate counterpoint using the new architecture
+
+		// Step 1: Generate Cantus Firmus
+		const cantusFirmus = new CantusFirmus(this.key.getKeyName(), this.phraseLength, this.mode);
+		const cantusFirmusNotes = cantusFirmus.generate();
+
+		// Step 2: Generate Counterpoint based on species type
+		let counterpointNotes: Note[] = [];
+
+		switch (this.speciesType) {
+			case 1: {
+				// First Species - note against note
+				const firstSpecies = new FirstSpecies();
+				counterpointNotes = firstSpecies.generateCounterpoint(cantusFirmusNotes);
+				break;
+			}
+			case 2: {
+				// Second Species - 2:1
+				const secondSpecies = new SecondSpecies();
+				counterpointNotes = secondSpecies.generateCounterpoint(cantusFirmusNotes);
+				break;
+			}
+			case 3: {
+				// Third Species - 4:1
+				const thirdSpecies = new ThirdSpecies();
+				counterpointNotes = thirdSpecies.generateCounterpoint(cantusFirmusNotes);
+				break;
+			}
+			case 4: {
+				// Fourth Species - syncopation
+				const fourthSpecies = new FourthSpecies();
+				counterpointNotes = fourthSpecies.generateCounterpoint(cantusFirmusNotes);
+				break;
+			}
+			case 5: {
+				// Fifth Species - florid counterpoint
+				const fifthSpecies = new FifthSpecies();
+				counterpointNotes = fifthSpecies.generateCounterpoint(cantusFirmusNotes);
+				break;
+			}
+			default: {
+				// Default to first species
+				const firstSpecies = new FirstSpecies();
+				counterpointNotes = firstSpecies.generateCounterpoint(cantusFirmusNotes);
+				break;
+			}
+		}
+
+		// Step 3: Assign voices to the phrase
+		// Cantus firmus typically goes in the lower voice
+		for (const note of cantusFirmusNotes) {
+			this.phraseN.addNoteToLowerVoice(note);
+		}
+
+		// Counterpoint goes in the upper voice
+		for (const note of counterpointNotes) {
+			this.phraseN.addNoteToUpperVoice(note);
+		}
+
+		// Handle special cases for different species rhythms
+		this.adjustForSpeciesRhythm();
+	}
+
+	private adjustForSpeciesRhythm(): void {
+		// Adjust note lengths based on species type
+		const lowerVoice = this.phraseN.getLowerVoice();
+		const upperVoice = this.phraseN.getUpperVoice();
+
+		switch (this.speciesType) {
+			case 1:
+				// First species - both voices have whole notes
+				lowerVoice.forEach(note => note.setLength(1));
+				upperVoice.forEach(note => note.setLength(1));
+				break;
+
+			case 2:
+				// Second species - CF has whole notes, CP has half notes
+				lowerVoice.forEach(note => note.setLength(1));
+				// Upper voice already has correct lengths from generation
+				break;
+
+			case 3:
+				// Third species - CF has whole notes, CP has quarter notes
+				lowerVoice.forEach(note => note.setLength(1));
+				// Upper voice already has correct lengths from generation
+				break;
+
+			case 4:
+				// Fourth species - CF has whole notes, CP has syncopated half notes
+				lowerVoice.forEach(note => note.setLength(1));
+				// Upper voice already has correct lengths from generation
+				break;
+
+			case 5:
+				// Fifth species - CF has whole notes, CP has mixed values
+				lowerVoice.forEach(note => note.setLength(1));
+				// Upper voice already has varied lengths from generation
+				break;
+		}
+	}
+
+	// Legacy methods below - kept for backward compatibility with negative species types
 
 	printPhraseI(): void {
 		console.log("Phrase in ints: ");
@@ -186,6 +300,7 @@ export class WritePhrase {
 		}
 	}
 
+	// Legacy methods for backward compatibility
 	private writeLowerVoice(): void {
 		const lower = new GenerateLowerVoice(this.phraseLength * this.beatsPerMeasure);
 		this.lowerVoiceI = lower.getLowerVoice();
@@ -240,144 +355,5 @@ export class WritePhrase {
 		}
 		this.phraseN.addNoteToUpperVoice(this.convertIntToNoteTwo(this.upperVoiceI[this.upperVoiceI.length - 4]));
 		this.phraseN.addNoteToUpperVoice(this.convertIntToNoteTwo(this.upperVoiceI[this.upperVoiceI.length - 3]));
-	}
-
-	private writeLowerVoiceTwo(): void {
-		const imitativeLower = new SpeciesOne();
-		imitativeLower.writeImitativeTwoVoices(Math.floor(this.phraseLength * this.beatsPerMeasure / 2));
-		this.lowerVoiceI = imitativeLower.getImitativeLower();
-		for (const i of this.lowerVoiceI) {
-			this.phraseN.addNoteToLowerVoice(this.convertIntToNoteTwo(i));
-		}
-	}
-
-	private writeProperCounterpoint(): void {
-		// Generate cantus firmus (lower voice)
-		this.generateCantusFirmus();
-		
-		// Generate counterpoint melody based on species
-		switch (this.speciesType) {
-			case 1:
-				this.writeFirstSpecies();
-				break;
-			case 2:
-				this.writeSecondSpecies();
-				break;
-			case 3:
-				this.writeThirdSpecies();
-				break;
-			case 4:
-				this.writeFourthSpecies();
-				break;
-			case 5:
-				this.writeFifthSpecies();
-				break;
-			default:
-				console.log(`Unknown species: ${this.speciesType}`);
-				this.writeFirstSpecies();
-		}
-	}
-
-	private generateCantusFirmus(): void {
-		// Generate cantus firmus based on total length (measures * beatsPerMeasure)
-		const totalLength = this.phraseLength * this.beatsPerMeasure;
-		this.lowerVoiceI = [1]; // Start on tonic
-		
-		for (let i = 1; i < totalLength - 1; i++) {
-			const lastNote = this.lowerVoiceI[this.lowerVoiceI.length - 1];
-			let nextNote: number;
-			
-			// Simple stepwise motion with occasional leaps
-			if (Math.random() < 0.7) {
-				// Stepwise motion
-				nextNote = lastNote + (Math.random() < 0.5 ? 1 : -1);
-			} else {
-				// Small leap (3rd or 4th)
-				const leap = Math.random() < 0.5 ? 2 : 3;
-				nextNote = lastNote + (Math.random() < 0.5 ? leap : -leap);
-			}
-			
-			// Keep in reasonable range
-			if (nextNote < -2) nextNote = -2;
-			if (nextNote > 6) nextNote = 6;
-			
-			this.lowerVoiceI.push(nextNote);
-		}
-		
-		// End with step to tonic
-		this.lowerVoiceI.push(1);
-		
-		// Convert to Note objects
-		for (const i of this.lowerVoiceI) {
-			this.phraseN.addNoteToLowerVoice(this.convertIntToNote(i));
-		}
-	}
-
-	private writeFirstSpecies(): void {
-		const firstSpecies = new FirstSpecies();
-		const totalLength = this.phraseLength * this.beatsPerMeasure;
-		const counterpoint = firstSpecies.generateCounterpoint(this.lowerVoiceI, totalLength);
-		
-		for (const note of counterpoint) {
-			this.phraseN.addNoteToUpperVoice(this.convertIntToNote(note));
-		}
-	}
-
-	private writeSecondSpecies(): void {
-		const secondSpecies = new SecondSpecies();
-		const totalLength = this.phraseLength * this.beatsPerMeasure;
-		const counterpoint = secondSpecies.generateCounterpoint(this.lowerVoiceI, totalLength);
-		
-		for (const note of counterpoint) {
-			if (note === 0) {
-				// Rest - skip or use a rest note
-				continue;
-			}
-			this.phraseN.addNoteToUpperVoice(this.convertIntToNoteTwo(note));
-		}
-	}
-
-	private writeThirdSpecies(): void {
-		const thirdSpecies = new ThirdSpecies();
-		const totalLength = this.phraseLength * this.beatsPerMeasure;
-		const counterpoint = thirdSpecies.generateCounterpoint(this.lowerVoiceI, totalLength);
-		
-		for (const note of counterpoint) {
-			this.phraseN.addNoteToUpperVoice(this.convertIntToNote(note));
-		}
-	}
-
-	private writeFourthSpecies(): void {
-		const fourthSpecies = new FourthSpecies();
-		const totalLength = this.phraseLength * this.beatsPerMeasure;
-		const counterpoint = fourthSpecies.generateCounterpoint(this.lowerVoiceI, totalLength);
-		
-		for (const note of counterpoint) {
-			if (note === 0) {
-				// Rest - skip or use a rest note
-				continue;
-			}
-			this.phraseN.addNoteToUpperVoice(this.convertIntToNoteTwo(note));
-		}
-	}
-
-	private writeFifthSpecies(): void {
-		const fifthSpecies = new FifthSpecies();
-		const totalLength = this.phraseLength * this.beatsPerMeasure;
-		const counterpoint = fifthSpecies.generateCounterpoint(this.lowerVoiceI, totalLength);
-		
-		for (const note of counterpoint) {
-			if (note === 0) {
-				// Rest - create a rest note (using Note with duration but no pitch)
-				// For now, we'll convert rests to actual notes to maintain count
-				// In a full implementation, we'd need a proper Rest class
-				const restAsNote = new Note(this.convertIntToNote(1).getNote(), 4); // Use tonic as placeholder
-				this.phraseN.addNoteToUpperVoice(restAsNote);
-			} else {
-				// Use quarter notes for fifth species
-				const quarterNote = new Note(this.convertIntToNote(note).getNote(), 4);
-				this.phraseN.addNoteToUpperVoice(quarterNote);
-			}
-		}
 	}
 }

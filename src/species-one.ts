@@ -1,4 +1,5 @@
 import { Species } from './species.js';
+import { Note } from './note.js';
 
 export class SpeciesOne extends Species {
 	protected noteOptions: number[] = [];
@@ -6,6 +7,10 @@ export class SpeciesOne extends Species {
 	private lower: number[] = [];
 	private upper: number[] = [];
 	private count: number = 0;
+
+	generateCounterpoint(cantusFirmus: Note[]): Note[] {
+		return [];
+	}
 
 	chooseNextNote(): number {
 		this.noteOptions = [];

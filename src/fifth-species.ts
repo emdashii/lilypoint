@@ -1,355 +1,321 @@
 import { Species } from './species.js';
+import { Note } from './note.js';
+import { NoteType } from './types-and-globals.js';
 
 export class FifthSpecies extends Species {
-	protected noteOptions: number[] = [];
-	protected previousIntervals: number[] = [];
-	private currentBeat: number = 0;
-	private currentStyle: 'first' | 'second' | 'third' | 'fourth' = 'first';
-	private climaxPosition: number = -1;
-	private measurePattern: string[] = [];
+    private currentRhythm: 'whole' | 'half' | 'quarter' | 'eighth' = 'quarter';
+    private measuresGenerated: number = 0;
+    private notesInCurrentMeasure: number = 0;
+    private rhythmPattern: number[] = []; // Note lengths for variety
 
-	/**
-	 * Fifth Species Counterpoint: Florid counterpoint combining all previous species
-	 * Rules:
-	 * - Can combine whole notes, half notes, quarter notes
-	 * - Can include suspensions from fourth species
-	 * - Can include passing tones and neighbors from second/third species
-	 * - Most flexible species - "florid" style
-	 * - Must maintain voice leading principles from all species
-	 */
-	chooseNextNote(
-		noteValue: 'whole' | 'half' | 'quarter' = 'quarter',
-		beatPosition: number = 0,
-		allowDissonance: boolean = false
-	): number {
-		this.currentBeat = beatPosition;
-		this.noteOptions = [];
-		
-		// Generate initial options
-		this.h_cannotCrossMelody();
-		
-		// Apply rules based on note value and position
-		if (noteValue === 'whole') {
-			// Whole note - first species rules
-			this.applyFirstSpeciesRules();
-		} else if (noteValue === 'half') {
-			// Half note - second species rules
-			this.applySecondSpeciesRules(beatPosition === 0);
-		} else {
-			// Quarter note - third species rules
-			this.applyThirdSpeciesRules(beatPosition, allowDissonance);
-		}
-		
-		// Common rules for all note values
-		this.h_avoidDimFifth();
-		this.m_maintainGoodVoiceLeading();
-		this.m_createVariety();
-		
-		if (this.noteOptions.length === 0) {
-			return this.generateFallbackNote();
-		}
-		
-		const toChoose = Math.floor(Math.random() * this.noteOptions.length);
-		return this.noteOptions[toChoose];
-	}
+    constructor() {
+        super();
 
-	generateCounterpoint(cantusFirmus: number[], length: number): number[] {
-		const counterpoint: number[] = [];
-		this.findClimaxPosition(length);
-		
-		// Generate exactly 'length' number of notes with varied rhythm
-		for (let i = 0; i < length; i++) {
-			const cantusFirmusIndex = Math.floor(i / 4) % cantusFirmus.length;
-			const cantusFirmusNote = cantusFirmus[cantusFirmusIndex];
-			const beat = i % 4;
-			
-			this.setNoteBelow(cantusFirmusNote);
-			if (i > 0) {
-				const prevNote = counterpoint[i - 1];
-				if (prevNote !== 0) { // Skip if previous was a rest
-					this.setNoteBefore(prevNote);
-				}
-				if (i > 1) {
-					const prevCantusFirmusIndex = Math.floor((i - 1) / 4) % cantusFirmus.length;
-					this.setNoteBeforeAndBelow(cantusFirmus[prevCantusFirmusIndex]);
-				}
-			}
-			if (i > 1) {
-				const twoBefore = counterpoint[i - 2];
-				if (twoBefore !== 0) {
-					this.setNoteTwoBefore(twoBefore);
-				}
-			}
-			
-			let nextNote: number;
-			
-			if (i === 0) {
-				// First note must be perfect consonance
-				nextNote = Math.random() < 0.7 ? cantusFirmusNote + 7 : cantusFirmusNote + 4;
-			} else if (i === length - 1) {
-				// Final note - octave resolution
-				const finalCantusFirmusIndex = Math.floor((length - 1) / 4) % cantusFirmus.length;
-				nextNote = cantusFirmus[finalCantusFirmusIndex] + 7;
-			} else {
-				// Occasionally add rests for rhythmic variety
-				if (Math.random() < 0.1 && beat !== 0) {
-					nextNote = 0; // Rest
-				} else {
-					const noteValue = this.randomNoteValue();
-					const allowDissonance = Math.random() < 0.2 && beat !== 0;
-					nextNote = this.chooseNextNote(noteValue, beat, allowDissonance);
-				}
-			}
-			
-			counterpoint.push(nextNote);
-			this.updatePreviousIntervals();
-		}
-		
-		return counterpoint;
-	}
-	
-	private randomNoteValue(): 'whole' | 'half' | 'quarter' {
-		const values = ['half', 'quarter', 'quarter', 'quarter']; // Favor quarters
-		return values[Math.floor(Math.random() * values.length)] as 'whole' | 'half' | 'quarter';
-	}
+        // Enable all rules - fifth species combines all previous species
+        this.rules.mustBeginOnPerfectConsonance = true;
+        this.rules.mustEndOnPerfectConsonance = true;
+        this.rules.noUnisonExceptEnds = true;
+        this.rules.onlyConsonantOnDownbeat = true;
+        this.rules.allowDissonantPassing = true;
+        this.rules.allowSuspensions = true;
+        this.rules.resolveSuspensionsDown = true;
+        this.rules.noParallelFifths = true;
+        this.rules.noParallelOctaves = true;
+        this.rules.noHiddenParallels = true;
+        this.rules.preferContraryMotion = true;
+        this.rules.noLargeLeaps = true;
+        this.rules.approachLeapsByStep = true;
+        this.rules.noVoiceCrossing = true;
+        this.rules.limitToTenth = true;
+        this.rules.approachFinalByStep = true;
+    }
 
-	private generateRhythmPattern(length: number): string[][] {
-		const patterns: string[][] = [];
-		
-		for (let measure = 0; measure < length; measure++) {
-			if (measure === 0) {
-				// First measure - simple start
-				patterns.push(['half', 'half']);
-			} else if (measure === length - 1) {
-				// Final measure - approach to cadence
-				patterns.push(['quarter', 'quarter', 'half']);
-			} else {
-				// Vary the patterns throughout
-				const patternType = Math.floor(Math.random() * 6);
-				switch (patternType) {
-					case 0:
-						patterns.push(['whole']); // First species
-						break;
-					case 1:
-						patterns.push(['half', 'half']); // Second species
-						break;
-					case 2:
-						patterns.push(['quarter', 'quarter', 'quarter', 'quarter']); // Third species
-						break;
-					case 3:
-						patterns.push(['half', 'half']); // Fourth species (tied)
-						break;
-					case 4:
-						patterns.push(['quarter', 'half', 'quarter']); // Mixed
-						break;
-					case 5:
-						patterns.push(['half', 'quarter', 'quarter']); // Mixed
-						break;
-				}
-			}
-		}
-		
-		return patterns;
-	}
+    generateCounterpoint(cantusFirmus: Note[]): Note[] {
+        this.cantusFirmus = cantusFirmus.map(n => n.getNote());
+        this.counterpoint = [];
+        this.rhythmPattern = [];
 
-	private findClimaxPosition(totalNotes: number): void {
-		const start = Math.floor(totalNotes * 0.3);
-		const end = Math.floor(totalNotes * 0.7);
-		this.climaxPosition = start + Math.floor(Math.random() * (end - start));
-	}
+        // Fifth species uses mixed note values - florid counterpoint
+        for (let cfIndex = 0; cfIndex < this.cantusFirmus.length; cfIndex++) {
+            this.setNoteBelow(this.cantusFirmus[cfIndex]);
+            this.currentIndex = cfIndex;
+            this.measuresGenerated = cfIndex;
 
-	protected h_cannotCrossMelody(): void {
-		for (let i = this.noteBelow + 1; i <= this.noteBelow + 12; i++) {
-			this.noteOptions.push(i);
-		}
-	}
+            // Determine rhythm pattern for this measure
+            const pattern = this.selectRhythmPattern(cfIndex);
 
-	private applyFirstSpeciesRules(): void {
-		// First species: only consonances, no unison except ends
-		this.noteOptions = this.noteOptions.filter(note => {
-			const interval = note - this.noteBelow;
-			return [2, 3, 4, 5, 7].includes(interval); // 3rd, 4th, 5th, 6th, octave
-		});
-		
-		// Remove unison
-		const unisonIndex = this.noteOptions.indexOf(this.noteBelow);
-		if (unisonIndex > -1) {
-			this.noteOptions.splice(unisonIndex, 1);
-		}
-	}
+            // Generate notes according to the pattern
+            this.generateMeasure(pattern, cfIndex);
+        }
 
-	private applySecondSpeciesRules(isStrongBeat: boolean): void {
-		if (isStrongBeat) {
-			// Strong beat - consonant only
-			this.applyFirstSpeciesRules();
-		} else {
-			// Weak beat - allow passing tones
-			this.allowPassingTones();
-		}
-	}
+        // Convert to Note objects with appropriate durations
+        const notes: Note[] = [];
+        for (let i = 0; i < this.counterpoint.length; i++) {
+            const duration = this.rhythmPattern[i] || 4;
+            notes.push(new Note(this.counterpoint[i] as NoteType, duration));
+        }
 
-	private applyThirdSpeciesRules(beatPosition: number, allowDissonance: boolean): void {
-		if (beatPosition === 0) {
-			// Strong beat - consonant
-			this.applyFirstSpeciesRules();
-		} else if (allowDissonance) {
-			// Weak beat - allow embellishments
-			this.allowEmbellishments();
-		} else {
-			// Weak beat consonant
-			this.applyFirstSpeciesRules();
-		}
-	}
+        return notes;
+    }
 
-	private allowPassingTones(): void {
-		if (this.noteBefore !== 0) {
-			// Add stepwise options
-			const stepUp = this.noteBefore + 1;
-			const stepDown = this.noteBefore - 1;
-			
-			[stepUp, stepDown].forEach(note => {
-				if (note > this.noteBelow && note <= this.noteBelow + 12) {
-					if (!this.noteOptions.includes(note)) {
-						this.noteOptions.push(note);
-					}
-				}
-			});
-		}
-		
-		// Keep consonant intervals too
-		const consonantOptions = this.noteOptions.filter(note => {
-			const interval = note - this.noteBelow;
-			return [2, 3, 4, 5, 7].includes(interval);
-		});
-		
-		this.noteOptions = [...new Set([...this.noteOptions, ...consonantOptions])];
-	}
+    private selectRhythmPattern(measureIndex: number): number[] {
+        // Select rhythm pattern for this measure
+        // Returns array of note durations that sum to a whole note (4 beats)
 
-	private allowEmbellishments(): void {
-		this.allowPassingTones();
-		
-		// Add neighbor tones
-		if (this.noteBefore !== 0 && this.noteTwoBefore !== 0) {
-			// Upper and lower neighbors
-			const upperNeighbor = this.noteTwoBefore + 1;
-			const lowerNeighbor = this.noteTwoBefore - 1;
-			
-			[upperNeighbor, lowerNeighbor].forEach(note => {
-				if (note > this.noteBelow && note <= this.noteBelow + 12) {
-					if (!this.noteOptions.includes(note)) {
-						this.noteOptions.push(note);
-					}
-				}
-			});
-		}
-	}
+        if (measureIndex === 0) {
+            // First measure - start simple
+            return [2, 2]; // Two half notes
+        }
 
-	private canUseDissonance(noteValue: string, beat: number, pattern: string[]): boolean {
-		// Dissonance allowed on weak beats of shorter note values
-		if (noteValue === 'whole') return false;
-		if (noteValue === 'half' && beat === 0) return false;
-		if (noteValue === 'quarter' && beat === 0) return false;
-		
-		// Allow dissonance as passing tones or neighbors
-		return true;
-	}
+        if (measureIndex === this.cantusFirmus.length - 1) {
+            // Last measure - end with longer values
+            return [2, 4, 4]; // Half, quarter, quarter leading to final
+        }
 
-	protected h_avoidDimFifth(): void {
-		if (this.noteBelow % 7 === 0 || this.noteBelow % 7 === 6) {
-			const index = this.noteOptions.indexOf(this.noteBelow + 3);
-			if (index > -1 && Math.random() < 0.8) {
-				this.noteOptions.splice(index, 1);
-			}
-		}
-	}
+        // Middle measures - varied patterns
+        const patterns = [
+            [1], // Whole note (first species)
+            [2, 2], // Two halves (second species)
+            [4, 4, 4, 4], // Four quarters (third species)
+            [2, 2], // Syncopation (fourth species style)
+            [2, 4, 4], // Mixed values
+            [4, 4, 2], // Mixed values
+            [4, 8, 8, 4, 4], // With eighth notes
+            [8, 8, 4, 2], // Starting with eighths
+        ];
 
-	protected m_maintainGoodVoiceLeading(): void {
-		// Avoid large leaps except when necessary
-		if (this.noteBefore !== 0) {
-			this.noteOptions = this.noteOptions.filter(note => {
-				const leap = Math.abs(note - this.noteBefore);
-				
-				// Allow larger leaps occasionally for variety
-				if (leap > 4 && Math.random() < 0.8) {
-					return false;
-				}
-				
-				return true;
-			});
-		}
-		
-		// Avoid parallel perfect consonances
-		this.m_noParallelPerfectConsonances();
-	}
+        // Choose pattern based on context and variety
+        const lastPattern = this.getLastRhythmPattern();
+        let availablePatterns = patterns;
 
-	protected m_noParallelPerfectConsonances(): void {
-		if (this.noteBefore === 0 || this.noteBeforeAndBelow === 0) return;
-		
-		const previousInterval = this.noteBefore - this.noteBeforeAndBelow;
-		
-		[4, 7].forEach(interval => { // 5th and octave
-			if (previousInterval === interval) {
-				const index = this.noteOptions.indexOf(this.noteBelow + interval);
-				if (index > -1) {
-					this.noteOptions.splice(index, 1);
-				}
-			}
-		});
-	}
+        // Avoid repeating the same pattern
+        if (lastPattern.length > 0) {
+            availablePatterns = patterns.filter(p =>
+                p.length !== lastPattern.length ||
+                p.some((v, i) => v !== lastPattern[i])
+            );
+        }
 
-	protected m_createVariety(): void {
-		// Encourage variety in intervals and motion
-		if (this.previousIntervals.length >= 2) {
-			const lastTwoSame = this.previousIntervals[this.previousIntervals.length - 1] === 
-							   this.previousIntervals[this.previousIntervals.length - 2];
-			
-			if (lastTwoSame) {
-				const repeatedInterval = this.previousIntervals[this.previousIntervals.length - 1];
-				const noteToAvoid = this.noteBelow + repeatedInterval;
-				const index = this.noteOptions.indexOf(noteToAvoid);
-				if (index > -1) {
-					this.noteOptions.splice(index, 1);
-				}
-			}
-		}
-	}
+        // Prefer certain patterns in middle of phrase
+        if (measureIndex === Math.floor(this.cantusFirmus.length / 2)) {
+            // Climax area - prefer more active rhythm
+            availablePatterns = availablePatterns.filter(p => p.length >= 3);
+        }
 
-	private generateFallbackNote(): number {
-		// Safe fallback note
-		if (this.noteBefore !== 0) {
-			// Prefer stepwise motion
-			const step = Math.random() < 0.5 ? this.noteBefore + 1 : this.noteBefore - 1;
-			if (step > this.noteBelow && step <= this.noteBelow + 12) {
-				return step;
-			}
-		}
-		
-		// Default to third above cantus firmus
-		return this.noteBelow + 2;
-	}
+        const pattern = availablePatterns[Math.floor(Math.random() * availablePatterns.length)];
+        return pattern;
+    }
 
-	updatePreviousIntervals(): void {
-		if (this.noteBefore !== 0 && this.noteBelow !== 0) {
-			const interval = this.noteBefore - this.noteBelow;
-			this.previousIntervals.push(interval);
-			
-			// Keep sliding window
-			if (this.previousIntervals.length > 10) {
-				this.previousIntervals.shift();
-			}
-		}
-	}
+    private getLastRhythmPattern(): number[] {
+        // Get the rhythm pattern from the previous measure
+        if (this.rhythmPattern.length < 2) return [];
 
-	// Additional methods for rhythm and pattern management
-	setMeasurePattern(pattern: string[]): void {
-		this.measurePattern = pattern;
-	}
+        let sum = 0;
+        const pattern: number[] = [];
 
-	getCurrentStyle(): string {
-		return this.currentStyle;
-	}
+        for (let i = this.rhythmPattern.length - 1; i >= 0; i--) {
+            pattern.unshift(this.rhythmPattern[i]);
+            sum += 4 / this.rhythmPattern[i]; // Convert to beat value
+            if (sum >= 4) break; // Found a complete measure
+        }
 
-	setCurrentStyle(style: 'first' | 'second' | 'third' | 'fourth'): void {
-		this.currentStyle = style;
-	}
+        return pattern;
+    }
+
+    private generateMeasure(pattern: number[], cfIndex: number): void {
+        let beatsUsed = 0;
+
+        for (let i = 0; i < pattern.length; i++) {
+            const duration = pattern[i];
+            const isDownbeat = beatsUsed === 0;
+            const isLastNote = cfIndex === this.cantusFirmus.length - 1 && i === pattern.length - 1;
+            const isFirstNote = cfIndex === 0 && i === 0;
+
+            // Set context
+            if (this.counterpoint.length > 0) {
+                this.setNoteBefore(this.counterpoint[this.counterpoint.length - 1]);
+            }
+            if (this.counterpoint.length > 1) {
+                this.setNoteTwoBefore(this.counterpoint[this.counterpoint.length - 2]);
+            }
+            if (cfIndex > 0 && isDownbeat) {
+                this.setNoteBeforeAndBelow(this.cantusFirmus[cfIndex - 1]);
+            }
+
+            let nextNote: number;
+
+            if (isFirstNote) {
+                nextNote = this.generateFirstNote();
+            } else if (isLastNote) {
+                nextNote = this.generateLastNote();
+            } else if (cfIndex === this.cantusFirmus.length - 1) {
+                // Cadential approach
+                nextNote = this.generateCadentialNote(i, pattern.length);
+            } else {
+                // Regular note based on duration and position
+                nextNote = this.generateFloridNote(duration, isDownbeat, beatsUsed);
+            }
+
+            this.counterpoint.push(nextNote);
+            this.rhythmPattern.push(duration);
+            this.updatePreviousIntervals();
+
+            // Update beat position
+            beatsUsed += 4 / duration; // Convert duration to beats
+        }
+    }
+
+    private generateFirstNote(): number {
+        // First note - perfect consonance
+        const options = [
+            this.noteBelow + 12,   // Octave
+            this.noteBelow + 7,    // Fifth
+            this.noteBelow         // Unison (rare)
+        ];
+
+        const weights = [0.5, 0.4, 0.1];
+        const random = Math.random();
+        let cumulative = 0;
+
+        for (let i = 0; i < weights.length; i++) {
+            cumulative += weights[i];
+            if (random < cumulative) {
+                return options[i];
+            }
+        }
+
+        return options[0];
+    }
+
+    private generateLastNote(): number {
+        // Final note - octave or unison
+        return Math.random() < 0.8 ? this.noteBelow + 12 : this.noteBelow;
+    }
+
+    private generateCadentialNote(position: number, totalInMeasure: number): number {
+        // Generate notes approaching the cadence
+        if (position === totalInMeasure - 1) {
+            // Penultimate note - often leading tone
+            return this.noteBelow + 11; // Major seventh (leading tone)
+        }
+
+        // Other cadential notes
+        this.generateNoteOptions();
+        this.applyNoVoiceCrossing();
+        this.applyLimitToTenth();
+        this.applyOnlyConsonantIntervals();
+
+        // Prefer stepwise motion in cadence
+        if (this.noteBefore !== 0) {
+            const stepwise = this.noteOptions.filter(note =>
+                Math.abs(note - this.noteBefore) <= 2
+            );
+            if (stepwise.length > 0) {
+                this.noteOptions = stepwise;
+            }
+        }
+
+        return this.chooseNextNote();
+    }
+
+    private generateFloridNote(duration: number, isDownbeat: boolean, beatPosition: number): number {
+        this.generateNoteOptions();
+        this.applyNoVoiceCrossing();
+        this.applyLimitToTenth();
+
+        // Apply rules based on note duration and position
+        if (duration === 1) {
+            // Whole note - treat like first species
+            this.applyFirstSpeciesRules();
+        } else if (duration === 2) {
+            // Half note - treat like second or fourth species
+            if (beatPosition === 2) {
+                // Syncopated half - could be suspension
+                this.applyFourthSpeciesRules();
+            } else {
+                this.applySecondSpeciesRules(isDownbeat);
+            }
+        } else if (duration === 4) {
+            // Quarter note - treat like third species
+            this.applyThirdSpeciesRules(isDownbeat, beatPosition);
+        } else {
+            // Eighth note - even more flexible
+            this.applyEighthNoteRules(isDownbeat);
+        }
+
+        // Common rules
+        this.applyNoLargeLeaps();
+        this.applyApproachLeapsByStep();
+        this.applyPreferContraryMotion();
+
+        // Maintain melodic interest
+        this.avoidRepetition();
+
+        return this.chooseNextNote();
+    }
+
+    private applyFirstSpeciesRules(): void {
+        this.applyNoUnisonExceptEnds();
+        this.applyOnlyConsonantIntervals();
+        this.applyNoParallelFifths();
+        this.applyNoParallelOctaves();
+        this.applyNoHiddenParallels();
+    }
+
+    private applySecondSpeciesRules(isDownbeat: boolean): void {
+        if (isDownbeat) {
+            this.applyOnlyConsonantIntervals();
+            this.applyNoParallelFifths();
+            this.applyNoParallelOctaves();
+        } else {
+            this.applyAllowDissonantPassing();
+        }
+    }
+
+    private applyThirdSpeciesRules(isDownbeat: boolean, beatPosition: number): void {
+        if (isDownbeat) {
+            this.applyOnlyConsonantIntervals();
+        } else {
+            // Allow passing tones and neighbors
+            this.applyAllowDissonantPassing();
+        }
+    }
+
+    private applyFourthSpeciesRules(): void {
+        // Check for suspension possibility
+        if (this.noteBefore !== 0) {
+            const interval = Math.abs(this.noteBefore - this.noteBelow) % 12;
+            if ([1, 2, 5, 6, 10, 11].includes(interval)) {
+                // Dissonant - must resolve
+                this.applyResolveSuspensionsDown();
+            }
+        }
+    }
+
+    private applyEighthNoteRules(isDownbeat: boolean): void {
+        // Eighth notes - maximum flexibility
+        // Can be dissonant if approached/left by step
+        if (!isDownbeat && this.noteBefore !== 0) {
+            this.applyAllowDissonantPassing();
+        } else {
+            this.applyOnlyConsonantIntervals();
+        }
+    }
+
+    private avoidRepetition(): void {
+        // Avoid too many repeated notes
+        if (this.counterpoint.length >= 3) {
+            const last = this.counterpoint[this.counterpoint.length - 1];
+            const secondLast = this.counterpoint[this.counterpoint.length - 2];
+            const thirdLast = this.counterpoint[this.counterpoint.length - 3];
+
+            if (last === secondLast && secondLast === thirdLast) {
+                // Three repeated notes - avoid another
+                const index = this.noteOptions.indexOf(last);
+                if (index > -1) {
+                    this.noteOptions.splice(index, 1);
+                }
+            }
+        }
+    }
 }

@@ -1,6 +1,11 @@
 import { Species } from './species.js';
+import { Note } from './note.js';
 
 export class SpeciesTwo extends Species {
+
+	generateCounterpoint(cantusFirmus: Note[]): Note[] {
+		return [];
+	}
 	
 	chooseNextNote(): number {
 		if ((this.noteTwoBefore - this.noteBefore) === 2) {

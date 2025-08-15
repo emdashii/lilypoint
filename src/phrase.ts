@@ -4,10 +4,11 @@ import { KeyInfo } from './key.js';
 export class Phrase {
 	private upperVoice: Note[] = [];
 	private lowerVoice: Note[] = [];
-	private key: KeyInfo = { key: 'c', type: 'natural', notes: [] };
+	private key: KeyInfo = { key: 'c', type: 'natural', mode: 'major', notes: [] };
 	private timeSignature: string = "4/4";
+	private mode: string = "major";
 
-	constructor(upperVoice: Note[] = [], lowerVoice: Note[] = [], key: KeyInfo = { key: 'c', type: 'natural', notes: [] }, timeSignature: string = "4/4") {
+	constructor(upperVoice: Note[] = [], lowerVoice: Note[] = [], key: KeyInfo = { key: 'c', type: 'natural', mode: 'major', notes: [] }, timeSignature: string = "4/4") {
 		this.upperVoice = upperVoice;
 		this.lowerVoice = lowerVoice;
 		this.key = key;
@@ -30,6 +31,10 @@ export class Phrase {
 		this.timeSignature = timeSignature;
 	}
 
+	setMode(mode: string): void {
+		this.mode = mode;
+	}
+
 	getUpperVoice(): Note[] {
 		return this.upperVoice;
 	}
@@ -50,4 +55,7 @@ export class Phrase {
 		return this.key.key;
 	}
 
+	getMode(): string {
+		return this.mode;
+	}
 }
