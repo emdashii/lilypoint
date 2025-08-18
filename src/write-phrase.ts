@@ -11,13 +11,14 @@ import { SecondSpecies } from './second-species.js';
 import { ThirdSpecies } from './third-species.js';
 import { FourthSpecies } from './fourth-species.js';
 import { FifthSpecies } from './fifth-species.js';
+import { verboseLog } from './helper-functions.js';
 
 export class WritePhrase {
 	private key: Key;
 	private mode: string = "major";
 	private phraseLength: number;
 	private beatsPerMeasure: number = 4;
-	private speciesType: number = -2;
+	private speciesType: number = 1;
 	private phraseN: Phrase = new Phrase();
 	private upperVoiceI: number[] = [];
 	private lowerVoiceI: number[] = [];
@@ -49,12 +50,26 @@ export class WritePhrase {
 	getTotalLength(): number { return this.phraseLength * this.beatsPerMeasure; }
 	getMode(): string { return this.mode; }
 
+	private getSpeciesName(species: number): string {
+		switch (species) {
+			case 1: return 'First Species (1:1)';
+			case 2: return 'Second Species (2:1)';
+			case 3: return 'Third Species (4:1)';
+			case 4: return 'Fourth Species (Syncopated)';
+			case 5: return 'Fifth Species (Florid)';
+			case -1: return 'Legacy Imitative';
+			case -2: return 'Legacy First Species';
+			case -4: return 'Legacy Second Species';
+			default: return `Species ${species}`;
+		}
+	}
+
 	setLength(length: number): void { this.phraseLength = length; }
 	setBeatsPerMeasure(beatsPerMeasure: number): void { this.beatsPerMeasure = beatsPerMeasure; }
 	setSpeciesType(speciesType: number): void { this.speciesType = speciesType; }
 	setKey(key: string): void { this.key = new Key(key, this.mode); }
-	setMode(mode: string): void { 
-		this.mode = mode; 
+	setMode(mode: string): void {
+		this.mode = mode;
 		// Update the key with the new mode
 		this.key = new Key(this.key.getKeyName(), mode);
 	}
@@ -66,9 +81,17 @@ export class WritePhrase {
 	}
 
 	writeThePhrase(): void {
+		verboseLog('\n🎼 === Starting Phrase Generation ===');
+		verboseLog(`Key: ${this.key.getKeyName()} ${this.mode}`);
+		verboseLog(`Species Type: ${this.speciesType}`);
+		verboseLog(`Phrase Length: ${this.phraseLength} measures`);
+		verboseLog(`Beats per Measure: ${this.beatsPerMeasure}`);
+		verboseLog(`Total Length: ${this.getTotalLength()} beats`);
+		
 		// Handle legacy species (negative numbers) - keep existing functionality
 		if (this.speciesType === -1) {
 			// Legacy imitative counterpoint
+			verboseLog('\n📜 Using Legacy Imitative Counterpoint (Species -1)');
 			const imitative = new SpeciesOne();
 			imitative.writeImitativeTwoVoices(this.phraseLength * this.beatsPerMeasure);
 			this.lowerVoiceI = imitative.getImitativeLower();
@@ -80,72 +103,97 @@ export class WritePhrase {
 			}
 		} else if (this.speciesType === -4) {
 			// Legacy second species
+			verboseLog('\n📜 Using Legacy Second Species (Species -4)');
 			this.writeUpperVoiceTwo();
 		} else if (this.speciesType === -2) {
 			// Legacy first species
+			verboseLog('\n📜 Using Legacy First Species (Species -2)');
 			this.writeLowerVoice();
 			this.writeUpperVoiceOne();
 		}
 		// Handle new proper species (positive numbers) - NEW IMPLEMENTATION
 		else if (this.speciesType >= 1 && this.speciesType <= 5) {
+			verboseLog('\n🎵 Using Modern Species Counterpoint');
 			this.writeProperSpeciesCounterpoint();
 		} else {
 			console.log(`Unknown species type: ${this.speciesType}. Converting to First Species (1)`);
+			verboseLog(`⚠️ Unknown species type: ${this.speciesType}, defaulting to First Species`);
 			this.speciesType = 1;
 			this.writeProperSpeciesCounterpoint();
 		}
+		
+		verboseLog('\n✅ Phrase Generation Complete!');
+		verboseLog(`Final phrase has ${this.phraseN.getUpperVoice().length} upper notes and ${this.phraseN.getLowerVoice().length} lower notes`);
 	}
 
 	private writeProperSpeciesCounterpoint(): void {
 		// NEW METHOD: Generate counterpoint using the new architecture
-
+		verboseLog('\n--- Step 1: Generate Cantus Firmus ---');
+		
 		// Step 1: Generate Cantus Firmus
 		const cantusFirmus = new CantusFirmus(this.key.getKeyName(), this.phraseLength, this.mode);
 		const cantusFirmusNotes = cantusFirmus.generate();
+		verboseLog(`Generated ${cantusFirmusNotes.length} cantus firmus notes`);
+		verboseLog('Cantus Firmus notes:', cantusFirmusNotes.map(n => n.getNote()).join(', '));
 
 		// Step 2: Generate Counterpoint based on species type
+		verboseLog('\n--- Step 2: Generate Counterpoint ---');
+		verboseLog(`Generating ${this.getSpeciesName(this.speciesType)} counterpoint...`);
 		let counterpointNotes: Note[] = [];
 
 		switch (this.speciesType) {
 			case 1: {
 				// First Species - note against note
+				verboseLog('Creating First Species (1:1 note against note)');
 				const firstSpecies = new FirstSpecies();
 				counterpointNotes = firstSpecies.generateCounterpoint(cantusFirmusNotes);
 				break;
 			}
 			case 2: {
 				// Second Species - 2:1
+				verboseLog('Creating Second Species (2:1 counterpoint)');
 				const secondSpecies = new SecondSpecies();
 				counterpointNotes = secondSpecies.generateCounterpoint(cantusFirmusNotes);
 				break;
 			}
 			case 3: {
 				// Third Species - 4:1
+				verboseLog('Creating Third Species (4:1 counterpoint)');
 				const thirdSpecies = new ThirdSpecies();
 				counterpointNotes = thirdSpecies.generateCounterpoint(cantusFirmusNotes);
 				break;
 			}
 			case 4: {
 				// Fourth Species - syncopation
+				verboseLog('Creating Fourth Species (syncopated counterpoint)');
 				const fourthSpecies = new FourthSpecies();
 				counterpointNotes = fourthSpecies.generateCounterpoint(cantusFirmusNotes);
 				break;
 			}
 			case 5: {
 				// Fifth Species - florid counterpoint
+				verboseLog('Creating Fifth Species (florid counterpoint)');
 				const fifthSpecies = new FifthSpecies();
 				counterpointNotes = fifthSpecies.generateCounterpoint(cantusFirmusNotes);
 				break;
 			}
 			default: {
 				// Default to first species
+				verboseLog('Using default First Species counterpoint');
 				const firstSpecies = new FirstSpecies();
 				counterpointNotes = firstSpecies.generateCounterpoint(cantusFirmusNotes);
 				break;
 			}
 		}
+		
+		verboseLog(`Generated ${counterpointNotes.length} counterpoint notes`);
+		verboseLog('Counterpoint notes:', counterpointNotes.map(n => n.getNote()).join(', '));
 
 		// Step 3: Assign voices to the phrase
+		verboseLog('\n--- Step 3: Assign Voices ---');
+		verboseLog('Assigning cantus firmus to lower voice');
+		verboseLog('Assigning counterpoint to upper voice');
+		
 		// Cantus firmus typically goes in the lower voice
 		for (const note of cantusFirmusNotes) {
 			this.phraseN.addNoteToLowerVoice(note);
@@ -157,45 +205,59 @@ export class WritePhrase {
 		}
 
 		// Handle special cases for different species rhythms
+		verboseLog('\n--- Step 4: Adjust Rhythms ---');
 		this.adjustForSpeciesRhythm();
+		verboseLog('Rhythm adjustments complete');
 	}
 
 	private adjustForSpeciesRhythm(): void {
 		// Adjust note lengths based on species type
 		const lowerVoice = this.phraseN.getLowerVoice();
 		const upperVoice = this.phraseN.getUpperVoice();
+		
+		verboseLog(`Adjusting rhythm for ${this.getSpeciesName(this.speciesType)}`);
+		verboseLog(`Lower voice: ${lowerVoice.length} notes, Upper voice: ${upperVoice.length} notes`);
 
 		switch (this.speciesType) {
 			case 1:
 				// First species - both voices have whole notes
+				verboseLog('Setting all notes to whole note length (1)');
 				lowerVoice.forEach(note => note.setLength(1));
 				upperVoice.forEach(note => note.setLength(1));
 				break;
 
 			case 2:
 				// Second species - CF has whole notes, CP has half notes
+				verboseLog('Cantus firmus: whole notes, Counterpoint: half notes');
 				lowerVoice.forEach(note => note.setLength(1));
 				// Upper voice already has correct lengths from generation
 				break;
 
 			case 3:
 				// Third species - CF has whole notes, CP has quarter notes
+				verboseLog('Cantus firmus: whole notes, Counterpoint: quarter notes');
 				lowerVoice.forEach(note => note.setLength(1));
 				// Upper voice already has correct lengths from generation
 				break;
 
 			case 4:
 				// Fourth species - CF has whole notes, CP has syncopated half notes
+				verboseLog('Cantus firmus: whole notes, Counterpoint: syncopated half notes');
 				lowerVoice.forEach(note => note.setLength(1));
 				// Upper voice already has correct lengths from generation
 				break;
 
 			case 5:
 				// Fifth species - CF has whole notes, CP has mixed values
+				verboseLog('Cantus firmus: whole notes, Counterpoint: mixed note values');
 				lowerVoice.forEach(note => note.setLength(1));
 				// Upper voice already has varied lengths from generation
 				break;
 		}
+		
+		verboseLog('Note lengths after adjustment:');
+		verboseLog(`Lower voice lengths: [${lowerVoice.map(n => n.getLength()).join(', ')}]`);
+		verboseLog(`Upper voice lengths: [${upperVoice.map(n => n.getLength()).join(', ')}]`);
 	}
 
 	// Legacy methods below - kept for backward compatibility with negative species types

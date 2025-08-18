@@ -1,6 +1,7 @@
 import { Note } from './note.js';
 import { NoteType } from './types-and-globals.js';
 import { KeyInfo, getKey } from './key.js';
+import { verboseLog } from './helper-functions.js';
 
 export class CantusFirmus {
     private notes: Note[] = [];
@@ -15,6 +16,7 @@ export class CantusFirmus {
         this.tonic = this.getTonicNote(keyName);
         this.scaleDegrees = this.getScaleDegrees(mode);
     }
+
 
     private getTonicNote(keyName: string): NoteType {
         const baseNotes: Record<string, NoteType> = {
@@ -37,7 +39,7 @@ export class CantusFirmus {
 
     private getScaleDegrees(mode: string = "major"): NoteType[] {
         // Generate scale from tonic based on mode
-        const scalePattern = mode === "minor" 
+        const scalePattern = mode === "minor"
             ? [0, 2, 3, 5, 7, 8, 10] // Natural minor scale intervals
             : [0, 2, 4, 5, 7, 9, 11]; // Major scale intervals
         const degrees: NoteType[] = [];
@@ -239,44 +241,116 @@ export class CantusFirmus {
     }
 
     private validateCantusFirmus(notes: Note[]): boolean {
-        if (notes.length < 5 || notes.length > 12) return false;
+        verboseLog(`\n=== Validating Cantus Firmus (${notes.length} notes) ===`);
+        verboseLog('Notes:', notes.map(n => n.getNote()).join(', '));
 
         // Check all the rules
-        if (!this.isWithinOctave(notes)) return false;
-        if (!this.hasOnlyOneClimax(notes)) return false;
-        if (!this.climaxInMiddle(notes)) return false;
-        if (this.tooMuchMotionInOneDirection(notes)) return false;
-        if (this.tooManyLeapsInARow(notes)) return false;
-        if (this.hasProhibitedIntervals(notes)) return false;
-        if (this.outlinesTritone(notes)) return false;
+        if (!this.isWithinOctave(notes)) {
+            verboseLog('❌ Within octave check failed');
+            return false;
+        }
+        verboseLog('✓ Within octave check passed');
+
+        if (!this.hasOnlyOneClimax(notes)) {
+            verboseLog('❌ Only one climax check failed');
+            return false;
+        }
+        verboseLog('✓ Only one climax check passed');
+
+        if (!this.climaxInMiddle(notes)) {
+            verboseLog('❌ Climax in middle check failed');
+            return false;
+        }
+        verboseLog('✓ Climax in middle check passed');
+
+        if (this.tooMuchMotionInOneDirection(notes)) {
+            verboseLog('❌ Too much motion in one direction check failed');
+            return false;
+        }
+        verboseLog('✓ Motion direction check passed');
+
+        if (this.tooManyLeapsInARow(notes)) {
+            verboseLog('❌ Too many leaps in a row check failed');
+            return false;
+        }
+        verboseLog('✓ Leaps check passed');
+
+        if (this.hasProhibitedIntervals(notes)) {
+            verboseLog('❌ Prohibited intervals check failed');
+            return false;
+        }
+        verboseLog('✓ Prohibited intervals check passed');
+
+        if (this.outlinesTritone(notes)) {
+            verboseLog('❌ Outlines tritone check failed');
+            return false;
+        }
+        verboseLog('✓ Tritone outline check passed');
 
         // Must begin and end on tonic
         const firstNote = notes[0].getNote();
         const lastNote = notes[notes.length - 1].getNote();
-        if (firstNote !== this.tonic || lastNote !== this.tonic) return false;
+        if (firstNote !== this.tonic || lastNote !== this.tonic) {
+            verboseLog(`❌ Tonic check failed: first=${firstNote}, last=${lastNote}, tonic=${this.tonic}`);
+            return false;
+        }
+        verboseLog(`✓ Tonic check passed: first=${firstNote}, last=${lastNote}, tonic=${this.tonic}`);
 
-        // Penultimate note should approach final by step
+        // Penultimate note should approach final by step - auto-fix if needed
         if (notes.length >= 2) {
             const penultimate = notes[notes.length - 2].getNote();
-            if (!this.isStepwise(penultimate, lastNote)) return false;
+            if (!this.isStepwise(penultimate, lastNote)) {
+                verboseLog(`⚠️ Penultimate stepwise check failed: ${penultimate} -> ${lastNote}, fixing...`);
+                
+                // Find the correct penultimate note (step above or below tonic)
+                const stepAbove = this.tonic + 2; // Whole step above
+                const stepBelow = this.tonic - 2; // Whole step below
+                const halfStepAbove = this.tonic + 1; // Half step above
+                const halfStepBelow = this.tonic - 1; // Half step below
+                
+                // Prefer notes in the scale
+                const candidates = [stepAbove, stepBelow, halfStepAbove, halfStepBelow];
+                let correctedNote = stepAbove; // Default
+                
+                for (const candidate of candidates) {
+                    if (this.scaleDegrees.includes(candidate as NoteType)) {
+                        correctedNote = candidate;
+                        break;
+                    }
+                }
+                
+                // Update the penultimate note
+                notes[notes.length - 2] = new Note(correctedNote as NoteType, 1);
+                verboseLog(`✓ Fixed penultimate note to: ${correctedNote} -> ${lastNote}`);
+            } else {
+                verboseLog(`✓ Penultimate stepwise check passed: ${penultimate} -> ${lastNote}`);
+            }
         }
 
+        verboseLog('✅ All validation checks passed!');
         return true;
     }
 
     generate(): Note[] {
+        verboseLog('\n🎵 Starting Cantus Firmus Generation 🎵');
+        verboseLog(`Key: ${Object.entries(NoteType).find(([k, v]) => v === this.tonic)?.[0] || this.tonic}, Length: ${this.length}`);
+        verboseLog(`Scale degrees: [${this.scaleDegrees.join(', ')}]`);
+
         const maxAttempts = 1000;
         let attempts = 0;
 
         while (attempts < maxAttempts) {
             attempts++;
+            verboseLog(`\n--- Attempt ${attempts} ---`);
             this.notes = [];
 
             // Start with tonic
             this.notes.push(new Note(this.tonic, 1));
+            verboseLog(`Starting with tonic: ${this.tonic}`);
 
             // Build the melody
             const targetClimax = Math.floor(this.length / 2);
+            verboseLog(`Target climax at position: ${targetClimax}`);
 
             for (let i = 1; i < this.length - 1; i++) {
                 const lastNote = this.notes[i - 1].getNote();
@@ -284,6 +358,7 @@ export class CantusFirmus {
 
                 // Determine direction based on position relative to climax
                 const shouldAscend = i <= targetClimax;
+                verboseLog(`Position ${i}: should ${shouldAscend ? 'ascend' : 'descend'} from note ${lastNote}`);
 
                 // Get possible next notes
                 if (shouldAscend) {
@@ -299,6 +374,7 @@ export class CantusFirmus {
                         return interval >= -2 && interval <= 5 && !this.isTritone(lastNote, note);
                     });
                 }
+                verboseLog(`Initial possible notes: [${possibleNotes.join(', ')}]`);
 
                 // Prefer stepwise motion (70% of the time)
                 if (Math.random() < 0.7) {
@@ -306,6 +382,7 @@ export class CantusFirmus {
                         this.isStepwise(lastNote, note)
                     );
                     if (stepwiseOptions.length > 0) {
+                        verboseLog(`Using stepwise options: [${stepwiseOptions.join(', ')}]`);
                         possibleNotes = stepwiseOptions;
                     }
                 }
@@ -313,23 +390,30 @@ export class CantusFirmus {
                 if (possibleNotes.length > 0) {
                     const chosen = possibleNotes[Math.floor(Math.random() * possibleNotes.length)];
                     this.notes.push(new Note(chosen, 1));
+                    verboseLog(`Chose note: ${chosen}`);
                 } else {
                     // Fallback to any scale degree within range
                     const fallback = this.scaleDegrees[Math.floor(Math.random() * this.scaleDegrees.length)];
                     this.notes.push(new Note(fallback, 1));
+                    verboseLog(`⚠️ No valid options, using fallback: ${fallback}`);
                 }
             }
 
             // End with tonic
             this.notes.push(new Note(this.tonic, 1));
+            verboseLog(`Ending with tonic: ${this.tonic}`);
+
+            verboseLog(`Generated sequence: [${this.notes.map(n => n.getNote()).join(', ')}]`);
 
             if (this.validateCantusFirmus(this.notes)) {
+                verboseLog(`\n🎉 Valid cantus firmus generated in ${attempts} attempts!`);
                 break;
             }
+            verboseLog(`Attempt ${attempts} failed validation, trying again...`);
         }
 
         if (attempts >= maxAttempts) {
-            console.warn('Could not generate valid cantus firmus after maximum attempts, using simple version');
+            console.warn(`\n⚠️ Could not generate valid cantus firmus after ${maxAttempts} attempts, using simple version`);
             this.generateSimple();
         }
 
@@ -337,6 +421,7 @@ export class CantusFirmus {
     }
 
     private generateSimple(): void {
+        verboseLog('Generating simple cantus firmus');
         // Fallback: generate a simple, valid cantus firmus
         this.notes = [];
 

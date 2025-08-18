@@ -28,8 +28,7 @@ export class Key {
 }
 
 export function getKey(keyName: string, mode: string = "major"): KeyInfo {
-	const modeType = mode === "minor" ? "minor" : "major";
-	
+
 	if (mode === "minor") {
 		// Minor keys
 		switch (keyName) {

@@ -4,6 +4,14 @@ import { NoteType } from './types-and-globals.js';
 import { ExportToFile } from './export-to-file.js';
 import { WritePhrase } from './write-phrase.js';
 
+// Verbose logging utility function
+export function verboseLog(...args: any[]): void {
+	// Only log if verbose logging is enabled
+	if (typeof window !== 'undefined' && (window as any).verboseLogging) {
+		console.log(...args);
+	}
+}
+
 export function getNumberInput(prompt: string): Promise<number> {
 	return new Promise((resolve, reject) => {
 		// Browser environment - not supported

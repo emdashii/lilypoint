@@ -118,6 +118,13 @@
 								<input type="text" id="title" value="lilypoint" required />
 							</div>
 
+							<div class="form-group">
+								<label>
+									verbose console logs:
+									<input type="checkbox" id="verboseLogging" />
+								</label>
+							</div>
+
 							<button type="submit">create counterpoint</button>
 						</form>
 					</div>
@@ -221,6 +228,10 @@
 						const numPhrases = parseInt(document.getElementById('numPhrases').value);
 						const composer = document.getElementById('composer').value;
 						const title = document.getElementById('title').value;
+						const verboseLogging = document.getElementById('verboseLogging').checked;
+
+						// Store verbose setting globally for access by modules
+						window.verboseLogging = verboseLogging;
 
 						const exportToFile = new ExportToFile('generated-counterpoint', title, composer);
 
