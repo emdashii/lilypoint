@@ -1,9 +1,14 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(npm run build)"
-    ],
-    "deny": [],
-    "ask": []
-  }
+	"permissions": {
+		"allow": [
+			"Bash(npm run build)",
+			"Bash(bun run build)",
+			"Bash(bun run dev)",
+			"Bash(bun test tests/unit/note.test.ts)",
+			"Bash(bun test tests/unit/phrase.test.ts)",
+			"Bash(bun test tests/unit/key.test.ts)"
+		],
+		"deny": [],
+		"ask": []
+	}
 }
