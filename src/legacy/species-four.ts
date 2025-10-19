@@ -1,5 +1,5 @@
-import { Species } from './species.js';
-import { Note } from './note.js';
+import { Species } from '../species.js';
+import { Note } from '../note.js';
 
 export class SpeciesFour extends Species {
 

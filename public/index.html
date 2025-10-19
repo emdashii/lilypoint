@@ -96,12 +96,12 @@
 										</div>
 
 										<div class="form-group">
-											<label for="beatsPerMeasure1">notes per measure:</label>
-											<select id="beatsPerMeasure1" required>
-												<option value="2">2</option>
-												<option value="3">3</option>
-												<option value="4" selected>4</option>
-												<option value="6">6</option>
+											<label for="timeSignature1">time signature:</label>
+											<select id="timeSignature1" required>
+												<option value="2/4">2/4</option>
+												<option value="3/4">3/4</option>
+												<option value="4/4" selected>4/4</option>
+												<option value="6/8">6/8</option>
 											</select>
 										</div>
 									</div>
@@ -241,9 +241,9 @@
 							const mode = document.getElementById(`mode${i}`).value;
 							const species = parseInt(document.getElementById(`species${i}`).value);
 							const measures = parseInt(document.getElementById(`measures${i}`).value);
-							const beatsPerMeasure = parseInt(document.getElementById(`beatsPerMeasure${i}`).value);
+							const timeSignature = document.getElementById(`timeSignature${i}`).value;
 
-							const phrase = new WritePhrase(key, measures, species, beatsPerMeasure);
+							const phrase = new WritePhrase(key, measures, species, timeSignature);
 							phrase.setMode(mode);
 							phrase.writeThePhrase();
 							exportToFile.addPhrase(phrase.getPhrase());
@@ -274,7 +274,7 @@
 
 							results.innerHTML += `<div class="phrase-result">
 							<h4>Phrase ${i} - ${key} ${mode.charAt(0).toUpperCase() + mode.slice(1)} ${getSpeciesName(species)}</h4>
-							<p>Measures: ${measures}, Beats per measure: ${beatsPerMeasure}</p>
+							<p>Measures: ${measures}, Time signature: ${timeSignature}</p>
 						</div>`;
 						}
 
@@ -349,12 +349,12 @@
 								<input type="number" id="measures${i}" min="2" max="16" value="4" required>
 							</div>
 							<div class="form-group">
-								<label for="beatsPerMeasure${i}">notes per measure:</label>
-								<select id="beatsPerMeasure${i}" required>
-									<option value="2">2</option>
-									<option value="3">3</option>
-									<option value="4" selected>4</option>
-									<option value="6">6</option>
+								<label for="timeSignature${i}">time signature:</label>
+								<select id="timeSignature${i}" required>
+									<option value="2/4">2/4</option>
+									<option value="3/4">3/4</option>
+									<option value="4/4" selected>4/4</option>
+									<option value="6/8">6/8</option>
 								</select>
 							</div>
 						</div>

@@ -1,8 +1,8 @@
 import { Note } from './note.js';
 import { Phrase } from './phrase.js';
 import { NoteType } from './types-and-globals.js';
-import { SpeciesOne } from './species-one.js';
-import { SpeciesTwo } from './species-two.js';
+import { SpeciesOne } from './legacy/species-one.js';
+import { SpeciesTwo } from './legacy/species-two.js';
 import { GenerateLowerVoice } from './generate-lower-voice.js';
 import { Key, KeyInfo } from './key.js';
 import { CantusFirmus } from './cantus-firmus.js';
@@ -17,7 +17,9 @@ export class WritePhrase {
 	private key: Key;
 	private mode: string = "major";
 	private phraseLength: number;
+	private timeSignature: string = "4/4";
 	private beatsPerMeasure: number = 4;
+	private beatUnit: number = 4; // The bottom number of time signature (4 = quarter note, 8 = eighth note)
 	private speciesType: number = 1;
 	private phraseN: Phrase = new Phrase();
 	private upperVoiceI: number[] = [];
@@ -25,12 +27,28 @@ export class WritePhrase {
 	private intervalStrings: string[] = [];
 
 	constructor(key: string, phraseLength: number);
-	constructor(key: string, phraseLength: number, speciesType: number, beatsPerMeasure: number);
-	constructor(key: string, phraseLength: number, speciesType?: number, beatsPerMeasure?: number) {
+	constructor(key: string, phraseLength: number, speciesType: number, timeSignature: string);
+	constructor(key: string, phraseLength: number, speciesType?: number, timeSignature?: string) {
 		this.key = new Key(key, this.mode);
 		this.phraseLength = phraseLength;
 		if (speciesType !== undefined) this.speciesType = speciesType;
-		if (beatsPerMeasure !== undefined) this.beatsPerMeasure = beatsPerMeasure;
+		if (timeSignature !== undefined) {
+			this.timeSignature = timeSignature;
+			this.parseTimeSignature(timeSignature);
+		}
+	}
+
+	private parseTimeSignature(timeSignature: string): void {
+		const parts = timeSignature.split('/');
+		if (parts.length === 2) {
+			this.beatsPerMeasure = parseInt(parts[0]);
+			this.beatUnit = parseInt(parts[1]);
+		} else {
+			// Default to 4/4 if parsing fails
+			this.beatsPerMeasure = 4;
+			this.beatUnit = 4;
+			this.timeSignature = "4/4";
+		}
 	}
 
 	static setSeed(seed: number): void {
@@ -65,7 +83,11 @@ export class WritePhrase {
 	}
 
 	setLength(length: number): void { this.phraseLength = length; }
-	setBeatsPerMeasure(beatsPerMeasure: number): void { this.beatsPerMeasure = beatsPerMeasure; }
+	setTimeSignature(timeSignature: string): void {
+		this.timeSignature = timeSignature;
+		this.parseTimeSignature(timeSignature);
+	}
+	setBeatsPerMeasure(beatsPerMeasure: number): void { this.beatsPerMeasure = beatsPerMeasure; } // Legacy method
 	setSpeciesType(speciesType: number): void { this.speciesType = speciesType; }
 	setKey(key: string): void { this.key = new Key(key, this.mode); }
 	setMode(mode: string): void {
@@ -295,14 +317,11 @@ export class WritePhrase {
 	}
 
 	getTimeSignature(): string {
-		switch (this.beatsPerMeasure) {
-			case 2: return "2/4";
-			case 3: return "3/4";
-			case 4: return "4/4";
-			case 6: return "6/8";
-			case 9: return "9/12";
-			default: return "4/4";
-		}
+		return this.timeSignature;
+	}
+
+	getBeatUnit(): number {
+		return this.beatUnit;
 	}
 
 	convertIntToNote(num: number): Note {

@@ -19,7 +19,6 @@ async function main(): Promise<void> {
 	let keyDesired: string;
 	let lengthDesired: number;
 	let speciesTypeDesired: number;
-	let beatsPerMeasureDesired: number;
 	let fileNameDesired: string;
 	let authorInfoDesired: string;
 	let titleDesired: string;
@@ -36,9 +35,9 @@ async function main(): Promise<void> {
 			keyDesired = await getStringInput(`	Enter the key you want phrase ${i + 1} to be in: `);
 			speciesTypeDesired = await getNumberInput(`	Which species type would you like phrase ${i + 1} to be?\n\t\tNew species (1-5): 1=First, 2=Second, 3=Third, 4=Fourth, 5=Fifth\n\t\tLegacy species: -1=Imitative, -2=Legacy First, -4=Legacy Second\n\t\tEnter species: `);
 			lengthDesired = await getNumberInput(`	Enter how many measures you want phrase ${i + 1} to consist of: `);
-			beatsPerMeasureDesired = await getNumberInput(`	Enter how many notes you want per measure for phrase ${i + 1}: `);
+			const timeSignatureDesired = await getStringInput(`	Enter time signature for phrase ${i + 1} (e.g., 4/4, 3/4, 2/4, 6/8): `);
 
-			const phrase = new WritePhrase(keyDesired, lengthDesired, speciesTypeDesired, beatsPerMeasureDesired);
+			const phrase = new WritePhrase(keyDesired, lengthDesired, speciesTypeDesired, timeSignatureDesired);
 			phrase.writeThePhrase();
 			myFileExport.addPhrase(phrase.getPhrase());
 		}
