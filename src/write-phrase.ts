@@ -151,9 +151,14 @@ export class WritePhrase {
 	private writeProperSpeciesCounterpoint(): void {
 		// NEW METHOD: Generate counterpoint using the new architecture
 		verboseLog('\n--- Step 1: Generate Cantus Firmus ---');
-		
+
 		// Step 1: Generate Cantus Firmus
-		const cantusFirmus = new CantusFirmus(this.key.getKeyName(), this.phraseLength, this.mode);
+		// Total notes = measures × beats per measure (top number of time signature)
+		const totalBeats = this.phraseLength * this.beatsPerMeasure;
+		verboseLog(`Time signature: ${this.timeSignature} = ${this.beatsPerMeasure} beats per measure`);
+		verboseLog(`Generating cantus firmus: ${this.phraseLength} measures × ${this.beatsPerMeasure} beats = ${totalBeats} notes`);
+
+		const cantusFirmus = new CantusFirmus(this.key.getKeyName(), totalBeats, this.mode);
 		const cantusFirmusNotes = cantusFirmus.generate();
 		verboseLog(`Generated ${cantusFirmusNotes.length} cantus firmus notes`);
 		verboseLog('Cantus Firmus notes:', cantusFirmusNotes.map(n => n.getNote()).join(', '));
@@ -161,6 +166,11 @@ export class WritePhrase {
 		// Step 2: Generate Counterpoint based on species type
 		verboseLog('\n--- Step 2: Generate Counterpoint ---');
 		verboseLog(`Generating ${this.getSpeciesName(this.speciesType)} counterpoint...`);
+
+		// Get scale degrees from cantus firmus to ensure diatonic notes only
+		const scaleDegrees = this.getScaleDegrees();
+		verboseLog(`Scale degrees for ${this.key.getKeyName()} ${this.mode}: [${scaleDegrees.join(', ')}]`);
+
 		let counterpointNotes: Note[] = [];
 
 		switch (this.speciesType) {
@@ -168,6 +178,7 @@ export class WritePhrase {
 				// First Species - note against note
 				verboseLog('Creating First Species (1:1 note against note)');
 				const firstSpecies = new FirstSpecies();
+				firstSpecies.setScaleDegrees(scaleDegrees);
 				counterpointNotes = firstSpecies.generateCounterpoint(cantusFirmusNotes);
 				break;
 			}
@@ -175,6 +186,7 @@ export class WritePhrase {
 				// Second Species - 2:1
 				verboseLog('Creating Second Species (2:1 counterpoint)');
 				const secondSpecies = new SecondSpecies();
+				secondSpecies.setScaleDegrees(scaleDegrees);
 				counterpointNotes = secondSpecies.generateCounterpoint(cantusFirmusNotes);
 				break;
 			}
@@ -182,6 +194,7 @@ export class WritePhrase {
 				// Third Species - 4:1
 				verboseLog('Creating Third Species (4:1 counterpoint)');
 				const thirdSpecies = new ThirdSpecies();
+				thirdSpecies.setScaleDegrees(scaleDegrees);
 				counterpointNotes = thirdSpecies.generateCounterpoint(cantusFirmusNotes);
 				break;
 			}
@@ -189,6 +202,7 @@ export class WritePhrase {
 				// Fourth Species - syncopation
 				verboseLog('Creating Fourth Species (syncopated counterpoint)');
 				const fourthSpecies = new FourthSpecies();
+				fourthSpecies.setScaleDegrees(scaleDegrees);
 				counterpointNotes = fourthSpecies.generateCounterpoint(cantusFirmusNotes);
 				break;
 			}
@@ -196,6 +210,7 @@ export class WritePhrase {
 				// Fifth Species - florid counterpoint
 				verboseLog('Creating Fifth Species (florid counterpoint)');
 				const fifthSpecies = new FifthSpecies();
+				fifthSpecies.setScaleDegrees(scaleDegrees);
 				counterpointNotes = fifthSpecies.generateCounterpoint(cantusFirmusNotes);
 				break;
 			}
@@ -203,6 +218,7 @@ export class WritePhrase {
 				// Default to first species
 				verboseLog('Using default First Species counterpoint');
 				const firstSpecies = new FirstSpecies();
+				firstSpecies.setScaleDegrees(scaleDegrees);
 				counterpointNotes = firstSpecies.generateCounterpoint(cantusFirmusNotes);
 				break;
 			}
@@ -233,50 +249,27 @@ export class WritePhrase {
 	}
 
 	private adjustForSpeciesRhythm(): void {
-		// Adjust note lengths based on species type
+		// Adjust note lengths based on time signature beat unit
+		// The beat unit (bottom number of time signature) determines the note length
+		// In LilyPond notation: 1=whole note, 2=half note, 4=quarter note, 8=eighth note
 		const lowerVoice = this.phraseN.getLowerVoice();
 		const upperVoice = this.phraseN.getUpperVoice();
-		
+
 		verboseLog(`Adjusting rhythm for ${this.getSpeciesName(this.speciesType)}`);
+		verboseLog(`Time signature: ${this.timeSignature}, Beat unit: ${this.beatUnit}`);
 		verboseLog(`Lower voice: ${lowerVoice.length} notes, Upper voice: ${upperVoice.length} notes`);
 
-		switch (this.speciesType) {
-			case 1:
-				// First species - both voices have whole notes
-				verboseLog('Setting all notes to whole note length (1)');
-				lowerVoice.forEach(note => note.setLength(1));
-				upperVoice.forEach(note => note.setLength(1));
-				break;
+		// For First Species, both voices use the beat unit length
+		// The beat unit is the bottom number of the time signature
+		const baseNoteLength = this.beatUnit;
 
-			case 2:
-				// Second species - CF has whole notes, CP has half notes
-				verboseLog('Cantus firmus: whole notes, Counterpoint: half notes');
-				lowerVoice.forEach(note => note.setLength(1));
-				// Upper voice already has correct lengths from generation
-				break;
+		verboseLog(`Setting all notes to beat unit length (${baseNoteLength})`);
+		lowerVoice.forEach(note => note.setLength(baseNoteLength));
+		upperVoice.forEach(note => note.setLength(baseNoteLength));
 
-			case 3:
-				// Third species - CF has whole notes, CP has quarter notes
-				verboseLog('Cantus firmus: whole notes, Counterpoint: quarter notes');
-				lowerVoice.forEach(note => note.setLength(1));
-				// Upper voice already has correct lengths from generation
-				break;
+		// TODO: For other species, adjust based on the species ratios
+		// Second Species (2:1), Third Species (4:1), etc.
 
-			case 4:
-				// Fourth species - CF has whole notes, CP has syncopated half notes
-				verboseLog('Cantus firmus: whole notes, Counterpoint: syncopated half notes');
-				lowerVoice.forEach(note => note.setLength(1));
-				// Upper voice already has correct lengths from generation
-				break;
-
-			case 5:
-				// Fifth species - CF has whole notes, CP has mixed values
-				verboseLog('Cantus firmus: whole notes, Counterpoint: mixed note values');
-				lowerVoice.forEach(note => note.setLength(1));
-				// Upper voice already has varied lengths from generation
-				break;
-		}
-		
 		verboseLog('Note lengths after adjustment:');
 		verboseLog(`Lower voice lengths: [${lowerVoice.map(n => n.getLength()).join(', ')}]`);
 		verboseLog(`Upper voice lengths: [${upperVoice.map(n => n.getLength()).join(', ')}]`);
@@ -322,6 +315,21 @@ export class WritePhrase {
 
 	getBeatUnit(): number {
 		return this.beatUnit;
+	}
+
+	private getScaleDegrees(): number[] {
+		// Generate diatonic scale degrees based on key and mode
+		const tonic = this.convertKeyToNote().getNote();
+		const scalePattern = this.mode === "minor"
+			? [0, 2, 3, 5, 7, 8, 10] // Natural minor scale intervals
+			: [0, 2, 4, 5, 7, 9, 11]; // Major scale intervals
+
+		const degrees: number[] = [];
+		for (const interval of scalePattern) {
+			degrees.push(tonic + interval);
+		}
+
+		return degrees;
 	}
 
 	convertIntToNote(num: number): Note {

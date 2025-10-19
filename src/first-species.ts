@@ -62,16 +62,38 @@ export class FirstSpecies extends Species {
     }
 
     private generateFirstNote(): number {
-        // First note must be unison, fifth, or octave
-        const options = [
-            this.noteBelow,        // Unison
-            this.noteBelow + 7,    // Perfect fifth above
-            this.noteBelow + 12    // Octave above
-        ];
+        // First note must be unison, fifth, or octave FROM THE SCALE
+        const options: number[] = [];
+
+        // Unison - same note
+        if (this.scaleDegrees.includes(this.noteBelow)) {
+            options.push(this.noteBelow);
+        }
+
+        // Perfect fifth - find the 5th scale degree above (7 semitones, but must be in scale)
+        const fifthCandidates = this.scaleDegrees.filter(note => {
+            const interval = note - this.noteBelow;
+            return interval === 7 || interval === 19; // Same octave or octave above
+        });
+        options.push(...fifthCandidates);
+
+        // Octave above - same note an octave up
+        const octaveNote = this.noteBelow + 12;
+        if (this.scaleDegrees.includes(octaveNote) ||
+            this.scaleDegrees.includes(octaveNote % 12 + Math.floor(octaveNote / 12) * 12)) {
+            options.push(octaveNote);
+        }
+
+        // If no diatonic options found (shouldn't happen), fall back to octave
+        if (options.length === 0) {
+            return this.noteBelow + 12;
+        }
 
         // Weight the options (prefer octave and fifth over unison)
-        const weights = [0.1, 0.4, 0.5];
-        const random = Math.random();
+        // Give higher weight to later options (fifth and octave)
+        const weights = options.map((_, i) => (i + 1) / options.length);
+        const totalWeight = weights.reduce((a, b) => a + b, 0);
+        const random = Math.random() * totalWeight;
         let cumulative = 0;
 
         for (let i = 0; i < weights.length; i++) {
@@ -81,17 +103,21 @@ export class FirstSpecies extends Species {
             }
         }
 
-        return options[2]; // Default to octave
+        return options[options.length - 1]; // Default to last option
     }
 
     private generateLastNote(): number {
-        // Final note must be octave or unison
-        // Approach should be by step (handled by cantus firmus)
+        // Final note must be octave or unison FROM THE SCALE
+        const octaveNote = this.noteBelow + 12;
 
-        if (Math.random() < 0.8) {
-            return this.noteBelow + 12; // Octave (more common)
+        // Prefer octave if it's in the scale, otherwise unison
+        if (this.scaleDegrees.includes(octaveNote) && Math.random() < 0.8) {
+            return octaveNote;
+        } else if (this.scaleDegrees.includes(this.noteBelow)) {
+            return this.noteBelow;
         } else {
-            return this.noteBelow; // Unison
+            // Fallback - shouldn't happen if cantus firmus is diatonic
+            return octaveNote;
         }
     }
 

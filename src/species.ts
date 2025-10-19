@@ -11,6 +11,7 @@ export abstract class Species {
     protected cantusFirmus: number[] = [];
     protected counterpoint: number[] = [];
     protected currentIndex: number = 0;
+    protected scaleDegrees: number[] = []; // Diatonic scale degrees to restrict note choices
 
     // Rule flags - can be enabled/disabled by each species
     protected rules = {
@@ -68,6 +69,10 @@ export abstract class Species {
         this.currentIndex = index;
     }
 
+    setScaleDegrees(scaleDegrees: number[]): void {
+        this.scaleDegrees = scaleDegrees;
+    }
+
     // Abstract method - each species implements its own generation logic
     abstract generateCounterpoint(cantusFirmus: Note[]): Note[];
 
@@ -75,12 +80,39 @@ export abstract class Species {
 
     protected generateNoteOptions(): void {
         this.noteOptions = [];
-        // Generate possible notes within range
-        const minNote = this.noteBelow - 12;
-        const maxNote = this.noteBelow + 16;
 
-        for (let note = minNote; note <= maxNote; note++) {
-            this.noteOptions.push(note);
+        if (this.scaleDegrees.length === 0) {
+            // Fallback: if no scale degrees provided, use chromatic scale (legacy behavior)
+            const minNote = this.noteBelow - 12;
+            const maxNote = this.noteBelow + 16;
+            for (let note = minNote; note <= maxNote; note++) {
+                this.noteOptions.push(note);
+            }
+        } else {
+            // Generate options using only diatonic scale degrees
+            // We need scale degrees across multiple octaves to have enough options
+            const minNote = this.noteBelow - 12;
+            const maxNote = this.noteBelow + 16;
+
+            // Generate scale degrees across the range
+            const baseScaleDegrees = [...this.scaleDegrees];
+            const scaleLength = baseScaleDegrees.length;
+
+            // Find the tonic (assumed to be first scale degree)
+            const tonic = baseScaleDegrees[0];
+
+            // Generate notes across multiple octaves
+            for (let octaveOffset = -2; octaveOffset <= 2; octaveOffset++) {
+                for (const scaleDegree of baseScaleDegrees) {
+                    const note = scaleDegree + (octaveOffset * 12);
+                    if (note >= minNote && note <= maxNote) {
+                        this.noteOptions.push(note);
+                    }
+                }
+            }
+
+            // Sort the options
+            this.noteOptions.sort((a, b) => a - b);
         }
     }
 

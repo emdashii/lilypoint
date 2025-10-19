@@ -139,14 +139,18 @@ export class CantusFirmus {
             maxConsecutive = Math.max(maxConsecutive, consecutiveUp, consecutiveDown);
         }
 
-        // No more than 4 notes moving in the same direction
-        return maxConsecutive > 4;
+        // Scale the limit based on melody length
+        // For longer melodies, allow more consecutive motion
+        const limit = Math.min(8, Math.max(4, Math.floor(notes.length / 4)));
+        return maxConsecutive > limit;
     }
 
     private tooManyLeapsInARow(notes: Note[]): boolean {
         if (notes.length < 3) return false;
 
         let consecutiveLeaps = 0;
+        // Allow more consecutive leaps for longer melodies
+        const maxLeaps = notes.length > 16 ? 3 : 2;
 
         for (let i = 1; i < notes.length; i++) {
             const prev = notes[i - 1].getNote();
@@ -155,8 +159,7 @@ export class CantusFirmus {
             if (this.isLeap(prev, curr)) {
                 consecutiveLeaps++;
 
-                // More than two leaps in a row is generally avoided
-                if (consecutiveLeaps > 2) {
+                if (consecutiveLeaps > maxLeaps) {
                     return true;
                 }
             } else {
