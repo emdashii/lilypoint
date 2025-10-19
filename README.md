@@ -6,41 +6,41 @@ Website for counterpoint generator using LilyPond
 
 ### Prerequisites
 
--   Node.js (v18 or higher)
--   npm
+-   Bun (v1.0 or higher) - [Install Bun](https://bun.sh)
 
 ### Setup
 
 ```bash
-npm install
+bun install
 ```
 
 ### Development Commands
 
--   **Build**: `npm run build` - Compiles TypeScript and prepares files for production
--   **Development**: `npm run dev` - Runs TypeScript compiler in watch mode
+-   **Build**: `bun run build` - Compiles TypeScript and prepares files for production
+-   **Development**: `bun run dev` - Runs TypeScript in watch mode with hot reloading
+-   **Run directly**: `bun run src/main.ts` - Execute the CLI directly
 
 ### Running Locally
 
 After building the project, you need to serve the `dist/` folder with a web server:
 
-**Option 1 - Using Node.js (http-server):**
+**Option 1 - Using Bun:**
 ```bash
-npm run build
-npx http-server dist -p 8000
+bun run build
+bunx serve dist -p 8000
 ```
 Then open http://localhost:8000 in your browser.
 
 **Option 2 - Using Python:**
 ```bash
-npm run build
+bun run build
 cd dist
 python -m http.server 8000
 ```
 Then open http://localhost:8000 in your browser.
 
 **Option 3 - Using any other web server:**
-Point your web server to the `dist/` directory after running `npm run build`.
+Point your web server to the `dist/` directory after running `bun run build`.
 
 ### Project Structure
 

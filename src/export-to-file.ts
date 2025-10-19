@@ -2,6 +2,8 @@ import { Note } from './note.js';
 import { Phrase } from './phrase.js';
 import { NoteType } from './types-and-globals.js';
 import { KeyInfo } from './key.js';
+import { readFile, writeFile, access } from 'node:fs/promises';
+import readline from 'node:readline';
 
 export class ExportToFile {
 	private fileName: string = "";
@@ -32,13 +34,12 @@ export class ExportToFile {
 			return;
 		}
 
-		// In browser environment, skip file existence check
+		// In Bun/Node.js environment, check for file existence
 		if (typeof window === 'undefined') {
 			while (await this.exists(fileName)) {
 				console.log(`Warning a file already exists with the chosen output filename: ${fileName}!`);
 				console.log("Please enter a different filename: ");
 
-				const readline = require('readline');
 				const rl = readline.createInterface({
 					input: process.stdin,
 					output: process.stdout
@@ -118,13 +119,12 @@ export class ExportToFile {
 			output += "\t\\midi{}\n";
 			output += "}\n";
 
-			// In browser environment, return the output; in Node.js, write to file
+			// In browser environment, return the output; in Bun/Node.js, write to file
 			if (typeof window !== 'undefined') {
 				console.log("Generated LilyPond Output created successfully!");
 				return output;
 			} else {
-				const fs = require('fs').promises;
-				await fs.writeFile(this.fileName, output);
+				await writeFile(this.fileName, output);
 				console.log("Final output file successfully created!");
 				return output;
 			}
@@ -171,8 +171,7 @@ export class ExportToFile {
 		}
 
 		try {
-			const fs = require('fs').promises;
-			await fs.access(fileName);
+			await access(fileName);
 			return true;
 		} catch {
 			return false;

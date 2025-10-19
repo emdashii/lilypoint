@@ -3,6 +3,7 @@ import { Phrase } from './phrase.js';
 import { NoteType } from './types-and-globals.js';
 import { ExportToFile } from './export-to-file.js';
 import { WritePhrase } from './write-phrase.js';
+import readline from 'node:readline';
 
 // Verbose logging utility function
 export function verboseLog(...args: any[]): void {
@@ -20,8 +21,7 @@ export function getNumberInput(prompt: string): Promise<number> {
 			return;
 		}
 
-		// Node.js environment
-		const readline = require('readline');
+		// Bun/Node.js environment
 		const rl = readline.createInterface({
 			input: process.stdin,
 			output: process.stdout
@@ -51,8 +51,7 @@ export function getStringInput(prompt: string): Promise<string> {
 			return;
 		}
 
-		// Node.js environment
-		const readline = require('readline');
+		// Bun/Node.js environment
 		const rl = readline.createInterface({
 			input: process.stdin,
 			output: process.stdout
