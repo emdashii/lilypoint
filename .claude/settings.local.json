@@ -9,7 +9,10 @@
       "Bash(bun test tests/unit/key.test.ts)",
       "Bash(bun test tests/unit/helper-functions.test.ts)",
       "Bash(bun test tests/unit/cantus-firmus.test.ts)",
-      "Bash(bun test tests/unit/export-to-file.test.ts)"
+      "Bash(bun test tests/unit/export-to-file.test.ts)",
+      "Bash(bun test tests/integration/first-species.test.ts)",
+      "Bash(bun test tests/e2e/first-species-rules.test.ts)",
+      "Bash(bun test)"
     ],
     "deny": [],
     "ask": []
