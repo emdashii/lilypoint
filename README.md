@@ -25,22 +25,32 @@ bun install
 After building the project, you need to serve the `dist/` folder with a web server:
 
 **Option 1 - Using Bun:**
+
 ```bash
 bun run build
 bunx serve dist -p 8000
 ```
+
 Then open http://localhost:8000 in your browser.
 
 **Option 2 - Using Python:**
+
 ```bash
 bun run build
 cd dist
 python -m http.server 8000
 ```
+
 Then open http://localhost:8000 in your browser.
 
-**Option 3 - Using any other web server:**
-Point your web server to the `dist/` directory after running `bun run build`.
+**Option 3 - Using any other web server:** Point your web server to the `dist/` directory after running `bun run build`.
+
+### Testing
+
+-   bun test # Run all tests
+-   bun test tests/unit # Unit tests only
+-   bun test tests/integration # Integration tests only
+-   bun test tests/e2e # E2E tests only
 
 ### Project Structure
 
