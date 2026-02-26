@@ -109,16 +109,52 @@ export class FirstSpecies extends Species {
     private generateLastNote(): number {
         // Final note must be octave or unison FROM THE SCALE
         const octaveNote = this.noteBelow + 12;
+        const unisonNote = this.noteBelow;
 
-        // Prefer octave if it's in the scale, otherwise unison
-        if (this.scaleDegrees.includes(octaveNote) && Math.random() < 0.8) {
-            return octaveNote;
-        } else if (this.scaleDegrees.includes(this.noteBelow)) {
-            return this.noteBelow;
-        } else {
-            // Fallback - shouldn't happen if cantus firmus is diatonic
+        // Build candidates, checking for parallel octaves and large leaps
+        const candidates: { note: number; weight: number }[] = [];
+
+        const prevNote = this.counterpoint.length > 0
+            ? this.counterpoint[this.counterpoint.length - 1] : 0;
+        const prevCF = this.cantusFirmus.length >= 2
+            ? this.cantusFirmus[this.cantusFirmus.length - 2] : 0;
+
+        // Check for parallel octaves/unisons with previous interval
+        const prevInterval = prevNote !== 0 && prevCF !== 0
+            ? Math.abs(prevNote - prevCF) % 12 : -1;
+
+        for (const candidate of [octaveNote, unisonNote]) {
+            const currentInterval = Math.abs(candidate - this.noteBelow) % 12;
+
+            // Skip if it would create parallel octaves/unisons
+            if (prevInterval === 0 && currentInterval === 0) continue;
+
+            // Skip if the leap from the previous note is too large (> octave)
+            if (prevNote !== 0 && Math.abs(candidate - prevNote) > 12) continue;
+
+            const weight = candidate === octaveNote ? 0.8 : 0.2;
+            candidates.push({ note: candidate, weight });
+        }
+
+        if (candidates.length === 0) {
+            // Both octave and unison would create parallel octaves
+            // Choose the one that doesn't create a large leap
+            if (prevNote !== 0) {
+                const octaveLeap = Math.abs(octaveNote - prevNote);
+                const unisonLeap = Math.abs(unisonNote - prevNote);
+                return octaveLeap <= unisonLeap ? octaveNote : unisonNote;
+            }
             return octaveNote;
         }
+
+        // Weighted random selection
+        const totalWeight = candidates.reduce((sum, c) => sum + c.weight, 0);
+        let random = Math.random() * totalWeight;
+        for (const c of candidates) {
+            random -= c.weight;
+            if (random <= 0) return c.note;
+        }
+        return candidates[candidates.length - 1].note;
     }
 
     private generateMiddleNote(): number {
@@ -135,6 +171,19 @@ export class FirstSpecies extends Species {
         this.applyNoHiddenParallels();
         this.applyNoLargeLeaps();
         this.applyLimitConsecutiveIntervals();
+
+        // Penultimate note: avoid octave/unison intervals to prevent
+        // forced parallel octaves with the final note
+        if (this.currentIndex === this.cantusFirmus.length - 2) {
+            const nonOctaveOptions = this.noteOptions.filter(note => {
+                const interval = Math.abs(note - this.noteBelow) % 12;
+                return interval !== 0; // Exclude octaves and unisons
+            });
+            if (nonOctaveOptions.length > 0) {
+                this.noteOptions = nonOctaveOptions;
+            }
+        }
+
         this.applyPreferContraryMotion();
 
         // Choose from remaining valid options

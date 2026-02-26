@@ -92,18 +92,43 @@ export class ThirdSpecies extends Species {
 
     private generateLeadingTone(): number {
         // Approach final by step - typically leading tone
-        const finalNote = this.noteBelow + 12; // Assuming octave final
-        return finalNote - 1; // Half step below
+        const finalNote = this.noteBelow + 12;
+        const leadingTone = finalNote - 1; // Half step below
+
+        // Ensure stepwise approach from previous note
+        const prevNote = this.counterpoint.length > 0
+            ? this.counterpoint[this.counterpoint.length - 1] : 0;
+
+        if (prevNote !== 0 && Math.abs(leadingTone - prevNote) <= 2) {
+            return leadingTone;
+        }
+
+        // If leading tone would be a leap, find a consonant note within step
+        // that also steps to the final note
+        if (prevNote !== 0) {
+            const stepOptions = [prevNote - 1, prevNote + 1, prevNote - 2, prevNote + 2]
+                .filter(note => {
+                    const interval = Math.abs(note - this.noteBelow) % 12;
+                    return [0, 3, 4, 7, 8, 9].includes(interval) && note > this.noteBelow;
+                });
+            if (stepOptions.length > 0) {
+                return stepOptions[0];
+            }
+        }
+
+        return leadingTone;
     }
 
     private generateCadentialApproach(): number {
-        // Notes leading to cadence
+        // Notes leading to cadence - plan toward the leading tone
+        const leadingTone = this.noteBelow + 11; // Where we need to arrive at beat 2
+
         this.generateNoteOptions();
         this.applyNoVoiceCrossing();
         this.applyLimitToTenth();
         this.applyOnlyConsonantIntervals();
 
-        // Prefer stepwise motion in cadence
+        // Prefer stepwise motion from previous note
         if (this.noteBefore !== 0) {
             const stepwiseOptions = this.noteOptions.filter(note =>
                 Math.abs(note - this.noteBefore) <= 2
@@ -113,12 +138,27 @@ export class ThirdSpecies extends Species {
             }
         }
 
+        // Also prefer notes close to the leading tone (for smooth approach)
+        const nearLeadingTone = this.noteOptions.filter(note =>
+            Math.abs(note - leadingTone) <= 4
+        );
+        if (nearLeadingTone.length > 0) {
+            this.noteOptions = nearLeadingTone;
+        }
+
         return this.chooseNextNote();
     }
 
     private generateLastNote(): number {
-        // Final note - octave or unison
-        return this.noteBelow + 12;
+        // Final note - octave, checking for large leaps
+        const octaveNote = this.noteBelow + 12;
+        const prevNote = this.counterpoint.length > 0
+            ? this.counterpoint[this.counterpoint.length - 1] : 0;
+
+        if (prevNote !== 0 && Math.abs(octaveNote - prevNote) > 12) {
+            return this.noteBelow; // Unison if octave is too far
+        }
+        return octaveNote;
     }
 
     private generateMiddleNote(): number {
@@ -192,10 +232,8 @@ export class ThirdSpecies extends Species {
                 }
             }
 
-            // Special case: cambiata figure (leap from dissonance)
-            // This would need more context to implement properly
-
-            return this.beatInMeasure === 1 || this.beatInMeasure === 3;
+            // Dissonances on weak beats require stepwise approach
+            return false;
         });
 
         if (this.noteOptions.length === 0) {

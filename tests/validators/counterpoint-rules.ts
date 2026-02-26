@@ -226,7 +226,8 @@ export class CounterpointRules {
 		const minLength = Math.min(upper.length, lower.length);
 
 		for (let i = 1; i < minLength - 1; i++) {
-			const interval = this.calculateIntervalMod12(upper[i], lower[i]);
+			// Check for exact unison (same pitch), not octave equivalents
+			const interval = this.calculateInterval(upper[i], lower[i]);
 			if (interval === 0) {
 				return true;
 			}

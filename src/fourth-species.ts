@@ -86,8 +86,15 @@ export class FourthSpecies extends Species {
     }
 
     private generateLastNote(): number {
-        // Final note - octave
-        return this.noteBelow + 12;
+        // Final note - octave, checking for large leaps
+        const octaveNote = this.noteBelow + 12;
+        const prevNote = this.counterpoint.length > 0
+            ? this.counterpoint[this.counterpoint.length - 1] : 0;
+
+        if (prevNote !== 0 && Math.abs(octaveNote - prevNote) > 12) {
+            return this.noteBelow; // Unison if octave is too far
+        }
+        return octaveNote;
     }
 
     private generateSuspension(cfIndex: number): void {
@@ -135,8 +142,23 @@ export class FourthSpecies extends Species {
     }
 
     private resolveDissonance(dissonantNote: number): number {
-        // Dissonance must resolve down by step
-        return dissonantNote - 1; // Could be -2 for whole step
+        // Dissonance must resolve down by step (1 or 2 semitones)
+        // Prefer resolving to a scale degree
+        const stepDown1 = dissonantNote - 1;
+        const stepDown2 = dissonantNote - 2;
+
+        // Check which resolutions are consonant with the current CF note
+        const consonantResolutions = [stepDown1, stepDown2].filter(note => {
+            const interval = Math.abs(note - this.noteBelow) % 12;
+            return [0, 3, 4, 7, 8, 9].includes(interval);
+        });
+
+        if (consonantResolutions.length > 0) {
+            return consonantResolutions[0];
+        }
+
+        // Fallback to step down by 1
+        return stepDown1;
     }
 
     private prepareNextSuspension(currentNote: number): number {
@@ -174,6 +196,8 @@ export class FourthSpecies extends Species {
     private createSuspensionPreparation(cfIndex: number): number {
         // Create a note that will form a good suspension
         const nextCF = this.cantusFirmus[cfIndex + 1];
+        const prevNote = this.counterpoint.length > 0
+            ? this.counterpoint[this.counterpoint.length - 1] : 0;
 
         // Common suspension preparations
         const options = [
@@ -182,16 +206,24 @@ export class FourthSpecies extends Species {
             nextCF + 2,  // Will create 9-8 suspension
         ];
 
-        // Filter for valid range
-        const validOptions = options.filter(note =>
-            note > this.noteBelow && note <= this.noteBelow + 16
-        );
+        // Filter for valid range (above CF, within a tenth, no large leaps)
+        const validOptions = options.filter(note => {
+            if (note <= this.noteBelow) return false; // No voice crossing
+            if (note > this.noteBelow + 16) return false; // Within a tenth
+            if (prevNote !== 0 && Math.abs(note - prevNote) > 12) return false; // No large leaps
+            return true;
+        });
 
         if (validOptions.length > 0) {
             return validOptions[Math.floor(Math.random() * validOptions.length)];
         }
 
-        // Fallback
+        // Fallback: consonant interval within range
+        const fallbackOptions = [3, 4, 7, 8, 9, 12].map(i => this.noteBelow + i)
+            .filter(note => prevNote === 0 || Math.abs(note - prevNote) <= 12);
+        if (fallbackOptions.length > 0) {
+            return fallbackOptions[Math.floor(Math.random() * fallbackOptions.length)];
+        }
         return this.noteBelow + 7;
     }
 

@@ -188,15 +188,29 @@ export class FifthSpecies extends Species {
     }
 
     private generateLastNote(): number {
-        // Final note - octave or unison
-        return Math.random() < 0.8 ? this.noteBelow + 12 : this.noteBelow;
+        // Final note - octave or unison, checking for large leaps
+        const octaveNote = this.noteBelow + 12;
+        const prevNote = this.counterpoint.length > 0
+            ? this.counterpoint[this.counterpoint.length - 1] : 0;
+
+        if (prevNote !== 0 && Math.abs(octaveNote - prevNote) > 12) {
+            return this.noteBelow; // Unison if octave is too far
+        }
+        return Math.random() < 0.8 ? octaveNote : this.noteBelow;
     }
 
     private generateCadentialNote(position: number, totalInMeasure: number): number {
         // Generate notes approaching the cadence
         if (position === totalInMeasure - 1) {
-            // Penultimate note - often leading tone
-            return this.noteBelow + 11; // Major seventh (leading tone)
+            // Penultimate note - often leading tone, but ensure stepwise approach
+            const leadingTone = this.noteBelow + 11;
+            const prevNote = this.counterpoint.length > 0
+                ? this.counterpoint[this.counterpoint.length - 1] : 0;
+
+            if (prevNote !== 0 && Math.abs(leadingTone - prevNote) <= 2) {
+                return leadingTone;
+            }
+            // If leading tone would be a leap, use a consonant stepwise note
         }
 
         // Other cadential notes
@@ -204,6 +218,7 @@ export class FifthSpecies extends Species {
         this.applyNoVoiceCrossing();
         this.applyLimitToTenth();
         this.applyOnlyConsonantIntervals();
+        this.applyNoLargeLeaps();
 
         // Prefer stepwise motion in cadence
         if (this.noteBefore !== 0) {

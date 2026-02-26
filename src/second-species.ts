@@ -108,8 +108,16 @@ export class SecondSpecies extends Species {
     }
 
     private generateLastNote(): number {
-        // Final note - octave or unison
-        return this.noteBelow + 12; // Octave
+        // Final note - octave, checking for large leaps
+        const octaveNote = this.noteBelow + 12;
+        const prevNote = this.counterpoint.length > 0
+            ? this.counterpoint[this.counterpoint.length - 1] : 0;
+
+        // If octave would create a large leap, try unison
+        if (prevNote !== 0 && Math.abs(octaveNote - prevNote) > 12) {
+            return this.noteBelow;
+        }
+        return octaveNote;
     }
 
     private generateMiddleNote(): number {
@@ -127,6 +135,42 @@ export class SecondSpecies extends Species {
             this.applyNoParallelFifths();
             this.applyNoParallelOctaves();
             this.applyNoHiddenParallels();
+
+            // Additional downbeat-to-downbeat parallel check
+            // The base class checks against noteBefore (upbeat), but we need
+            // to check downbeat-to-downbeat for parallel fifths/octaves
+            if (this.currentIndex > 0) {
+                const prevDownbeat = this.counterpoint[(this.currentIndex - 1) * 2];
+                const prevCF = this.cantusFirmus[this.currentIndex - 1];
+                const prevDownbeatInterval = Math.abs(prevDownbeat - prevCF) % 12;
+
+                if (prevDownbeatInterval === 0) {
+                    // Previous downbeat was octave/unison - avoid another
+                    this.noteOptions = this.noteOptions.filter(note => {
+                        const interval = Math.abs(note - this.noteBelow) % 12;
+                        return interval !== 0;
+                    });
+                }
+                if (prevDownbeatInterval === 7) {
+                    // Previous downbeat was a fifth - avoid another
+                    this.noteOptions = this.noteOptions.filter(note => {
+                        const interval = Math.abs(note - this.noteBelow) % 12;
+                        return interval !== 7;
+                    });
+                }
+            }
+
+            // Penultimate downbeat: avoid octave/unison to prevent
+            // forced parallel octaves with the final note
+            if (this.currentIndex === this.cantusFirmus.length - 2) {
+                const nonOctaveOptions = this.noteOptions.filter(note => {
+                    const interval = Math.abs(note - this.noteBelow) % 12;
+                    return interval !== 0;
+                });
+                if (nonOctaveOptions.length > 0) {
+                    this.noteOptions = nonOctaveOptions;
+                }
+            }
         } else {
             // Upbeat - can be dissonant if approached/left by step
             this.applyPassingToneRules();

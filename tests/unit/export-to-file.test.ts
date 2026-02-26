@@ -108,9 +108,12 @@ describe('ExportToFile', () => {
 		});
 
 		test('should include header information', async () => {
-			const filename = 'tests/temp/test-output-2';
+			const filename = './tests/temp/test-output-2';
 			testFiles.push(filename + '.txt');
-			const exporter = new ExportToFile(filename, 'My Test Title', 'My Composer');
+			const exporter = new ExportToFile();
+			await exporter.setFileName(filename);
+			exporter.setTitle('My Test Title');
+			exporter.setComposer('My Composer');
 			const phrase = createTestPhrase();
 			exporter.addPhrase(phrase);
 
@@ -123,9 +126,12 @@ describe('ExportToFile', () => {
 		});
 
 		test('should include paper settings', async () => {
-			const filename = 'tests/temp/test-output-3';
+			const filename = './tests/temp/test-output-3';
 			testFiles.push(filename + '.txt');
-			const exporter = new ExportToFile(filename, 'Title', 'Composer');
+			const exporter = new ExportToFile();
+			await exporter.setFileName(filename);
+			exporter.setTitle('Title');
+			exporter.setComposer('Composer');
 			const phrase = createTestPhrase();
 			exporter.addPhrase(phrase);
 
@@ -136,9 +142,12 @@ describe('ExportToFile', () => {
 		});
 
 		test('should include score structure', async () => {
-			const filename = 'tests/temp/test-output-4';
+			const filename = './tests/temp/test-output-4';
 			testFiles.push(filename + '.txt');
-			const exporter = new ExportToFile(filename, 'Title', 'Composer');
+			const exporter = new ExportToFile();
+			await exporter.setFileName(filename);
+			exporter.setTitle('Title');
+			exporter.setComposer('Composer');
 			const phrase = createTestPhrase();
 			exporter.addPhrase(phrase);
 
@@ -150,9 +159,12 @@ describe('ExportToFile', () => {
 		});
 
 		test('should include phrase definitions', async () => {
-			const filename = 'tests/temp/test-output-5';
+			const filename = './tests/temp/test-output-5';
 			testFiles.push(filename + '.txt');
-			const exporter = new ExportToFile(filename, 'Title', 'Composer');
+			const exporter = new ExportToFile();
+			await exporter.setFileName(filename);
+			exporter.setTitle('Title');
+			exporter.setComposer('Composer');
 			const phrase = createTestPhrase();
 			exporter.addPhrase(phrase);
 
@@ -163,9 +175,12 @@ describe('ExportToFile', () => {
 		});
 
 		test('should include staff and voice structure', async () => {
-			const filename = 'tests/temp/test-output-6';
+			const filename = './tests/temp/test-output-6';
 			testFiles.push(filename + '.txt');
-			const exporter = new ExportToFile(filename, 'Title', 'Composer');
+			const exporter = new ExportToFile();
+			await exporter.setFileName(filename);
+			exporter.setTitle('Title');
+			exporter.setComposer('Composer');
 			const phrase = createTestPhrase();
 			exporter.addPhrase(phrase);
 
@@ -177,9 +192,12 @@ describe('ExportToFile', () => {
 		});
 
 		test('should include clef, key, and time signature', async () => {
-			const filename = 'tests/temp/test-output-7';
+			const filename = './tests/temp/test-output-7';
 			testFiles.push(filename + '.txt');
-			const exporter = new ExportToFile(filename, 'Title', 'Composer');
+			const exporter = new ExportToFile();
+			await exporter.setFileName(filename);
+			exporter.setTitle('Title');
+			exporter.setComposer('Composer');
 			const phrase = createTestPhrase();
 			exporter.addPhrase(phrase);
 
@@ -191,9 +209,12 @@ describe('ExportToFile', () => {
 		});
 
 		test('should convert notes to LilyPond format', async () => {
-			const filename = 'tests/temp/test-output-8';
+			const filename = './tests/temp/test-output-8';
 			testFiles.push(filename + '.txt');
-			const exporter = new ExportToFile(filename, 'Title', 'Composer');
+			const exporter = new ExportToFile();
+			await exporter.setFileName(filename);
+			exporter.setTitle('Title');
+			exporter.setComposer('Composer');
 			const phrase = createTestPhrase();
 			exporter.addPhrase(phrase);
 
@@ -205,9 +226,12 @@ describe('ExportToFile', () => {
 		});
 
 		test('should handle multiple phrases', async () => {
-			const filename = 'tests/temp/test-output-9';
+			const filename = './tests/temp/test-output-9';
 			testFiles.push(filename + '.txt');
-			const exporter = new ExportToFile(filename, 'Title', 'Composer');
+			const exporter = new ExportToFile();
+			await exporter.setFileName(filename);
+			exporter.setTitle('Title');
+			exporter.setComposer('Composer');
 			const phrase1 = createTestPhrase();
 			const phrase2 = createTestPhrase();
 
@@ -223,9 +247,12 @@ describe('ExportToFile', () => {
 		});
 
 		test('should use sharp notation for sharp keys', async () => {
-			const filename = 'tests/temp/test-output-10';
+			const filename = './tests/temp/test-output-10';
 			testFiles.push(filename + '.txt');
-			const exporter = new ExportToFile(filename, 'Title', 'Composer');
+			const exporter = new ExportToFile();
+			await exporter.setFileName(filename);
+			exporter.setTitle('Title');
+			exporter.setComposer('Composer');
 			const phrase = new Phrase();
 			const keyInfo = getKey('G', 'major'); // G major has sharps
 
@@ -242,9 +269,12 @@ describe('ExportToFile', () => {
 		});
 
 		test('should use flat notation for flat keys', async () => {
-			const filename = 'tests/temp/test-output-11';
+			const filename = './tests/temp/test-output-11';
 			testFiles.push(filename + '.txt');
-			const exporter = new ExportToFile(filename, 'Title', 'Composer');
+			const exporter = new ExportToFile();
+			await exporter.setFileName(filename);
+			exporter.setTitle('Title');
+			exporter.setComposer('Composer');
 			const phrase = new Phrase();
 			const keyInfo = getKey('F', 'major'); // F major has flats
 
@@ -261,9 +291,12 @@ describe('ExportToFile', () => {
 		});
 
 		test('should handle different time signatures', async () => {
-			const filename = 'tests/temp/test-output-12';
+			const filename = './tests/temp/test-output-12';
 			testFiles.push(filename + '.txt');
-			const exporter = new ExportToFile(filename, 'Title', 'Composer');
+			const exporter = new ExportToFile();
+			await exporter.setFileName(filename);
+			exporter.setTitle('Title');
+			exporter.setComposer('Composer');
 			const phrase = createTestPhrase();
 			phrase.setTimeSignature('3/4');
 
@@ -275,9 +308,12 @@ describe('ExportToFile', () => {
 		});
 
 		test('should handle empty phrase', async () => {
-			const filename = 'tests/temp/test-output-13';
+			const filename = './tests/temp/test-output-13';
 			testFiles.push(filename + '.txt');
-			const exporter = new ExportToFile(filename, 'Title', 'Composer');
+			const exporter = new ExportToFile();
+			await exporter.setFileName(filename);
+			exporter.setTitle('Title');
+			exporter.setComposer('Composer');
 			const phrase = new Phrase();
 
 			exporter.addPhrase(phrase);
@@ -292,9 +328,12 @@ describe('ExportToFile', () => {
 
 	describe('note conversion', () => {
 		test('should convert middle C correctly', async () => {
-			const filename = 'tests/temp/test-output-14';
+			const filename = './tests/temp/test-output-14';
 			testFiles.push(filename + '.txt');
-			const exporter = new ExportToFile(filename, 'Title', 'Composer');
+			const exporter = new ExportToFile();
+			await exporter.setFileName(filename);
+			exporter.setTitle('Title');
+			exporter.setComposer('Composer');
 			const phrase = new Phrase();
 
 			phrase.addNoteToUpperVoice(new Note(NoteType.Note_C4, 4));
@@ -308,9 +347,12 @@ describe('ExportToFile', () => {
 		});
 
 		test('should convert different octaves correctly', async () => {
-			const filename = 'tests/temp/test-output-15';
+			const filename = './tests/temp/test-output-15';
 			testFiles.push(filename + '.txt');
-			const exporter = new ExportToFile(filename, 'Title', 'Composer');
+			const exporter = new ExportToFile();
+			await exporter.setFileName(filename);
+			exporter.setTitle('Title');
+			exporter.setComposer('Composer');
 			const phrase = new Phrase();
 
 			// C3 (octave below middle C)
@@ -327,9 +369,12 @@ describe('ExportToFile', () => {
 		});
 
 		test('should convert different note lengths', async () => {
-			const filename = 'tests/temp/test-output-16';
+			const filename = './tests/temp/test-output-16';
 			testFiles.push(filename + '.txt');
-			const exporter = new ExportToFile(filename, 'Title', 'Composer');
+			const exporter = new ExportToFile();
+			await exporter.setFileName(filename);
+			exporter.setTitle('Title');
+			exporter.setComposer('Composer');
 			const phrase = new Phrase();
 
 			phrase.addNoteToUpperVoice(new Note(NoteType.Note_C4, 1)); // Whole note
@@ -355,9 +400,12 @@ describe('ExportToFile', () => {
 
 	describe('phrase numbering', () => {
 		test('should number phrases correctly from 1 to 10', async () => {
-			const filename = 'tests/temp/test-output-17';
+			const filename = './tests/temp/test-output-17';
 			testFiles.push(filename + '.txt');
-			const exporter = new ExportToFile(filename, 'Title', 'Composer');
+			const exporter = new ExportToFile();
+			await exporter.setFileName(filename);
+			exporter.setTitle('Title');
+			exporter.setComposer('Composer');
 
 			for (let i = 0; i < 10; i++) {
 				exporter.addPhrase(createTestPhrase());
