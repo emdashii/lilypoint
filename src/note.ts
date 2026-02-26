@@ -3,6 +3,7 @@ import { NoteType } from './types-and-globals.js';
 export class Note {
 	private note: NoteType = NoteType.Note_C4;
 	private length: number = 4;
+	private tied: boolean = false;
 
 	constructor(note: NoteType, length: number = 4) {
 		this.note = note;
@@ -24,5 +25,13 @@ export class Note {
 
 	setLength(length: number): void {
 		this.length = length;
+	}
+
+	getTied(): boolean {
+		return this.tied;
+	}
+
+	setTied(tied: boolean): void {
+		this.tied = tied;
 	}
 }

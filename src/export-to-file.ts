@@ -194,11 +194,19 @@ export class ExportToFile {
 		const useFlats = keyInfo?.type === 'es';
 
 		// Handle accidentals based on key signature
+		let output: string;
 		if (useFlats) {
-			return this.convertNoteToOutputFlats(note.getNote(), noteLengthString);
+			output = this.convertNoteToOutputFlats(note.getNote(), noteLengthString);
 		} else {
-			return this.convertNoteToOutputSharps(note.getNote(), noteLengthString);
+			output = this.convertNoteToOutputSharps(note.getNote(), noteLengthString);
 		}
+
+		// Append tie marker for tied notes (fourth species suspensions)
+		if (note.getTied()) {
+			output += '~';
+		}
+
+		return output;
 	}
 
 	private convertNoteToOutputSharps(noteType: NoteType, noteLengthString: string): string {

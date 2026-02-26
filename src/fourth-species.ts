@@ -59,8 +59,17 @@ export class FourthSpecies extends Species {
             }
         }
 
-        // Convert to Note objects (half notes)
-        return this.counterpoint.map(noteValue => new Note(noteValue as NoteType, 2));
+        // Convert to Note objects (half notes) and mark ties
+        const notes = this.counterpoint.map(noteValue => new Note(noteValue as NoteType, 2));
+
+        // Mark notes as tied where the next note has the same pitch (suspension mechanism)
+        for (let i = 0; i < notes.length - 1; i++) {
+            if (notes[i].getNote() === notes[i + 1].getNote()) {
+                notes[i].setTied(true);
+            }
+        }
+
+        return notes;
     }
 
     private generateFirstNote(): number {

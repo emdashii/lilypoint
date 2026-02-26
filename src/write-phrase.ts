@@ -259,16 +259,43 @@ export class WritePhrase {
 		verboseLog(`Time signature: ${this.timeSignature}, Beat unit: ${this.beatUnit}`);
 		verboseLog(`Lower voice: ${lowerVoice.length} notes, Upper voice: ${upperVoice.length} notes`);
 
-		// For First Species, both voices use the beat unit length
-		// The beat unit is the bottom number of the time signature
 		const baseNoteLength = this.beatUnit;
 
-		verboseLog(`Setting all notes to beat unit length (${baseNoteLength})`);
+		// Lower voice (cantus firmus) always gets the beat unit length
 		lowerVoice.forEach(note => note.setLength(baseNoteLength));
-		upperVoice.forEach(note => note.setLength(baseNoteLength));
 
-		// TODO: For other species, adjust based on the species ratios
-		// Second Species (2:1), Third Species (4:1), etc.
+		// Upper voice length depends on species ratio
+		switch (this.speciesType) {
+			case 2:
+				// 2:1 ratio — upper notes are twice as fast (e.g. eighth notes in 4/4)
+				verboseLog(`Setting upper voice to ${baseNoteLength * 2} (2:1 ratio)`);
+				upperVoice.forEach(note => note.setLength(baseNoteLength * 2));
+				break;
+			case 3:
+				// 4:1 ratio — upper notes are four times as fast (e.g. sixteenth notes in 4/4)
+				verboseLog(`Setting upper voice to ${baseNoteLength * 4} (4:1 ratio)`);
+				upperVoice.forEach(note => note.setLength(baseNoteLength * 4));
+				break;
+			case 4:
+				// Fourth species: first note is solo (one per CF beat), rest are paired eighth notes
+				// First note gets beat unit length, remaining get 2x (eighth notes in 4/4)
+				verboseLog(`Setting upper voice for fourth species: first=${baseNoteLength}, rest=${baseNoteLength * 2}`);
+				upperVoice.forEach((note, i) => {
+					note.setLength(i === 0 ? baseNoteLength : baseNoteLength * 2);
+				});
+				break;
+			case 5:
+				// Fifth species patterns assume 1 CF note = 1 measure, but CF has 1 note per beat.
+				// Scale durations by beatsPerMeasure to compress to actual beat length.
+				verboseLog(`Scaling fifth species durations by ${this.beatsPerMeasure}x`);
+				upperVoice.forEach(note => note.setLength(note.getLength() * this.beatsPerMeasure));
+				break;
+			default:
+				// Species 1: same beat unit
+				verboseLog(`Setting upper voice to ${baseNoteLength}`);
+				upperVoice.forEach(note => note.setLength(baseNoteLength));
+				break;
+		}
 
 		verboseLog('Note lengths after adjustment:');
 		verboseLog(`Lower voice lengths: [${lowerVoice.map(n => n.getLength()).join(', ')}]`);
