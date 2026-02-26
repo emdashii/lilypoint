@@ -285,10 +285,11 @@ export class WritePhrase {
 				});
 				break;
 			case 5:
-				// Fifth species patterns assume 1 CF note = 1 measure, but CF has 1 note per beat.
-				// Scale durations by beatsPerMeasure to compress to actual beat length.
-				verboseLog(`Scaling fifth species durations by ${this.beatsPerMeasure}x`);
-				upperVoice.forEach(note => note.setLength(note.getLength() * this.beatsPerMeasure));
+				// Fifth species patterns produce 4 quarter-note beats of content per CF note,
+				// but each CF note is 1 beat unit long (4/beatUnit quarter beats).
+				// Scale by beatUnit to compress pattern into one CF beat.
+				verboseLog(`Scaling fifth species durations by ${baseNoteLength}x`);
+				upperVoice.forEach(note => note.setLength(note.getLength() * baseNoteLength));
 				break;
 			default:
 				// Species 1: same beat unit

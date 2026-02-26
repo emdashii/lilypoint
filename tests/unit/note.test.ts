@@ -121,6 +121,35 @@ describe('Note', () => {
 		});
 	});
 
+	describe('getTied / setTied', () => {
+		test('should default to false', () => {
+			const note = new Note(NoteType.Note_C4, 4);
+			expect(note.getTied()).toBe(false);
+		});
+
+		test('should set tied to true', () => {
+			const note = new Note(NoteType.Note_C4, 4);
+			note.setTied(true);
+			expect(note.getTied()).toBe(true);
+		});
+
+		test('should set tied back to false', () => {
+			const note = new Note(NoteType.Note_C4, 4);
+			note.setTied(true);
+			expect(note.getTied()).toBe(true);
+			note.setTied(false);
+			expect(note.getTied()).toBe(false);
+		});
+
+		test('should be independent between note instances', () => {
+			const note1 = new Note(NoteType.Note_C4, 4);
+			const note2 = new Note(NoteType.Note_C4, 4);
+			note1.setTied(true);
+			expect(note1.getTied()).toBe(true);
+			expect(note2.getTied()).toBe(false);
+		});
+	});
+
 	describe('NoteType enum', () => {
 		test('should have correct values for common notes', () => {
 			expect(NoteType.Note_A0).toBe(0);

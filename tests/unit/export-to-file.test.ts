@@ -398,6 +398,117 @@ describe('ExportToFile', () => {
 		});
 	});
 
+	describe('tie output', () => {
+		test('should append ~ to tied notes in LilyPond output', async () => {
+			const filename = './tests/temp/test-output-tie-1';
+			testFiles.push(filename + '.txt');
+			const exporter = new ExportToFile();
+			await exporter.setFileName(filename);
+			exporter.setTitle('Title');
+			exporter.setComposer('Composer');
+			const phrase = new Phrase();
+
+			const tiedNote = new Note(NoteType.Note_C4, 4);
+			tiedNote.setTied(true);
+			const nextNote = new Note(NoteType.Note_C4, 4);
+
+			phrase.addNoteToUpperVoice(tiedNote);
+			phrase.addNoteToUpperVoice(nextNote);
+			phrase.addNoteToLowerVoice(new Note(NoteType.Note_C4, 4));
+			phrase.addNoteToLowerVoice(new Note(NoteType.Note_C4, 4));
+
+			exporter.addPhrase(phrase);
+
+			const output = await exporter.writeOutput();
+
+			expect(output).toContain("c'4~");
+		});
+
+		test('should not append ~ to non-tied notes', async () => {
+			const filename = './tests/temp/test-output-tie-2';
+			testFiles.push(filename + '.txt');
+			const exporter = new ExportToFile();
+			await exporter.setFileName(filename);
+			exporter.setTitle('Title');
+			exporter.setComposer('Composer');
+			const phrase = new Phrase();
+
+			const note1 = new Note(NoteType.Note_C4, 4);
+			const note2 = new Note(NoteType.Note_D4, 4);
+
+			phrase.addNoteToUpperVoice(note1);
+			phrase.addNoteToUpperVoice(note2);
+			phrase.addNoteToLowerVoice(new Note(NoteType.Note_C4, 4));
+			phrase.addNoteToLowerVoice(new Note(NoteType.Note_D4, 4));
+
+			exporter.addPhrase(phrase);
+
+			const output = await exporter.writeOutput();
+
+			// Should not contain any tie markers
+			expect(output).not.toContain('~');
+		});
+
+		test('should handle mixed tied and non-tied notes', async () => {
+			const filename = './tests/temp/test-output-tie-3';
+			testFiles.push(filename + '.txt');
+			const exporter = new ExportToFile();
+			await exporter.setFileName(filename);
+			exporter.setTitle('Title');
+			exporter.setComposer('Composer');
+			const phrase = new Phrase();
+
+			const note1 = new Note(NoteType.Note_G4, 8);
+			note1.setTied(true);
+			const note2 = new Note(NoteType.Note_G4, 8);
+			const note3 = new Note(NoteType.Note_A4, 8);
+
+			phrase.addNoteToUpperVoice(note1);
+			phrase.addNoteToUpperVoice(note2);
+			phrase.addNoteToUpperVoice(note3);
+			phrase.addNoteToLowerVoice(new Note(NoteType.Note_C4, 4));
+			phrase.addNoteToLowerVoice(new Note(NoteType.Note_C4, 8));
+
+			exporter.addPhrase(phrase);
+
+			const output = await exporter.writeOutput();
+
+			// First G should be tied
+			expect(output).toContain("g'8~");
+			// A should not be tied
+			expect(output).toContain("a'8");
+			expect(output).not.toContain("a'8~");
+		});
+
+		test('should output tie with flat notation in flat keys', async () => {
+			const filename = './tests/temp/test-output-tie-4';
+			testFiles.push(filename + '.txt');
+			const exporter = new ExportToFile();
+			await exporter.setFileName(filename);
+			exporter.setTitle('Title');
+			exporter.setComposer('Composer');
+			const phrase = new Phrase();
+			const keyInfo = getKey('F', 'major'); // flat key
+
+			phrase.setKey(keyInfo);
+
+			const tiedNote = new Note(NoteType.Note_B4_flat, 4);
+			tiedNote.setTied(true);
+			const nextNote = new Note(NoteType.Note_B4_flat, 4);
+
+			phrase.addNoteToUpperVoice(tiedNote);
+			phrase.addNoteToUpperVoice(nextNote);
+			phrase.addNoteToLowerVoice(new Note(NoteType.Note_C4, 4));
+			phrase.addNoteToLowerVoice(new Note(NoteType.Note_C4, 4));
+
+			exporter.addPhrase(phrase);
+
+			const output = await exporter.writeOutput();
+
+			expect(output).toContain("bes'4~");
+		});
+	});
+
 	describe('phrase numbering', () => {
 		test('should number phrases correctly from 1 to 10', async () => {
 			const filename = './tests/temp/test-output-17';

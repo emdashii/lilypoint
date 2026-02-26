@@ -4,6 +4,7 @@
 
 import { describe, test, expect } from 'bun:test';
 import { FourthSpecies } from '../../src/fourth-species.js';
+import { WritePhrase } from '../../src/write-phrase.js';
 import { Note } from '../../src/note.js';
 import { NoteType } from '../../src/types-and-globals.js';
 
@@ -104,6 +105,56 @@ describe('FourthSpecies Integration', () => {
 			for (const note of result) {
 				expect(note.getLength()).toBe(2);
 			}
+		});
+
+		test('should mark tied notes where consecutive pitches match', () => {
+			const cantusFirmus = [
+				new Note(NoteType.Note_C4, 4),
+				new Note(NoteType.Note_D4, 4),
+				new Note(NoteType.Note_E4, 4),
+				new Note(NoteType.Note_F4, 4),
+				new Note(NoteType.Note_C4, 4),
+			];
+
+			const species = new FourthSpecies();
+			species.setScaleDegrees(cMajorScale);
+
+			const result = species.generateCounterpoint(cantusFirmus);
+
+			// Check that tied flags are consistent: tied=true iff next note has same pitch
+			for (let i = 0; i < result.length - 1; i++) {
+				if (result[i].getNote() === result[i + 1].getNote()) {
+					expect(result[i].getTied()).toBe(true);
+				} else {
+					expect(result[i].getTied()).toBe(false);
+				}
+			}
+			// Last note should never be tied
+			expect(result[result.length - 1].getTied()).toBe(false);
+		});
+
+		test('should have at least one tied note in a non-trivial phrase', () => {
+			// Seed RNG for deterministic behavior — fourth species suspensions push duplicate pitches
+			WritePhrase.setSeed(42);
+
+			const cantusFirmus = [
+				new Note(NoteType.Note_C4, 4),
+				new Note(NoteType.Note_D4, 4),
+				new Note(NoteType.Note_E4, 4),
+				new Note(NoteType.Note_F4, 4),
+				new Note(NoteType.Note_G4, 4),
+				new Note(NoteType.Note_A4, 4),
+				new Note(NoteType.Note_G4, 4),
+				new Note(NoteType.Note_C4, 4),
+			];
+
+			const species = new FourthSpecies();
+			species.setScaleDegrees(cMajorScale);
+
+			const result = species.generateCounterpoint(cantusFirmus);
+
+			const tiedCount = result.filter(n => n.getTied()).length;
+			expect(tiedCount).toBeGreaterThan(0);
 		});
 
 		test('should handle short cantus firmus (3 notes)', () => {
