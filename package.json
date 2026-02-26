@@ -5,8 +5,9 @@
 	"main": "index.js",
 	"type": "module",
 	"scripts": {
-		"build": "bun run build:bundle && bun run build:copy",
+		"build": "bun run build:bundle && bun run build:web && bun run build:copy",
 		"build:bundle": "bun build src/main.ts --target=node --outdir=dist --sourcemap=external",
+		"build:web": "tsc --noEmit false --outDir dist --declaration false --allowImportingTsExtensions false",
 		"build:copy": "copyfiles -u 1 \"public/**/*\" dist",
 		"typecheck": "tsc --noEmit",
 		"dev": "bun --watch src/main.ts"

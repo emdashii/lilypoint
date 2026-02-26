@@ -3,7 +3,6 @@ import { Phrase } from './phrase.js';
 import { NoteType } from './types-and-globals.js';
 import { ExportToFile } from './export-to-file.js';
 import { WritePhrase } from './write-phrase.js';
-import readline from 'node:readline';
 
 // Verbose logging utility function
 export function verboseLog(...args: any[]): void {
@@ -13,16 +12,15 @@ export function verboseLog(...args: any[]): void {
 	}
 }
 
-export function getNumberInput(prompt: string): Promise<number> {
-	return new Promise((resolve, reject) => {
-		// Browser environment - not supported
-		if (typeof window !== 'undefined') {
-			reject(new Error('getNumberInput not supported in browser environment'));
-			return;
-		}
+export async function getNumberInput(prompt: string): Promise<number> {
+	// Browser environment - not supported
+	if (typeof window !== 'undefined') {
+		throw new Error('getNumberInput not supported in browser environment');
+	}
 
-		// Bun/Node.js environment
-		const rl = readline.createInterface({
+	const readline = await import('node:readline');
+	return new Promise((resolve) => {
+		const rl = readline.default.createInterface({
 			input: process.stdin,
 			output: process.stdout
 		});
@@ -43,16 +41,15 @@ export function getNumberInput(prompt: string): Promise<number> {
 	});
 }
 
-export function getStringInput(prompt: string): Promise<string> {
-	return new Promise((resolve, reject) => {
-		// Browser environment - not supported
-		if (typeof window !== 'undefined') {
-			reject(new Error('getStringInput not supported in browser environment'));
-			return;
-		}
+export async function getStringInput(prompt: string): Promise<string> {
+	// Browser environment - not supported
+	if (typeof window !== 'undefined') {
+		throw new Error('getStringInput not supported in browser environment');
+	}
 
-		// Bun/Node.js environment
-		const rl = readline.createInterface({
+	const readline = await import('node:readline');
+	return new Promise((resolve) => {
+		const rl = readline.default.createInterface({
 			input: process.stdin,
 			output: process.stdout
 		});

@@ -2,8 +2,6 @@ import { Note } from './note.js';
 import { Phrase } from './phrase.js';
 import { NoteType } from './types-and-globals.js';
 import { KeyInfo } from './key.js';
-import { readFile, writeFile, access } from 'node:fs/promises';
-import readline from 'node:readline';
 
 export class ExportToFile {
 	private fileName: string = "";
@@ -36,18 +34,19 @@ export class ExportToFile {
 
 		// In Bun/Node.js environment, check for file existence
 		if (typeof window === 'undefined') {
+			const rl = await import('node:readline');
 			while (await this.exists(fileName)) {
 				console.log(`Warning a file already exists with the chosen output filename: ${fileName}!`);
 				console.log("Please enter a different filename: ");
 
-				const rl = readline.createInterface({
+				const iface = rl.default.createInterface({
 					input: process.stdin,
 					output: process.stdout
 				});
 
 				const newFileName = await new Promise<string>((resolve) => {
-					rl.question('', (answer: string) => {
-						rl.close();
+					iface.question('', (answer: string) => {
+						iface.close();
 						resolve(answer || fileName);
 					});
 				});
@@ -124,6 +123,7 @@ export class ExportToFile {
 				console.log("Generated LilyPond Output created successfully!");
 				return output;
 			} else {
+				const { writeFile } = await import('node:fs/promises');
 				await writeFile(this.fileName, output);
 				console.log("Final output file successfully created!");
 				return output;
@@ -171,6 +171,7 @@ export class ExportToFile {
 		}
 
 		try {
+			const { access } = await import('node:fs/promises');
 			await access(fileName);
 			return true;
 		} catch {
