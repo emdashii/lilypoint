@@ -59,7 +59,9 @@ Both implementations share the same xorshift32 random number generator, so given
 To run the comparison:
 
 ```bash
-# Build the C++ implementation (requires g++)
+# Build the C++ implementation (requires g++ and make in PATH)
+# On Windows: install MinGW via chocolatey/winget and ensure
+# g++ and make are on your PATH before running this
 make -C "Music Project"
 
 # Run comparison tests (defaults to seed 12345)
@@ -85,6 +87,8 @@ bun run src/compare-runner.ts --seed 12345 --key C --species -2 --measures 4 --b
 | 2   | -4        | Second species |
 
 > **Note:** Keys Ab, A, Bb, and B have an octave mismatch between implementations (`convertKeyToNote()` maps them to octave 3 in C++ and octave 4 in TypeScript). The comparison tests use keys C–G to avoid this.
+>
+> **Note:** Key=F will always produce 3 failures due to an enharmonic spelling difference: C++ names the note A#/Bb as `ais` while TypeScript names it `bes`. The notes are musically identical but notated differently, so these are not logic errors.
 
 ### Project Structure
 

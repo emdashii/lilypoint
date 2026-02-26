@@ -1,6 +1,7 @@
 #include "SpeciesOne.h"
 #include "xorshift32.h"
 #include <iostream>
+#include <algorithm>
 
 
 SpeciesOne::SpeciesOne()

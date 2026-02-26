@@ -1,4 +1,5 @@
 #include <iostream>
+#include <limits>
 #include "HelperFunctions.h"
 #include "ExportToFile.h"
 #include "WritePhrase.h"

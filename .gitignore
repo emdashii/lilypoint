@@ -1,6 +1,6 @@
 # Updating Music Project for use in verification of typescript output, so needs to be included in git
 #/Music Project
-
+/Music Project/*.o
 # Build output
 /dist
 *.js

@@ -83,7 +83,7 @@ for si in 0 1 2; do
             # Show the diff for debugging
             echo "    C++ notes: $(echo "$cpp_notes" | head -1)"
             echo "    TS  notes: $(echo "$ts_notes" | head -1)"
-            diff <(echo "$cpp_notes") <(echo "$ts_notes") | head -20 | sed 's/^/    /'
+            diff <(echo "$cpp_notes") <(echo "$ts_notes") | head -20 | sed 's/^/    /' || true
         fi
     done
 done
