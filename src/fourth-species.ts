@@ -17,6 +17,7 @@ export class FourthSpecies extends Species {
         this.rules.noParallelFifths = true;
         this.rules.noParallelOctaves = true;
         this.rules.preferContraryMotion = true;
+        this.rules.noLargeLeaps = true;
         this.rules.noVoiceCrossing = true;
         this.rules.limitToTenth = true;
         this.rules.approachFinalByStep = true;
@@ -74,27 +75,36 @@ export class FourthSpecies extends Species {
 
     private generatePenultimateNote(): number {
         // Typical suspension resolution before final
-        // 7-6 suspension is common
-        if (this.counterpoint.length > 0) {
-            const lastNote = this.counterpoint[this.counterpoint.length - 1];
-            // Create 7-6 suspension
-            if (this.isConsonant(lastNote, this.cantusFirmus[this.cantusFirmus.length - 2])) {
-                return this.noteBelow + 9; // Major 6th for 7-6-8 cadence
-            }
-        }
-        return this.noteBelow + 9; // Major 6th
-    }
-
-    private generateLastNote(): number {
-        // Final note - octave, checking for large leaps
-        const octaveNote = this.noteBelow + 12;
         const prevNote = this.counterpoint.length > 0
             ? this.counterpoint[this.counterpoint.length - 1] : 0;
 
-        if (prevNote !== 0 && Math.abs(octaveNote - prevNote) > 12) {
-            return this.noteBelow; // Unison if octave is too far
+        // Prefer major 6th for 7-6-8 cadence, but check constraints
+        const candidates = [9, 8, 7, 4, 3].map(i => this.noteBelow + i);
+        for (const note of candidates) {
+            if (note > this.noteBelow && Math.abs(note - this.noteBelow) <= 16
+                && (prevNote === 0 || Math.abs(note - prevNote) <= 12)
+                && this.isConsonant(note, this.noteBelow)) {
+                return note;
+            }
         }
-        return octaveNote;
+        return this.noteBelow + 9; // Fallback
+    }
+
+    private generateLastNote(): number {
+        // Final note - octave or unison, checking for large leaps
+        const octaveNote = this.noteBelow + 12;
+        const unisonNote = this.noteBelow;
+        const prevNote = this.counterpoint.length > 0
+            ? this.counterpoint[this.counterpoint.length - 1] : 0;
+
+        const octaveLeapOk = prevNote === 0 || Math.abs(octaveNote - prevNote) <= 12;
+        const unisonLeapOk = prevNote === 0 || Math.abs(unisonNote - prevNote) <= 12;
+
+        if (octaveLeapOk) return octaveNote;
+        if (unisonLeapOk) return unisonNote;
+        // Both are large leaps - pick the smaller one
+        return Math.abs(octaveNote - prevNote) <= Math.abs(unisonNote - prevNote)
+            ? octaveNote : unisonNote;
     }
 
     private generateSuspension(cfIndex: number): void {
@@ -143,18 +153,25 @@ export class FourthSpecies extends Species {
 
     private resolveDissonance(dissonantNote: number): number {
         // Dissonance must resolve down by step (1 or 2 semitones)
-        // Prefer resolving to a scale degree
+        // Prefer resolving to a consonant note that doesn't cross below CF
         const stepDown1 = dissonantNote - 1;
         const stepDown2 = dissonantNote - 2;
 
         // Check which resolutions are consonant with the current CF note
         const consonantResolutions = [stepDown1, stepDown2].filter(note => {
+            if (note < this.noteBelow) return false; // No voice crossing
             const interval = Math.abs(note - this.noteBelow) % 12;
             return [0, 3, 4, 7, 8, 9].includes(interval);
         });
 
         if (consonantResolutions.length > 0) {
             return consonantResolutions[0];
+        }
+
+        // If no consonant resolution above CF, allow any that doesn't cross
+        const aboveCf = [stepDown1, stepDown2].filter(note => note >= this.noteBelow);
+        if (aboveCf.length > 0) {
+            return aboveCf[0];
         }
 
         // Fallback to step down by 1
@@ -165,15 +182,17 @@ export class FourthSpecies extends Species {
         // Prepare a note that will become dissonant when CF changes
         // Common suspensions: 4-3, 7-6, 9-8, 2-1
 
+        this.setNoteBefore(currentNote);
         this.generateNoteOptions();
         this.applyNoVoiceCrossing();
         this.applyLimitToTenth();
+        this.applyNoLargeLeaps();
 
         // Find notes that are consonant now but will be dissonant with next CF
         if (this.currentIndex < this.cantusFirmus.length - 1) {
             const nextCF = this.cantusFirmus[this.currentIndex + 1];
 
-            this.noteOptions = this.noteOptions.filter(note => {
+            const suspensionOptions = this.noteOptions.filter(note => {
                 const currentInterval = Math.abs(note - this.noteBelow) % 12;
                 const nextInterval = Math.abs(note - nextCF) % 12;
 
@@ -183,11 +202,13 @@ export class FourthSpecies extends Species {
                 // Good suspension: consonant now, dissonant next
                 return isCurrentlyConsonant && willBeDissonant;
             });
-        }
 
-        if (this.noteOptions.length === 0) {
-            // Fallback to consonant interval
-            return this.noteBelow + 7; // Fifth
+            if (suspensionOptions.length > 0) {
+                this.noteOptions = suspensionOptions;
+            } else {
+                // No suspension possible - just pick a consonant note
+                this.applyOnlyConsonantIntervals();
+            }
         }
 
         return this.chooseNextNote();
@@ -206,19 +227,20 @@ export class FourthSpecies extends Species {
             nextCF + 2,  // Will create 9-8 suspension
         ];
 
-        // Filter for valid range (above CF, within a tenth, no large leaps)
+        // Filter: must be consonant with CURRENT CF, above CF, within tenth, no large leaps
         const validOptions = options.filter(note => {
             if (note <= this.noteBelow) return false; // No voice crossing
-            if (note > this.noteBelow + 16) return false; // Within a tenth
+            if (Math.abs(note - this.noteBelow) > 16) return false; // Within a tenth
             if (prevNote !== 0 && Math.abs(note - prevNote) > 12) return false; // No large leaps
-            return true;
+            const interval = Math.abs(note - this.noteBelow) % 12;
+            return [0, 3, 4, 7, 8, 9].includes(interval); // Must be consonant with current CF
         });
 
         if (validOptions.length > 0) {
             return validOptions[Math.floor(Math.random() * validOptions.length)];
         }
 
-        // Fallback: consonant interval within range
+        // Fallback: consonant interval within range and leap constraint
         const fallbackOptions = [3, 4, 7, 8, 9, 12].map(i => this.noteBelow + i)
             .filter(note => prevNote === 0 || Math.abs(note - prevNote) <= 12);
         if (fallbackOptions.length > 0) {
@@ -235,6 +257,7 @@ export class FourthSpecies extends Species {
         this.applyOnlyConsonantIntervals();
         this.applyNoParallelFifths();
         this.applyNoParallelOctaves();
+        this.applyNoLargeLeaps();
 
         // Prefer stepwise motion in fourth species
         const stepwiseOptions = this.noteOptions.filter(note =>

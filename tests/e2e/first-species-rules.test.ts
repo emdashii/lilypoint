@@ -76,7 +76,7 @@ describe('First Species E2E - Rule Validation', () => {
 	describe('Generated First Species Counterpoint (Property-Based)', () => {
 		test('should generate valid C major first species counterpoint', () => {
 			const { successCount, attempts } = propertyBasedValidation(
-				'C', 8, 'major', cMajorScale
+				'C', 8, 'major', cMajorScale, 20
 			);
 			console.log(`C major: ${successCount}/${attempts} passed`);
 			expect(successCount).toBeGreaterThanOrEqual(attempts * 0.8);
@@ -113,7 +113,7 @@ describe('First Species E2E - Rule Validation', () => {
 
 			for (const length of lengths) {
 				const { successCount, attempts } = propertyBasedValidation(
-					'C', length, 'major', cMajorScale
+					'C', length, 'major', cMajorScale, 20
 				);
 				console.log(`C major length ${length}: ${successCount}/${attempts} passed`);
 				expect(successCount).toBeGreaterThanOrEqual(attempts * 0.8);

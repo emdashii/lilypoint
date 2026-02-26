@@ -273,11 +273,10 @@ export abstract class Species {
         const last = this.previousIntervals[this.previousIntervals.length - 1];
         const secondLast = this.previousIntervals[this.previousIntervals.length - 2];
 
-        // If last two intervals were the same
+        // If last two intervals were the same, don't allow a third consecutive identical interval
         if (last === secondLast) {
-            // Don't allow a third consecutive identical interval
             this.noteOptions = this.noteOptions.filter(note => {
-                const currentInterval = Math.abs(note - this.noteBelow);
+                const currentInterval = Math.abs(note - this.noteBelow) % 12;
                 return currentInterval !== last;
             });
         }
@@ -286,13 +285,18 @@ export abstract class Species {
     protected applyAllowDissonantPassing(): void {
         if (!this.rules.allowDissonantPassing || this.noteBefore === 0) return;
 
-        // Add stepwise options (may be dissonant)
+        // Add stepwise options (may be dissonant) but respect voice crossing and tenth limits
         const stepUp = this.noteBefore + 1;
         const stepDown = this.noteBefore - 1;
 
         [stepUp, stepDown].forEach(note => {
             if (!this.noteOptions.includes(note)) {
-                this.noteOptions.push(note);
+                // Only add if it respects voice crossing and tenth limit
+                const aboveCf = !this.rules.noVoiceCrossing || note > this.noteBelow;
+                const withinTenth = !this.rules.limitToTenth || Math.abs(note - this.noteBelow) <= 16;
+                if (aboveCf && withinTenth) {
+                    this.noteOptions.push(note);
+                }
             }
         });
     }
@@ -336,9 +340,16 @@ export abstract class Species {
 
     protected chooseNextNote(): number {
         if (this.noteOptions.length === 0) {
-            // Fallback: choose a safe consonant interval
+            // Fallback: find a consonant note that respects voice crossing, tenth, and leap constraints
             console.warn("No valid options found, using fallback");
-            return this.noteBelow + 7; // Perfect fifth above
+            const candidates = [7, 4, 3, 9, 8, 12, 0].map(i => this.noteBelow + i);
+            for (const note of candidates) {
+                const leapOk = this.noteBefore === 0 || Math.abs(note - this.noteBefore) <= 12;
+                const aboveCf = note >= this.noteBelow;
+                const withinTenth = Math.abs(note - this.noteBelow) <= 16;
+                if (leapOk && aboveCf && withinTenth) return note;
+            }
+            return this.noteBelow + 7; // Last resort
         }
 
         // Random selection from valid options

@@ -60,7 +60,7 @@ describe('Fourth Species E2E - Rule Validation', () => {
 	describe('Generated Fourth Species Counterpoint', () => {
 		test('should generate valid C major fourth species counterpoint', () => {
 			const { successCount, attempts } = propertyBasedValidation(
-				'C', 6, 'major', cMajorScale
+				'C', 6, 'major', cMajorScale, 20
 			);
 			console.log(`Fourth Species C major: ${successCount}/${attempts} passed`);
 			expect(successCount).toBeGreaterThanOrEqual(attempts * 0.8);
@@ -73,7 +73,7 @@ describe('Fourth Species E2E - Rule Validation', () => {
 				NoteType.Note_F4_sharp, NoteType.Note_G4, NoteType.Note_A4
 			];
 			const { successCount, attempts } = propertyBasedValidation(
-				'G', 6, 'major', scaleDegrees
+				'G', 6, 'major', scaleDegrees, 20
 			);
 			console.log(`Fourth Species G major: ${successCount}/${attempts} passed`);
 			expect(successCount).toBeGreaterThanOrEqual(attempts * 0.8);

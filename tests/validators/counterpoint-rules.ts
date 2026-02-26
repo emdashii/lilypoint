@@ -295,22 +295,25 @@ export class CounterpointRules {
 	}
 
 	/**
-	 * Check for more than 2 consecutive identical intervals
+	 * Check for more than 3 consecutive identical intervals.
+	 * The counterpoint rule states "You cannot use any interval more than three times in a row",
+	 * meaning 3 is the maximum allowed and 4+ is forbidden.
 	 */
 	static hasTooManyConsecutiveIntervals(phrase: Phrase): boolean {
 		const upper = phrase.getUpperVoice().map(n => n.getNote());
 		const lower = phrase.getLowerVoice().map(n => n.getNote());
 
 		const minLength = Math.min(upper.length, lower.length);
-		if (minLength < 3) return false;
+		if (minLength < 4) return false;
 
-		for (let i = 0; i < minLength - 2; i++) {
+		for (let i = 0; i < minLength - 3; i++) {
 			const interval1 = this.calculateIntervalMod12(upper[i], lower[i]);
 			const interval2 = this.calculateIntervalMod12(upper[i + 1], lower[i + 1]);
 			const interval3 = this.calculateIntervalMod12(upper[i + 2], lower[i + 2]);
+			const interval4 = this.calculateIntervalMod12(upper[i + 3], lower[i + 3]);
 
-			// Three consecutive identical intervals
-			if (interval1 === interval2 && interval2 === interval3) {
+			// Four consecutive identical intervals
+			if (interval1 === interval2 && interval2 === interval3 && interval3 === interval4) {
 				return true;
 			}
 		}

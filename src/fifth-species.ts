@@ -190,13 +190,23 @@ export class FifthSpecies extends Species {
     private generateLastNote(): number {
         // Final note - octave or unison, checking for large leaps
         const octaveNote = this.noteBelow + 12;
+        const unisonNote = this.noteBelow;
         const prevNote = this.counterpoint.length > 0
             ? this.counterpoint[this.counterpoint.length - 1] : 0;
 
-        if (prevNote !== 0 && Math.abs(octaveNote - prevNote) > 12) {
-            return this.noteBelow; // Unison if octave is too far
+        const octaveLeapOk = prevNote === 0 || Math.abs(octaveNote - prevNote) <= 12;
+        const unisonLeapOk = prevNote === 0 || Math.abs(unisonNote - prevNote) <= 12;
+
+        if (octaveLeapOk && unisonLeapOk) {
+            return Math.random() < 0.8 ? octaveNote : unisonNote;
+        } else if (octaveLeapOk) {
+            return octaveNote;
+        } else if (unisonLeapOk) {
+            return unisonNote;
         }
-        return Math.random() < 0.8 ? octaveNote : this.noteBelow;
+        // Both are large leaps - pick the smaller one
+        return Math.abs(octaveNote - prevNote) <= Math.abs(unisonNote - prevNote)
+            ? octaveNote : unisonNote;
     }
 
     private generateCadentialNote(position: number, totalInMeasure: number): number {
@@ -207,10 +217,12 @@ export class FifthSpecies extends Species {
             const prevNote = this.counterpoint.length > 0
                 ? this.counterpoint[this.counterpoint.length - 1] : 0;
 
-            if (prevNote !== 0 && Math.abs(leadingTone - prevNote) <= 2) {
+            if (prevNote !== 0 && Math.abs(leadingTone - prevNote) <= 2
+                && leadingTone > this.noteBelow
+                && Math.abs(leadingTone - this.noteBelow) <= 16) {
                 return leadingTone;
             }
-            // If leading tone would be a leap, use a consonant stepwise note
+            // If leading tone would be a leap or violate constraints, fall through
         }
 
         // Other cadential notes
@@ -258,6 +270,9 @@ export class FifthSpecies extends Species {
             this.applyEighthNoteRules(isDownbeat);
         }
 
+        // Save options after harmonic rules but before preference filters
+        const safeOptions = [...this.noteOptions];
+
         // Common rules
         this.applyNoLargeLeaps();
         this.applyApproachLeapsByStep();
@@ -265,6 +280,12 @@ export class FifthSpecies extends Species {
 
         // Maintain melodic interest
         this.avoidRepetition();
+
+        // If preference filters emptied options, restore and apply only hard constraints
+        if (this.noteOptions.length === 0 && safeOptions.length > 0) {
+            this.noteOptions = safeOptions;
+            this.applyNoLargeLeaps();
+        }
 
         return this.chooseNextNote();
     }
