@@ -12,7 +12,10 @@
       "Bash(bun test tests/unit/export-to-file.test.ts)",
       "Bash(bun test tests/integration/first-species.test.ts)",
       "Bash(bun test tests/e2e/first-species-rules.test.ts)",
-      "Bash(bun test)"
+      "Bash(bun test)",
+      "Bash(bun test *)",
+      "Bash(npx tsc *)",
+      "Skill(artifact-design)"
     ],
     "deny": [],
     "ask": []

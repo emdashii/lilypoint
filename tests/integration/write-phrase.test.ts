@@ -38,7 +38,8 @@ describe('WritePhrase Integration', () => {
 			wp.writeThePhrase();
 			const phrase = wp.getPhrase();
 
-			expect(phrase.getUpperVoice().length).toBe(phrase.getLowerVoice().length * 2);
+			// 2:1 against every CF note except the last, which carries one held note
+			expect(phrase.getUpperVoice().length).toBe((phrase.getLowerVoice().length - 1) * 2 + 1);
 		});
 
 		test('should produce valid notes', () => {
@@ -57,7 +58,8 @@ describe('WritePhrase Integration', () => {
 			wp.writeThePhrase();
 			const phrase = wp.getPhrase();
 
-			expect(phrase.getUpperVoice().length).toBe(phrase.getLowerVoice().length * 4);
+			// 4:1 against every CF note except the last, which carries one held note
+			expect(phrase.getUpperVoice().length).toBe((phrase.getLowerVoice().length - 1) * 4 + 1);
 		});
 
 		test('should produce valid notes', () => {
@@ -142,9 +144,12 @@ describe('WritePhrase Integration', () => {
 			wp.writeThePhrase();
 			const phrase = wp.getPhrase();
 
-			for (const note of phrase.getUpperVoice()) {
-				expect(note.getLength()).toBe(8);
+			const upper = phrase.getUpperVoice();
+			for (let i = 0; i < upper.length - 1; i++) {
+				expect(upper[i].getLength()).toBe(8);
 			}
+			// final note is held for the whole final CF note
+			expect(upper[upper.length - 1].getLength()).toBe(4);
 			for (const note of phrase.getLowerVoice()) {
 				expect(note.getLength()).toBe(4);
 			}
@@ -156,9 +161,11 @@ describe('WritePhrase Integration', () => {
 			wp.writeThePhrase();
 			const phrase = wp.getPhrase();
 
-			for (const note of phrase.getUpperVoice()) {
-				expect(note.getLength()).toBe(16);
+			const upper = phrase.getUpperVoice();
+			for (let i = 0; i < upper.length - 1; i++) {
+				expect(upper[i].getLength()).toBe(16);
 			}
+			expect(upper[upper.length - 1].getLength()).toBe(4);
 			for (const note of phrase.getLowerVoice()) {
 				expect(note.getLength()).toBe(4);
 			}
@@ -171,10 +178,11 @@ describe('WritePhrase Integration', () => {
 			const phrase = wp.getPhrase();
 			const upper = phrase.getUpperVoice();
 
-			expect(upper[0].getLength()).toBe(4);
-			for (let i = 1; i < upper.length; i++) {
+			// syncopated halves relative to the CF: eighths in 4/4, final note held
+			for (let i = 0; i < upper.length - 1; i++) {
 				expect(upper[i].getLength()).toBe(8);
 			}
+			expect(upper[upper.length - 1].getLength()).toBe(4);
 			for (const note of phrase.getLowerVoice()) {
 				expect(note.getLength()).toBe(4);
 			}
@@ -244,9 +252,11 @@ describe('WritePhrase Integration', () => {
 			for (const note of phrase.getLowerVoice()) {
 				expect(note.getLength()).toBe(8);
 			}
-			for (const note of phrase.getUpperVoice()) {
-				expect(note.getLength()).toBe(16);
+			const upper = phrase.getUpperVoice();
+			for (let i = 0; i < upper.length - 1; i++) {
+				expect(upper[i].getLength()).toBe(16);
 			}
+			expect(upper[upper.length - 1].getLength()).toBe(8);
 		});
 	});
 

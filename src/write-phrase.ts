@@ -6,11 +6,13 @@ import { SpeciesTwo } from './legacy/species-two.js';
 import { GenerateLowerVoice } from './generate-lower-voice.js';
 import { Key, KeyInfo } from './key.js';
 import { CantusFirmus } from './cantus-firmus.js';
+import { Species } from './species.js';
 import { FirstSpecies } from './first-species.js';
 import { SecondSpecies } from './second-species.js';
 import { ThirdSpecies } from './third-species.js';
 import { FourthSpecies } from './fourth-species.js';
 import { FifthSpecies } from './fifth-species.js';
+import { CounterpointUnsolvableError } from './species-engine.js';
 import { verboseLog } from './helper-functions.js';
 
 export class WritePhrase {
@@ -148,82 +150,50 @@ export class WritePhrase {
 		verboseLog(`Final phrase has ${this.phraseN.getUpperVoice().length} upper notes and ${this.phraseN.getLowerVoice().length} lower notes`);
 	}
 
-	private writeProperSpeciesCounterpoint(): void {
-		// NEW METHOD: Generate counterpoint using the new architecture
-		verboseLog('\n--- Step 1: Generate Cantus Firmus ---');
+	private createSpecies(): Species {
+		switch (this.speciesType) {
+			case 2: return new SecondSpecies();
+			case 3: return new ThirdSpecies();
+			case 4: return new FourthSpecies();
+			case 5: return new FifthSpecies();
+			default: return new FirstSpecies();
+		}
+	}
 
-		// Step 1: Generate Cantus Firmus
-		// Total notes = measures × beats per measure (top number of time signature)
+	private writeProperSpeciesCounterpoint(): void {
+		// Total CF notes = measures × beats per measure (top number of time signature)
 		const totalBeats = this.phraseLength * this.beatsPerMeasure;
 		verboseLog(`Time signature: ${this.timeSignature} = ${this.beatsPerMeasure} beats per measure`);
 		verboseLog(`Generating cantus firmus: ${this.phraseLength} measures × ${this.beatsPerMeasure} beats = ${totalBeats} notes`);
 
-		const cantusFirmus = new CantusFirmus(this.key.getKeyName(), totalBeats, this.mode);
-		const cantusFirmusNotes = cantusFirmus.generate();
-		verboseLog(`Generated ${cantusFirmusNotes.length} cantus firmus notes`);
-		verboseLog('Cantus Firmus notes:', cantusFirmusNotes.map(n => n.getNote()).join(', '));
-
-		// Step 2: Generate Counterpoint based on species type
-		verboseLog('\n--- Step 2: Generate Counterpoint ---');
-		verboseLog(`Generating ${this.getSpeciesName(this.speciesType)} counterpoint...`);
-
-		// Get scale degrees from cantus firmus to ensure diatonic notes only
 		const scaleDegrees = this.getScaleDegrees();
 		verboseLog(`Scale degrees for ${this.key.getKeyName()} ${this.mode}: [${scaleDegrees.join(', ')}]`);
 
+		// The backtracking engine occasionally finds no counterpoint for a given
+		// cantus firmus; regenerate the CF and retry (deterministic per seed).
+		const maxAttempts = 50;
+		let cantusFirmusNotes: Note[] = [];
 		let counterpointNotes: Note[] = [];
 
-		switch (this.speciesType) {
-			case 1: {
-				// First Species - note against note
-				verboseLog('Creating First Species (1:1 note against note)');
-				const firstSpecies = new FirstSpecies();
-				firstSpecies.setScaleDegrees(scaleDegrees);
-				counterpointNotes = firstSpecies.generateCounterpoint(cantusFirmusNotes);
+		for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+			const cantusFirmus = new CantusFirmus(this.key.getKeyName(), totalBeats, this.mode);
+			cantusFirmusNotes = cantusFirmus.generate();
+			verboseLog(`Attempt ${attempt}: CF [${cantusFirmusNotes.map(n => n.getNote()).join(', ')}]`);
+
+			const species = this.createSpecies();
+			species.setScaleDegrees(scaleDegrees);
+			try {
+				counterpointNotes = species.generateCounterpoint(cantusFirmusNotes);
 				break;
-			}
-			case 2: {
-				// Second Species - 2:1
-				verboseLog('Creating Second Species (2:1 counterpoint)');
-				const secondSpecies = new SecondSpecies();
-				secondSpecies.setScaleDegrees(scaleDegrees);
-				counterpointNotes = secondSpecies.generateCounterpoint(cantusFirmusNotes);
-				break;
-			}
-			case 3: {
-				// Third Species - 4:1
-				verboseLog('Creating Third Species (4:1 counterpoint)');
-				const thirdSpecies = new ThirdSpecies();
-				thirdSpecies.setScaleDegrees(scaleDegrees);
-				counterpointNotes = thirdSpecies.generateCounterpoint(cantusFirmusNotes);
-				break;
-			}
-			case 4: {
-				// Fourth Species - syncopation
-				verboseLog('Creating Fourth Species (syncopated counterpoint)');
-				const fourthSpecies = new FourthSpecies();
-				fourthSpecies.setScaleDegrees(scaleDegrees);
-				counterpointNotes = fourthSpecies.generateCounterpoint(cantusFirmusNotes);
-				break;
-			}
-			case 5: {
-				// Fifth Species - florid counterpoint
-				verboseLog('Creating Fifth Species (florid counterpoint)');
-				const fifthSpecies = new FifthSpecies();
-				fifthSpecies.setScaleDegrees(scaleDegrees);
-				counterpointNotes = fifthSpecies.generateCounterpoint(cantusFirmusNotes);
-				break;
-			}
-			default: {
-				// Default to first species
-				verboseLog('Using default First Species counterpoint');
-				const firstSpecies = new FirstSpecies();
-				firstSpecies.setScaleDegrees(scaleDegrees);
-				counterpointNotes = firstSpecies.generateCounterpoint(cantusFirmusNotes);
-				break;
+			} catch (error) {
+				if (error instanceof CounterpointUnsolvableError && attempt < maxAttempts) {
+					verboseLog(`Attempt ${attempt} unsolvable, regenerating cantus firmus`);
+					continue;
+				}
+				throw error;
 			}
 		}
-		
+
 		verboseLog(`Generated ${counterpointNotes.length} counterpoint notes`);
 		verboseLog('Counterpoint notes:', counterpointNotes.map(n => n.getNote()).join(', '));
 
@@ -249,56 +219,20 @@ export class WritePhrase {
 	}
 
 	private adjustForSpeciesRhythm(): void {
-		// Adjust note lengths based on time signature beat unit
-		// The beat unit (bottom number of time signature) determines the note length
-		// In LilyPond notation: 1=whole note, 2=half note, 4=quarter note, 8=eighth note
+		// Species classes emit durations RELATIVE to one cantus firmus note
+		// (1 = full CF note, 2 = half of it, 4 = quarter of it). Each CF note
+		// occupies one beat unit, so scaling both voices by the beat unit
+		// yields final LilyPond durations (e.g. relative half × beat unit 4
+		// = 8, an eighth note in 4/4).
 		const lowerVoice = this.phraseN.getLowerVoice();
 		const upperVoice = this.phraseN.getUpperVoice();
 
 		verboseLog(`Adjusting rhythm for ${this.getSpeciesName(this.speciesType)}`);
 		verboseLog(`Time signature: ${this.timeSignature}, Beat unit: ${this.beatUnit}`);
-		verboseLog(`Lower voice: ${lowerVoice.length} notes, Upper voice: ${upperVoice.length} notes`);
 
-		const baseNoteLength = this.beatUnit;
+		lowerVoice.forEach(note => note.setLength(this.beatUnit));
+		upperVoice.forEach(note => note.setLength(note.getLength() * this.beatUnit));
 
-		// Lower voice (cantus firmus) always gets the beat unit length
-		lowerVoice.forEach(note => note.setLength(baseNoteLength));
-
-		// Upper voice length depends on species ratio
-		switch (this.speciesType) {
-			case 2:
-				// 2:1 ratio — upper notes are twice as fast (e.g. eighth notes in 4/4)
-				verboseLog(`Setting upper voice to ${baseNoteLength * 2} (2:1 ratio)`);
-				upperVoice.forEach(note => note.setLength(baseNoteLength * 2));
-				break;
-			case 3:
-				// 4:1 ratio — upper notes are four times as fast (e.g. sixteenth notes in 4/4)
-				verboseLog(`Setting upper voice to ${baseNoteLength * 4} (4:1 ratio)`);
-				upperVoice.forEach(note => note.setLength(baseNoteLength * 4));
-				break;
-			case 4:
-				// Fourth species: first note is solo (one per CF beat), rest are paired eighth notes
-				// First note gets beat unit length, remaining get 2x (eighth notes in 4/4)
-				verboseLog(`Setting upper voice for fourth species: first=${baseNoteLength}, rest=${baseNoteLength * 2}`);
-				upperVoice.forEach((note, i) => {
-					note.setLength(i === 0 ? baseNoteLength : baseNoteLength * 2);
-				});
-				break;
-			case 5:
-				// Fifth species patterns produce 4 quarter-note beats of content per CF note,
-				// but each CF note is 1 beat unit long (4/beatUnit quarter beats).
-				// Scale by beatUnit to compress pattern into one CF beat.
-				verboseLog(`Scaling fifth species durations by ${baseNoteLength}x`);
-				upperVoice.forEach(note => note.setLength(note.getLength() * baseNoteLength));
-				break;
-			default:
-				// Species 1: same beat unit
-				verboseLog(`Setting upper voice to ${baseNoteLength}`);
-				upperVoice.forEach(note => note.setLength(baseNoteLength));
-				break;
-		}
-
-		verboseLog('Note lengths after adjustment:');
 		verboseLog(`Lower voice lengths: [${lowerVoice.map(n => n.getLength()).join(', ')}]`);
 		verboseLog(`Upper voice lengths: [${upperVoice.map(n => n.getLength()).join(', ')}]`);
 	}
