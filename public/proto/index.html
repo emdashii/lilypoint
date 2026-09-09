@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UI prototypes – lilypoint</title>
+<link rel="stylesheet" href="shared/tokens.css" />
+<style>
+	body { font-family: Georgia, 'Times New Roman', serif; font-size: 17px; line-height: 1.55; }
+	.wrap { max-width: 820px; margin: 0 auto; padding: 48px 24px 80px; }
+	h1 { font-weight: normal; font-size: 2rem; margin: 0 0 6px; }
+	.lede { color: var(--tx-2); margin: 0 0 36px; }
+	.list { list-style: none; margin: 0; padding: 0; }
+	.list li { display: grid; grid-template-columns: 3.2rem 1fr; gap: 0 14px; padding: 18px 0; border-top: 1px solid var(--ui-2); }
+	.list li:last-child { border-bottom: 1px solid var(--ui-2); }
+	.list .n { color: var(--tx-3); font-size: 1.6rem; line-height: 1.1; }
+	.list a { font-size: 1.25rem; color: var(--tx); text-decoration: none; border-bottom: 1px solid var(--tx-3); }
+	.list a:hover { color: var(--gr); border-bottom-color: var(--gr); }
+	.list p { margin: 6px 0 0; }
+	.list .meta { color: var(--tx-2); font-size: 0.92rem; margin-top: 4px; }
+	h2 { font-weight: normal; font-size: 1.3rem; margin: 44px 0 10px; }
+	table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+	th, td { text-align: left; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--ui-2); vertical-align: top; }
+	th { font-weight: normal; color: var(--tx-2); }
+	code { font-family: Consolas, 'Courier New', monospace; font-size: 0.9em; background: var(--ui); padding: 1px 4px; border-radius: 3px; }
+	.note { color: var(--tx-2); font-size: 0.95rem; }
+	.theme-toggle { float: right; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+	<span id="theme"></span>
+	<p class="note"><a href="/">Practice</a> · <a href="/write.html">Write</a> · <a href="/about.html">About lilypoint</a></p>
+	<h1>Eight ways to hold the same generator</h1>
+	<p class="lede">Every page below runs the real counterpoint engine from <code>dist/</code> and draws notation in the browser. Nothing goes to Hacklily. Pick the one that feels right, or the parts of several.</p>
+
+	<ol class="list">
+		<li><span class="n">7</span><div><a href="07-studio.html">The writing room</a><p>The sheet, with a live editor. Select any phrase in the margin, change its settings, reroll it, or move it into place. Sampled piano, highlighted notes, and complete staves in the PDF.</p><p class="meta">New synthesis. White paper in either theme. Keyboard: space, R, N.</p></div></li>
+		<li><span class="n">8</span><div><a href="08-lessons.html">The practice room</a><p>Choose a lesson, then explore an endless feed. Edit the sentence, combine filters, and keep your favorite phrases. Open the collection as a sheet when you are ready.</p><p class="meta">New synthesis. Count-in, voices, looping, 2/4/8/12 bars, and a choice of meter.</p></div></li>
+		<li><span class="n">1</span><div><a href="01-sheet.html">The sheet</a><p>The page is a piece of engraved paper. A tray at the bottom adds the next phrase; the margin lists what is on the page with reroll and remove. Title and composer are typed straight onto the sheet.</p><p class="meta">Verovio engraving, direct PDF download, MIDI, playback with highlight.</p></div></li>
+		<li><span class="n">2</span><div><a href="02-deck.html">Phrase deck</a><p>One card per phrase. Every setting is a single tap on a pill, and the card re-engraves the moment you tap. Drag to reorder, duplicate, reroll by seed.</p><p class="meta">VexFlow, fastest to load, PDF through the print dialog.</p></div></li>
+		<li><span class="n">3</span><div><a href="03-practice.html">Practice bench</a><p>Built for a laptop on the piano stand. One exercise at a time, large, with count-in, tempo, hands, loop, and a Next button that writes the next exercise. Finished exercises collect into a printable session.</p><p class="meta">abcjs with sampled piano playback and a moving cursor. Keyboard: space, N, R.</p></div></li>
+		<li><span class="n">4</span><div><a href="04-sentence.html">Say it</a><p>A sentence with blanks: “Write four bars of first species counterpoint in D minor, in 3/4 time.” Change a word and the music below changes. “And then…” adds another line.</p><p class="meta">VexFlow. Fewest controls of the six.</p></div></li>
+		<li><span class="n">5</span><div><a href="05-workbook.html">Workbook</a><p>An open book. The left page has lessons (warm-up, species ladder, around the keys) and an editable table of contents; the right page is real paginated pages you can turn and print as a booklet.</p><p class="meta">Verovio with page layout and the Leland font. Direct PDF download.</p></div></li>
+		<li><span class="n">6</span><div><a href="06-roll.html">The roll</a><p>An endless feed of phrases matching your filters. Keep the ones you like; skip the rest. Kept phrases become one printable piece.</p><p class="meta">abcjs. Keyboard: J, K, Enter, space.</p></div></li>
+	</ol>
+
+	<h2>What renders the notes</h2>
+	<p class="note">There is no usable LilyPond in the browser. The only WebAssembly attempt runs a whole Linux container and takes about a minute per render. So the prototypes draw notation from the generator's own note data with one of three libraries, and LilyPond stays as a download for anyone who wants the source.</p>
+	<table>
+		<tr><th>Library</th><th>Input</th><th>Size</th><th>Good at</th><th>Watch out for</th></tr>
+		<tr><td>VexFlow 5</td><td>Notes drawn by JavaScript calls</td><td>1.1 MB plus two fonts</td><td>Instant, per-phrase rendering; full control of layout</td><td>Glyphs are text in a web font, so PDF goes through the print dialog</td></tr>
+		<tr><td>abcjs 6.7</td><td>ABC text</td><td>0.5 MB</td><td>Small, built-in piano playback with a cursor</td><td>Plainer engraving; long scores need manual line breaks</td></tr>
+		<tr><td>Verovio 6.3</td><td>MusicXML</td><td>7 MB once, then cached</td><td>Closest to LilyPond quality; real pages, titles, MIDI, timing map</td><td>Slow first load; re-engraves the whole score on each change</td></tr>
+	</table>
+	<p class="note">Shared code lives in <code>public/proto/shared/</code>: a small adapter over the generator, converters to ABC and MusicXML, the three renderers, a Web Audio player, and the PDF helpers. Any page can swap its renderer for another one.</p>
+
+	<h2>Running them</h2>
+	<p class="note">Build once with <code>bun run build</code>, serve <code>dist/</code>, and open <code>/proto/</code>. Each page keeps its phrases in the URL, so a link reproduces the same score.</p>
+</div>
+<script type="module">
+import { initTheme, themeButton } from './shared/ui.js';
+initTheme();
+document.getElementById('theme').replaceWith(themeButton());
+</script>
+</body>
+</html>

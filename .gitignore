@@ -25,3 +25,5 @@ npm-debug.log*
 *.txt
 
 CLAUDE.md
+# UI prototypes ship their own browser modules
+!/public/proto/**/*.js

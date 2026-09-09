@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Phrase deck – lilypoint</title>
+<link rel="stylesheet" href="shared/tokens.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+<style>
+	body { font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.45; }
+	.wrap { max-width: 980px; margin: 0 auto; padding: 24px 20px 120px; }
+	header { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; margin-bottom: 28px; }
+	header .brand { font-weight: 600; letter-spacing: 0.02em; text-decoration: none; color: var(--tx); }
+	header .brand small { font-weight: 400; color: var(--tx-2); margin-left: 8px; }
+	header .meta { margin-left: auto; display: flex; gap: 14px; align-items: baseline; }
+	.plain { background: none; border: 0; border-bottom: 1px solid var(--ui-3); padding: 2px 0; min-width: 8ch; }
+	.plain:focus { outline: none; border-bottom-color: var(--cy); }
+	.plain.title { font-size: 1.25rem; font-weight: 600; }
+
+	.card { border: 1px solid var(--ui-3); border-radius: 6px; margin-bottom: 18px; background: var(--bg); }
+	.card.dragging { opacity: 0.4; }
+	.card-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--ui-2); flex-wrap: wrap; }
+	.card-head .n { font-weight: 600; color: var(--tx-2); width: 1.6em; }
+	.card-head .actions { margin-left: auto; display: flex; gap: 4px; }
+	.card-body { padding: 12px 14px 4px; }
+	.strip { display: grid; grid-template-columns: 5.5em 1fr; gap: 6px 12px; align-items: center; padding: 10px 14px 12px; border-bottom: 1px solid var(--ui-2); background: var(--bg-2); }
+	.strip .lbl { color: var(--tx-2); font-size: 0.85rem; }
+	.pills { display: flex; flex-wrap: wrap; gap: 4px; }
+	.pill { border: 1px solid var(--ui-3); background: var(--bg); border-radius: 4px; padding: 3px 9px; cursor: pointer; font-size: 0.9rem; line-height: 1.3; }
+	.pill:hover { border-color: var(--tx-3); }
+	.pill[aria-pressed='true'] { background: var(--tx); color: var(--bg); border-color: var(--tx); }
+	.pill.species { padding-right: 7px; }
+	.pill.species span { color: inherit; opacity: 0.65; font-size: 0.8em; margin-left: 5px; }
+	.stepper { display: inline-flex; align-items: center; border: 1px solid var(--ui-3); border-radius: 4px; overflow: hidden; }
+	.stepper button { border: 0; background: var(--bg); width: 30px; height: 28px; cursor: pointer; }
+	.stepper button:hover { background: var(--ui); }
+	.stepper output { min-width: 3ch; text-align: center; font-variant-numeric: tabular-nums; }
+	.seed { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--tx-2); }
+	.seed input { width: 11ch; font-variant-numeric: tabular-nums; }
+	.tbtn { border: 0; background: none; color: var(--tx-2); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
+	.tbtn:hover { background: var(--ui); color: var(--tx); }
+	.tbtn.danger:hover { color: var(--re); }
+	.score { min-height: 120px; }
+	.score .note.playing path, .score .note.playing rect, .score .note.playing text { fill: var(--cy); stroke: var(--cy); }
+	.error { color: var(--re); padding: 12px 0; }
+
+	.dock { position: fixed; left: 0; right: 0; bottom: 0; background: var(--bg-2); border-top: 1px solid var(--ui-3); }
+	.dock .in { max-width: 980px; margin: 0 auto; padding: 10px 20px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+	.dock .sum { color: var(--tx-2); margin-right: auto; }
+	.btn { border: 1px solid var(--ui-3); background: var(--bg); border-radius: 5px; padding: 7px 14px; cursor: pointer; }
+	.btn:hover { border-color: var(--tx-3); }
+	.btn.primary { background: var(--gr); border-color: var(--gr); color: var(--paper); }
+	.btn.primary:hover { filter: brightness(1.08); }
+	.empty { color: var(--tx-2); padding: 40px 0; text-align: center; }
+	@media (max-width: 640px) { .strip { grid-template-columns: 1fr; } .card-head .actions { margin-left: 0; } }
+	@media print { .dock, header .meta, .strip, .card-head, .theme-toggle { display: none; } .card { border: 0; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+	<header>
+		<a class="brand" href="index.html">lilypoint <small>phrase deck</small></a>
+		<div class="meta">
+			<input class="plain title" id="title" value="Counterpoint" aria-label="Title" />
+			<input class="plain" id="composer" value="lilypoint" aria-label="Composer" />
+			<span id="theme"></span>
+		</div>
+	</header>
+	<div id="deck"></div>
+	<p class="empty" id="empty" hidden>No phrases yet. Add one below and it appears here already engraved.</p>
+</div>
+<div class="dock no-print">
+	<div class="in">
+		<span class="sum" id="sum"></span>
+		<button class="btn primary" id="add">Add phrase</button>
+		<button class="btn" id="play">Play all</button>
+		<button class="btn" id="pdf">Save PDF</button>
+		<button class="btn" id="ly">LilyPond</button>
+		<button class="btn" id="xml">MusicXML</button>
+	</div>
+</div>
+
+<script type="module">
+import { KEYS, MODES, TIME_SIGS, SPECIES, generate, reroll, randomSeed, defaultSpec, toLilyPond, readUrlState, writeUrlState, downloadText, safeFilename, speciesInfo } from './shared/core.js';
+import { toMusicXML, toPlaybackNotes } from './shared/notation.js';
+import { renderPhrase } from './shared/render-vexflow.js';
+import { Player } from './shared/playback.js';
+import { printSvgs } from './shared/pdf.js';
+import { el, initTheme, themeButton, debounce } from './shared/ui.js';
+
+initTheme();
+document.getElementById('theme').replaceWith(themeButton());
+
+const deck = document.getElementById('deck');
+const player = new Player();
+let cards = []; // { result, node, scoreEl, noteMap }
+
+function meta() { return { title: document.getElementById('title').value, composer: document.getElementById('composer').value }; }
+function saveState() { writeUrlState(cards.map(c => c.result.spec), { t: meta().title, c: meta().composer }); summarize(); }
+function summarize() {
+	const bars = cards.reduce((a, c) => a + c.result.spec.measures, 0);
+	document.getElementById('sum').textContent = cards.length ? `${cards.length} phrase${cards.length === 1 ? '' : 's'}, ${bars} bars` : '';
+	document.getElementById('empty').hidden = cards.length > 0;
+	cards.forEach((c, i) => { c.node.querySelector('.n').textContent = i + 1; });
+}
+
+function pills(list, value, label, onPick) {
+	return el('div', { class: 'pills', role: 'group' }, list.map(item => {
+		const v = typeof item === 'object' ? item.n : item;
+		return el('button', { class: 'pill' + (typeof item === 'object' ? ' species' : ''), type: 'button', 'aria-pressed': String(v) === String(value) ? 'true' : 'false', onclick: () => onPick(v) }, label(item));
+	}));
+}
+
+function card(result) {
+	const c = { result };
+	const scoreEl = el('div', { class: 'score', role: 'img' });
+	c.scoreEl = scoreEl;
+	const strip = el('div', { class: 'strip' });
+	const rebuild = () => {
+		const s = c.result.spec;
+		strip.replaceChildren(
+			el('span', { class: 'lbl' }, 'Key'), pills(KEYS, s.key, k => k, key => update(c, { key })),
+			el('span', { class: 'lbl' }, 'Mode'), pills(MODES, s.mode, m => m, mode => update(c, { mode })),
+			el('span', { class: 'lbl' }, 'Species'), pills(SPECIES, s.species, sp => [sp.name.replace(' species', ''), el('span', {}, sp.blurb)], species => update(c, { species })),
+			el('span', { class: 'lbl' }, 'Meter'), pills(TIME_SIGS, s.time, t => t, time => update(c, { time })),
+			el('span', { class: 'lbl' }, 'Bars'), el('div', { style: { display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' } },
+				el('div', { class: 'stepper' },
+					el('button', { type: 'button', 'aria-label': 'Fewer bars', onclick: () => update(c, { measures: Math.max(2, s.measures - 1) }) }, '−'),
+					el('output', {}, s.measures),
+					el('button', { type: 'button', 'aria-label': 'More bars', onclick: () => update(c, { measures: Math.min(16, s.measures + 1) }) }, '+')),
+				el('label', { class: 'seed' }, 'seed', el('input', { class: 'plain', value: s.seed, inputmode: 'numeric', onchange: e => update(c, { seed: Number(e.target.value) || randomSeed() }) })),
+				el('button', { class: 'tbtn', type: 'button', onclick: () => update(c, { seed: randomSeed() }) }, 'Reroll')),
+		);
+	};
+	c.rebuild = rebuild;
+	rebuild();
+	c.node = el('div', { class: 'card', draggable: 'true' },
+		el('div', { class: 'card-head' },
+			el('span', { class: 'n' }, '1'),
+			el('span', { class: 'desc' }, ''),
+			el('div', { class: 'actions' },
+				el('button', { class: 'tbtn', type: 'button', onclick: () => play([c]) }, 'Play'),
+				el('button', { class: 'tbtn', type: 'button', onclick: () => moveCard(c, -1) }, 'Up'),
+				el('button', { class: 'tbtn', type: 'button', onclick: () => moveCard(c, 1) }, 'Down'),
+				el('button', { class: 'tbtn', type: 'button', onclick: () => addCard(generate({ ...c.result.spec, seed: randomSeed() }), c) }, 'Duplicate'),
+				el('button', { class: 'tbtn danger', type: 'button', onclick: () => removeCard(c) }, 'Remove'))),
+		strip,
+		el('div', { class: 'card-body' }, scoreEl));
+	c.node.addEventListener('dragstart', e => { dragging = c; c.node.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+	c.node.addEventListener('dragend', () => { c.node.classList.remove('dragging'); dragging = null; });
+	c.node.addEventListener('dragover', e => { e.preventDefault(); if (!dragging || dragging === c) return; const r = c.node.getBoundingClientRect(); const after = e.clientY > r.top + r.height / 2; deck.insertBefore(dragging.node, after ? c.node.nextSibling : c.node); });
+	c.node.addEventListener('drop', () => { cards = [...deck.children].map(n => cards.find(x => x.node === n)); saveState(); });
+	return c;
+}
+let dragging = null;
+
+async function draw(c) {
+	const s = c.result.spec;
+	c.node.querySelector('.desc').textContent = `${s.key} ${s.mode}, ${speciesInfo(s.species).name.toLowerCase()}, ${s.measures} bars of ${s.time}`;
+	c.scoreEl.setAttribute('aria-label', 'Sheet music, ' + c.node.querySelector('.desc').textContent);
+	try {
+		const out = await renderPhrase(c.scoreEl, c.result, { width: Math.max(600, c.scoreEl.clientWidth || 900), measuresPerLine: s.measures <= 4 ? s.measures : 4 });
+		c.noteMap = out.noteMap;
+	} catch (e) { c.scoreEl.replaceChildren(el('p', { class: 'error' }, 'Could not draw this phrase: ' + e.message)); }
+}
+
+function update(c, patch) {
+	try { c.result = generate({ ...c.result.spec, ...patch }); }
+	catch (e) { c.scoreEl.replaceChildren(el('p', { class: 'error' }, 'No valid counterpoint found for these settings. Try another seed. (' + e.message + ')')); return; }
+	c.rebuild(); draw(c); saveState();
+}
+function addCard(result, after) {
+	const c = card(result);
+	cards.splice(after ? cards.indexOf(after) + 1 : cards.length, 0, c);
+	if (after) after.node.after(c.node); else deck.append(c.node);
+	draw(c); saveState();
+	c.node.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+function removeCard(c) { cards = cards.filter(x => x !== c); c.node.remove(); saveState(); }
+function moveCard(c, dir) {
+	const i = cards.indexOf(c), j = i + dir;
+	if (j < 0 || j >= cards.length) return;
+	cards.splice(i, 1); cards.splice(j, 0, c);
+	deck.replaceChildren(...cards.map(x => x.node));
+	saveState();
+}
+
+function play(list) {
+	const { notes, totalTicks } = toPlaybackNotes(list.map(c => c.result));
+	const first = list[0].result;
+	const btn = document.getElementById('play');
+	btn.textContent = 'Stop';
+	const lit = [];
+	player.play(notes, totalTicks, { bpm: 84, unit: first.unit, beatsPerBar: first.beats,
+		onNote: (n, on) => { const c = list.find(x => x.result.id === n.phraseId); if (!c || !c.noteMap) return; for (const i of n.indices) for (const g of c.noteMap.get(`${n.phraseId}:${n.voice}:${i}`) || []) { g.classList.toggle('playing', on); } },
+		onEnd: () => { btn.textContent = 'Play all'; } });
+}
+document.getElementById('play').addEventListener('click', () => { if (player.playing) { player.stop(); document.getElementById('play').textContent = 'Play all'; } else if (cards.length) play(cards); });
+
+document.getElementById('add').addEventListener('click', () => {
+	const last = cards[cards.length - 1];
+	addCard(generate(last ? { ...last.result.spec, seed: randomSeed() } : defaultSpec()));
+});
+document.getElementById('pdf').addEventListener('click', () => printSvgs(cards.map(c => c.scoreEl.querySelector('svg')).filter(Boolean), { title: meta().title, subtitle: meta().composer }));
+document.getElementById('ly').addEventListener('click', async () => downloadText(safeFilename(meta().title) + '.ly', await toLilyPond(cards.map(c => c.result), meta())));
+document.getElementById('xml').addEventListener('click', () => downloadText(safeFilename(meta().title) + '.musicxml', toMusicXML(cards.map(c => c.result), meta()), 'application/vnd.recordare.musicxml+xml'));
+for (const id of ['title', 'composer']) document.getElementById(id).addEventListener('input', debounce(saveState, 300));
+addEventListener('resize', debounce(() => cards.forEach(draw), 200));
+
+// boot: restore from URL or start with one phrase
+const { specs, params } = readUrlState();
+if (params.get('t')) document.getElementById('title').value = params.get('t');
+if (params.get('c')) document.getElementById('composer').value = params.get('c');
+for (const s of specs.length ? specs : [defaultSpec()]) { try { addCard(generate(s)); } catch (e) { console.warn(e); } }
+</script>
+</body>
+</html>

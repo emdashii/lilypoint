@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Say it – lilypoint</title>
+<link rel="stylesheet" href="shared/tokens.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet" />
+<style>
+	body { font-family: 'Newsreader', Georgia, serif; font-size: 18px; line-height: 1.5; }
+	.page { max-width: 860px; margin: 0 auto; padding: 40px 24px 140px; }
+	nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 56px; font-size: 0.95rem; }
+	nav a { color: var(--tx-2); text-decoration: none; }
+	nav a:hover { color: var(--tx); }
+
+	.sentences { margin: 0 0 40px; padding: 0; list-style: none; }
+	.sentence { font-size: clamp(1.5rem, 3.4vw, 2.3rem); line-height: 1.35; font-weight: 400; margin: 0 0 14px; padding: 0; position: relative; }
+	.sentence .lead { color: var(--tx-2); font-style: italic; }
+	.sentence select { appearance: none; -webkit-appearance: none; background: none; border: 0; border-bottom: 2px solid var(--ui-3); padding: 0 2px; margin: 0; font: inherit; color: var(--tx); cursor: pointer; text-align: center; border-radius: 0; }
+	.sentence select:hover { border-bottom-color: var(--tx-3); }
+	.sentence select:focus { outline: none; border-bottom-color: var(--cy); }
+	.sentence .tools { display: inline-flex; gap: 12px; margin-left: 14px; font-size: 0.95rem; vertical-align: middle; opacity: 0; transition: opacity 0.15s; }
+	.sentence:hover .tools, .sentence:focus-within .tools { opacity: 1; }
+	.sentence .tools button { background: none; border: 0; color: var(--tx-2); cursor: pointer; font: inherit; font-style: italic; padding: 0; }
+	.sentence .tools button:hover { color: var(--tx); text-decoration: underline; }
+	.more { font-size: 1.1rem; font-style: italic; background: none; border: 0; color: var(--gr); cursor: pointer; padding: 0; }
+	.more:hover { text-decoration: underline; }
+
+	.score { margin-top: 16px; }
+	.score .note.playing path, .score .note.playing rect { fill: var(--cy); stroke: var(--cy); }
+	.hint { color: var(--tx-2); font-style: italic; }
+	.error { color: var(--re); font-style: italic; }
+
+	.foot { position: fixed; bottom: 0; left: 0; right: 0; padding: 14px 24px; display: flex; justify-content: center; gap: 22px; font-style: italic; background: linear-gradient(to top, var(--bg) 70%, transparent); }
+	.foot button { background: none; border: 0; font: inherit; color: var(--tx-2); cursor: pointer; padding: 6px 4px; border-bottom: 1px solid transparent; }
+	.foot button:hover { color: var(--tx); border-bottom-color: var(--tx); }
+	.foot .go { color: var(--gr); }
+	@media print { nav, .foot, .sentences { display: none; } }
+</style>
+</head>
+<body>
+<div class="page">
+	<nav><a href="index.html">lilypoint</a><span id="theme"></span></nav>
+	<ol class="sentences" id="sentences"></ol>
+	<button class="more" id="more">and then…</button>
+	<div class="score" id="score" role="img" aria-label="Sheet music for the sentences above"></div>
+	<p class="hint" id="hint">The music appears as soon as you change a word.</p>
+</div>
+<div class="foot no-print">
+	<button class="go" id="play">Play</button>
+	<button id="pdf">Save as PDF</button>
+	<button id="ly">Download LilyPond</button>
+</div>
+
+<script type="module">
+import { KEYS, MODES, TIME_SIGS, SPECIES, generate, randomSeed, defaultSpec, toLilyPond, readUrlState, writeUrlState, downloadText, describe } from './shared/core.js';
+import { toPlaybackNotes } from './shared/notation.js';
+import { renderSystems } from './shared/render-vexflow.js';
+import { Player } from './shared/playback.js';
+import { printSvgs } from './shared/pdf.js';
+import { el, initTheme, themeButton, debounce } from './shared/ui.js';
+
+initTheme();
+document.getElementById('theme').replaceWith(themeButton());
+const list = document.getElementById('sentences');
+const scoreEl = document.getElementById('score');
+const player = new Player();
+const NUMBERS = ['', '', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen'];
+let lines = []; // { spec, result, node }
+let noteMap = new Map();
+
+function select(values, value, label, onchange) {
+	const s = el('select', { onchange: e => onchange(e.target.value) });
+	for (const v of values) { const o = el('option', { value: typeof v === 'object' ? v.n : v }, label(v)); if (String(o.value) === String(value)) o.selected = true; s.append(o); }
+	return s;
+}
+
+function sentence(line, index) {
+	const s = line.spec;
+	const set = patch => { line.spec = { ...line.spec, ...patch }; regenerate(line); };
+	const lead = index === 0 ? 'Write ' : 'then ';
+	return el('li', { class: 'sentence' },
+		el('span', { class: 'lead' }, lead),
+		select(Array.from({ length: 15 }, (_, i) => i + 2), s.measures, n => NUMBERS[n], v => set({ measures: Number(v) })),
+		' bars of ',
+		select(SPECIES, s.species, sp => sp.name.toLowerCase(), v => set({ species: Number(v) })),
+		index === 0 ? ' counterpoint in ' : ' in ',
+		select(KEYS, s.key, k => k, v => set({ key: v })),
+		' ',
+		select(MODES, s.mode, m => m, v => set({ mode: v })),
+		', in ',
+		select(TIME_SIGS, s.time, t => t, v => set({ time: v })),
+		index === 0 ? ' time.' : '.',
+		el('span', { class: 'tools' },
+			el('button', { type: 'button', title: 'Same words, different notes', onclick: () => set({ seed: randomSeed() }) }, 'another take'),
+			el('button', { type: 'button', onclick: () => remove(line) }, 'remove')));
+}
+
+function regenerate(line) {
+	try { line.result = generate(line.spec); line.error = null; }
+	catch (e) { line.result = null; line.error = e.message; }
+	render();
+}
+function render() {
+	list.replaceChildren(...lines.map((l, i) => sentence(l, i)));
+	writeUrlState(lines.map(l => l.spec));
+	const results = lines.map(l => l.result).filter(Boolean);
+	const bad = lines.find(l => l.error);
+	document.getElementById('hint').textContent = bad ? 'No valid counterpoint for one of the lines. Try another take. (' + bad.error + ')' : '';
+	document.getElementById('hint').className = bad ? 'error' : 'hint';
+	if (!results.length) { scoreEl.replaceChildren(); return; }
+	renderSystems(scoreEl, results, { width: Math.max(600, scoreEl.clientWidth || 800), measuresPerLine: 4 }).then(out => { noteMap = out.noteMap; }).catch(e => { scoreEl.replaceChildren(el('p', { class: 'error' }, e.message)); });
+}
+function add(spec) { const line = { spec }; lines.push(line); regenerate(line); }
+function remove(line) { lines = lines.filter(l => l !== line); render(); }
+
+document.getElementById('more').addEventListener('click', () => {
+	const last = lines[lines.length - 1];
+	add(last ? { ...last.spec, seed: randomSeed() } : defaultSpec());
+	list.lastElementChild && list.lastElementChild.querySelector('select').focus();
+});
+document.getElementById('play').addEventListener('click', e => {
+	if (player.playing) { player.stop(); e.target.textContent = 'Play'; return; }
+	const results = lines.map(l => l.result).filter(Boolean);
+	if (!results.length) return;
+	const { notes, totalTicks } = toPlaybackNotes(results);
+	e.target.textContent = 'Stop';
+	player.play(notes, totalTicks, { bpm: 84, unit: results[0].unit, beatsPerBar: results[0].beats,
+		onNote: (n, on) => { for (const i of n.indices) for (const g of noteMap.get(`${n.phraseId}:${n.voice}:${i}`) || []) g.classList.toggle('playing', on); },
+		onEnd: () => { e.target.textContent = 'Play'; } });
+});
+document.getElementById('pdf').addEventListener('click', () => { const svg = scoreEl.querySelector('svg'); if (svg) printSvgs([svg], { title: 'lilypoint', subtitle: lines.map(l => describe(l.spec)).join('; ') }); });
+document.getElementById('ly').addEventListener('click', async () => downloadText('lilypoint.ly', await toLilyPond(lines.map(l => l.result).filter(Boolean), { title: 'lilypoint', composer: 'lilypoint' })));
+addEventListener('resize', debounce(render, 200));
+
+const { specs } = readUrlState();
+for (const s of specs.length ? specs : [defaultSpec()]) add(s);
+</script>
+</body>
+</html>

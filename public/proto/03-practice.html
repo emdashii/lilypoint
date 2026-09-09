@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Practice bench – lilypoint</title>
+<link rel="stylesheet" href="shared/tokens.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+	html, body { height: 100%; }
+	body { font-family: 'Manrope', system-ui, sans-serif; font-size: 17px; display: grid; grid-template-rows: auto 1fr auto; grid-template-columns: 1fr; }
+	.top { display: flex; align-items: center; gap: 16px; padding: 12px 22px; border-bottom: 1px solid var(--ui-2); }
+	.top .brand { font-weight: 700; text-decoration: none; color: var(--tx); }
+	.top .brand small { font-weight: 400; color: var(--tx-2); margin-left: 8px; }
+	.top .now { margin-left: auto; color: var(--tx-2); }
+	.top .now b { color: var(--tx); font-weight: 500; }
+	.top button.link { background: none; border: 0; color: var(--gr); cursor: pointer; font: inherit; }
+	.top button.link:hover { text-decoration: underline; }
+
+	.stage { display: grid; grid-template-columns: minmax(0, 1fr) auto; min-height: 0; }
+	.stage .music { padding: 18px 28px; overflow: auto; display: flex; flex-direction: column; justify-content: center; }
+	.score { width: 100%; }
+	.score svg { width: 100%; height: auto; }
+	.abcjs-cursor { stroke: var(--cy); stroke-width: 2; }
+	.score .abcjs-note_selected, .score .abcjs-note_selected path { fill: var(--cy) !important; }
+	.score .highlight, .score .highlight path { fill: var(--cy) !important; }
+	.exercise-n { color: var(--tx-2); font-size: 0.9rem; margin: 0 0 6px; }
+
+	.session { width: 280px; border-left: 1px solid var(--ui-2); padding: 18px; overflow: auto; background: var(--bg-2); }
+	.session h2 { font-size: 0.95rem; font-weight: 500; margin: 0 0 8px; color: var(--tx-2); }
+	.session ol { list-style: none; margin: 0; padding: 0; }
+	.session li { padding: 8px 0; border-top: 1px solid var(--ui-2); font-size: 0.9rem; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+	.session li button { background: none; border: 0; color: var(--tx-2); font: inherit; font-size: 0.85rem; cursor: pointer; padding: 0; }
+	.session li button:hover { color: var(--tx); }
+	.session .empty { color: var(--tx-3); font-size: 0.9rem; }
+	.session .print { margin-top: 14px; width: 100%; padding: 10px; border: 1px solid var(--ui-3); background: var(--bg); border-radius: 8px; cursor: pointer; font: inherit; }
+	.session .print:hover { border-color: var(--tx-3); }
+
+	.transport { display: grid; grid-template-columns: auto 1fr auto; gap: 18px; align-items: center; padding: 14px 22px 18px; border-top: 1px solid var(--ui-2); background: var(--bg-2); }
+	.big { font: inherit; font-weight: 700; font-size: 1.1rem; padding: 14px 26px; border-radius: 10px; border: 0; cursor: pointer; min-width: 120px; }
+	.big.play { background: var(--gr); color: var(--paper); }
+	.big.next { background: var(--tx); color: var(--bg); }
+	.big:hover { filter: brightness(1.08); }
+	.big kbd { font: inherit; font-weight: 400; font-size: 0.8rem; opacity: 0.7; margin-left: 8px; }
+	.knobs { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; justify-content: center; }
+	.knob { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: var(--tx-2); }
+	.knob output { color: var(--tx); font-weight: 500; font-size: 0.95rem; }
+	.knob input[type=range] { width: 160px; accent-color: var(--gr); }
+	.seg { display: inline-flex; border: 1px solid var(--ui-3); border-radius: 8px; overflow: hidden; }
+	.seg button { border: 0; background: var(--bg); padding: 6px 12px; cursor: pointer; font: inherit; font-size: 0.9rem; }
+	.seg button + button { border-left: 1px solid var(--ui-3); }
+	.seg button[aria-pressed='true'] { background: var(--tx); color: var(--bg); }
+	.toggle { display: inline-flex; gap: 6px; align-items: center; font-size: 0.9rem; color: var(--tx); cursor: pointer; }
+
+	dialog { border: 1px solid var(--ui-3); border-radius: 12px; background: var(--bg); color: var(--tx); padding: 22px 24px; width: min(560px, 92vw); }
+	dialog::backdrop { background: rgba(16, 15, 15, 0.45); }
+	dialog h2 { margin: 0 0 14px; font-size: 1.1rem; }
+	dialog .row { display: grid; grid-template-columns: 8em 1fr; gap: 10px; align-items: center; margin-bottom: 10px; font-size: 0.95rem; }
+	dialog .pills { display: flex; flex-wrap: wrap; gap: 4px; }
+	dialog .pill { border: 1px solid var(--ui-3); background: var(--bg); border-radius: 6px; padding: 4px 10px; cursor: pointer; font: inherit; font-size: 0.9rem; }
+	dialog .pill[aria-pressed='true'] { background: var(--tx); color: var(--bg); border-color: var(--tx); }
+	dialog .done { margin-top: 10px; background: var(--gr); color: var(--paper); border: 0; padding: 10px 18px; border-radius: 8px; font: inherit; cursor: pointer; }
+	dialog .note { color: var(--tx-2); font-size: 0.85rem; }
+	@media (max-width: 900px) { .stage { grid-template-columns: 1fr; } .session { display: none; } .transport { grid-template-columns: 1fr; } }
+	@media print { .top, .transport, .session { display: none; } }
+</style>
+</head>
+<body>
+<header class="top">
+	<a class="brand" href="index.html">lilypoint <small>practice bench</small></a>
+	<span class="now" id="now"></span>
+	<button class="link" id="settings">Change exercise</button>
+	<span id="theme"></span>
+</header>
+<div class="stage">
+	<div class="music">
+		<p class="exercise-n" id="exn"></p>
+		<div class="score" id="score" role="img" aria-label="Current exercise"></div>
+	</div>
+	<aside class="session no-print">
+		<h2>This session</h2>
+		<ol id="done"></ol>
+		<p class="empty" id="doneEmpty">Finished exercises collect here. Press Next when you have played one through.</p>
+		<button class="print" id="printSession">Print the session</button>
+	</aside>
+</div>
+<div class="transport no-print">
+	<button class="big play" id="play">Play <kbd>space</kbd></button>
+	<div class="knobs">
+		<div class="knob">Tempo <input type="range" id="tempo" min="40" max="140" value="72" /><output id="tempoOut">72 per beat</output></div>
+		<div class="knob">Hands <div class="seg" id="hands"><button aria-pressed="true" data-v="both">Both</button><button aria-pressed="false" data-v="upper">Upper</button><button aria-pressed="false" data-v="lower">Lower</button></div></div>
+		<label class="toggle"><input type="checkbox" id="countin" checked /> Count in</label>
+		<label class="toggle"><input type="checkbox" id="loop" /> Loop</label>
+		<button class="big" id="reroll" style="background: var(--ui); color: var(--tx)">Another <kbd>R</kbd></button>
+	</div>
+	<button class="big next" id="next">Next <kbd>N</kbd></button>
+</div>
+
+<dialog id="dlg">
+	<h2>What to practise</h2>
+	<div class="row"><span>Key</span><div class="pills" id="dkey"></div></div>
+	<div class="row"><span>Mode</span><div class="pills" id="dmode"></div></div>
+	<div class="row"><span>Species</span><div class="pills" id="dspecies"></div></div>
+	<div class="row"><span>Meter</span><div class="pills" id="dtime"></div></div>
+	<div class="row"><span>Bars</span><div class="pills" id="dbars"></div></div>
+	<div class="row"><span>Next picks</span><div class="pills" id="dprog"></div></div>
+	<p class="note">“Any key” and “climb the species” change the settings each time you press Next, so a session wanders instead of repeating.</p>
+	<button class="done" id="ddone">Use these</button>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/abcjs@6.7.0/dist/abcjs-basic-min.js"></script>
+<script type="module">
+import { KEYS, MODES, TIME_SIGS, SPECIES, generate, randomSeed, defaultSpec, toLilyPond, readUrlState, writeUrlState, downloadText, describe, speciesInfo } from './shared/core.js';
+import { toABC } from './shared/notation.js';
+import { Player } from './shared/playback.js';
+import { printSvgs } from './shared/pdf.js';
+import { el, initTheme, themeButton } from './shared/ui.js';
+
+initTheme();
+document.getElementById('theme').replaceWith(themeButton());
+const $ = id => document.getElementById(id);
+const clicker = new Player();
+
+// settings: key 'any' means random each time; species 'climb' walks 1..5
+const settings = { key: 'C', mode: 'major', species: 1, time: '4/4', measures: 4, anyKey: false, climb: false };
+let current = null, visual = null, synth = null, timing = null, hands = 'both', playing = false;
+let done = []; // results played through
+let count = 0;
+
+function pickSpec() {
+	const key = settings.anyKey ? KEYS[Math.floor(Math.random() * KEYS.length)] : settings.key;
+	const species = settings.climb && current ? (current.spec.species % 5) + 1 : settings.species;
+	return { key, mode: settings.mode, species, time: settings.time, measures: settings.measures, seed: randomSeed() };
+}
+
+function show(result) {
+	current = result;
+	count += 1;
+	$('exn').textContent = `Exercise ${count}`;
+	$('now').innerHTML = '';
+	$('now').append(el('b', {}, `${result.spec.key} ${result.spec.mode}`), `, ${speciesInfo(result.spec.species).name.toLowerCase()}, ${result.spec.measures} bars of ${result.spec.time}`);
+	writeUrlState([result.spec]);
+	stop();
+	render();
+}
+function render() {
+	if (!current) return;
+	const bpm = Number($('tempo').value);
+	const abc = toABC([current], { title: '', tempo: bpm, measuresPerLine: current.spec.measures <= 4 ? current.spec.measures : 4, upperName: '', lowerName: '' });
+	const width = Math.max(500, $('score').clientWidth || 900);
+	visual = ABCJS.renderAbc('score', abc, { responsive: 'resize', staffwidth: width - 20, scale: 1.25, add_classes: true, foregroundColor: 'currentColor', paddingtop: 10, paddingbottom: 10, wrap: false })[0];
+	synth = null; timing = null;
+}
+
+async function play() {
+	if (!visual) return;
+	if (!ABCJS.synth.supportsAudio()) { alert('This browser cannot play audio.'); return; }
+	playing = true;
+	$('play').textContent = 'Stop';
+	const bpm = Number($('tempo').value);
+	const beatsPerBar = current.beats;
+	if (!synth) {
+		synth = new ABCJS.synth.CreateSynth();
+		const voicesOff = hands === 'both' ? [] : hands === 'upper' ? [1] : [0];
+		await synth.init({ visualObj: visual, millisecondsPerMeasure: visual.millisecondsPerMeasure(), options: { voicesOff } });
+		await synth.prime();
+	}
+	if (!playing) return; // stopped while priming
+	const beat = 60 / bpm;
+	let delay = 0;
+	if ($('countin').checked) {
+		const ctx = clicker.ensure();
+		for (let i = 0; i < beatsPerBar; i++) clicker.click(ctx.currentTime + 0.05 + i * beat, i === 0);
+		delay = beatsPerBar * beat * 1000;
+	}
+	timing = new ABCJS.TimingCallbacks(visual, {
+		qpm: bpm,
+		eventCallback: ev => {
+			document.querySelectorAll('.score .highlight').forEach(n => n.classList.remove('highlight'));
+			if (!ev) return;
+			for (const e of ev.elements || []) for (const n of e) n.classList.add('highlight');
+		},
+	});
+	setTimeout(() => {
+		if (!playing) return;
+		synth.start();
+		timing.start();
+		const totalMs = visual.millisecondsPerMeasure() * current.spec.measures;
+		setTimeout(() => { if (!playing) return; if ($('loop').checked) { stop(true); play(); } else stop(); }, totalMs + 300);
+	}, delay);
+}
+function stop(keepLabel) {
+	playing = false;
+	if (synth) synth.stop();
+	if (timing) timing.stop();
+	document.querySelectorAll('.score .highlight').forEach(n => n.classList.remove('highlight'));
+	if (!keepLabel) $('play').textContent = 'Play';
+	$('play').append(el('kbd', {}, 'space'));
+}
+
+function next() {
+	if (current) { done.push(current); listDone(); }
+	try { show(generate(pickSpec())); } catch (e) { $('now').textContent = 'No counterpoint found; trying again.'; next(); }
+}
+function listDone() {
+	$('doneEmpty').hidden = done.length > 0;
+	$('done').replaceChildren(...done.map((r, i) => el('li', {}, el('span', {}, `${i + 1}. ${describe(r.spec)}`), el('button', { type: 'button', onclick: () => { done.splice(i, 1); listDone(); } }, 'drop'))));
+}
+
+$('play').addEventListener('click', () => playing ? stop() : play());
+$('next').addEventListener('click', next);
+$('reroll').addEventListener('click', () => { try { count -= 1; show(generate({ ...current.spec, seed: randomSeed() })); } catch (e) { $('now').textContent = e.message; } });
+$('tempo').addEventListener('input', () => { $('tempoOut').textContent = $('tempo').value + ' per beat'; });
+$('tempo').addEventListener('change', () => { stop(); render(); });
+$('hands').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; hands = b.dataset.v; for (const x of $('hands').children) x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); stop(); synth = null; });
+$('printSession').addEventListener('click', async () => {
+	const all = [...done, current].filter(Boolean);
+	if (!all.length) return;
+	const holder = el('div', { style: { position: 'absolute', left: '-9999px', width: '900px' } });
+	document.body.append(holder);
+	const svgs = [];
+	for (const r of all) {
+		const box = el('div'); holder.append(box);
+		ABCJS.renderAbc(box, toABC([r], { title: describe(r.spec), tempo: Number($('tempo').value), measuresPerLine: 4, upperName: '', lowerName: '' }), { staffwidth: 860, scale: 1, foregroundColor: '#000', paddingtop: 0, paddingbottom: 6 });
+		svgs.push(box.querySelector('svg'));
+	}
+	printSvgs(svgs, { title: 'Practice session', subtitle: new Date().toLocaleDateString() });
+	setTimeout(() => holder.remove(), 5000);
+});
+addEventListener('keydown', e => {
+	if ((e.target.matches && e.target.matches('input, select, textarea')) || $('dlg').open) return;
+	if (e.code === 'Space') { e.preventDefault(); playing ? stop() : play(); }
+	else if (e.key === 'n' || e.key === 'N' || e.key === 'ArrowRight') next();
+	else if (e.key === 'r' || e.key === 'R') $('reroll').click();
+});
+addEventListener('resize', () => { if (!playing) render(); });
+
+// settings dialog
+function pills(container, list, isOn, onPick, label = x => x) {
+	container.replaceChildren(...list.map(v => el('button', { class: 'pill', type: 'button', 'aria-pressed': isOn(v) ? 'true' : 'false', onclick: () => { onPick(v); fillDialog(); } }, label(v))));
+}
+function fillDialog() {
+	pills($('dkey'), ['any', ...KEYS], k => k === 'any' ? settings.anyKey : (!settings.anyKey && settings.key === k), k => { if (k === 'any') settings.anyKey = true; else { settings.anyKey = false; settings.key = k; } }, k => k === 'any' ? 'any key' : k);
+	pills($('dmode'), MODES, m => settings.mode === m, m => { settings.mode = m; });
+	pills($('dspecies'), SPECIES, s => !settings.climb && settings.species === s.n, s => { settings.climb = false; settings.species = s.n; }, s => s.name.toLowerCase());
+	pills($('dtime'), TIME_SIGS, t => settings.time === t, t => { settings.time = t; });
+	pills($('dbars'), [2, 4, 6, 8, 12, 16], b => settings.measures === b, b => { settings.measures = b; }, b => String(b));
+	pills($('dprog'), ['same settings', 'climb the species'], p => (p === 'climb the species') === settings.climb, p => { settings.climb = p === 'climb the species'; });
+}
+$('settings').addEventListener('click', () => { fillDialog(); $('dlg').showModal(); });
+$('ddone').addEventListener('click', () => { $('dlg').close(); count -= 1; try { show(generate(pickSpec())); } catch (e) { $('now').textContent = e.message; } });
+
+const { specs } = readUrlState();
+if (specs[0]) Object.assign(settings, { key: specs[0].key, mode: specs[0].mode, species: specs[0].species, time: specs[0].time, measures: specs[0].measures });
+try { show(generate(specs[0] || defaultSpec({ key: settings.key }))); } catch (e) { next(); }
+</script>
+</body>
+</html>

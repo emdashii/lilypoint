@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The roll – lilypoint</title>
+<link rel="stylesheet" href="shared/tokens.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+<style>
+	body { font-family: 'Instrument Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.45; }
+	.layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; min-height: 100vh; }
+	.feed { max-width: 760px; width: 100%; margin: 0 auto; padding: 0 20px 80px; }
+	.filters { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 14px 0 10px; border-bottom: 1px solid var(--ui-2); margin-bottom: 18px; }
+	.filters .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
+	.filters .lbl { color: var(--tx-2); font-size: 0.85rem; width: 5em; }
+	.chip { border: 1px solid var(--ui-3); background: var(--bg); border-radius: 999px; padding: 3px 11px; cursor: pointer; font: inherit; font-size: 0.88rem; }
+	.chip[aria-pressed='true'] { background: var(--tx); color: var(--bg); border-color: var(--tx); }
+	.brand { font-weight: 600; text-decoration: none; color: var(--tx); display: inline-block; margin-bottom: 8px; }
+	.brand small { font-weight: 400; color: var(--tx-2); margin-left: 6px; }
+	.filters .theme-toggle { float: right; }
+
+	.item { border: 1px solid var(--ui-2); border-radius: 10px; margin-bottom: 16px; overflow: hidden; background: var(--bg); }
+	.item.focus { border-color: var(--tx-3); box-shadow: 0 0 0 3px var(--ui); }
+	.item .head { display: flex; align-items: baseline; gap: 10px; padding: 10px 14px 0; color: var(--tx-2); font-size: 0.9rem; }
+	.item .head b { color: var(--tx); font-weight: 500; }
+	.item .head .seed { margin-left: auto; font-size: 0.8rem; color: var(--tx-3); }
+	.item .score { padding: 0 8px; }
+	.item .score svg { width: 100%; height: auto; }
+	.item .foot { display: flex; gap: 8px; padding: 6px 14px 12px; }
+	.item .foot button { border: 1px solid var(--ui-3); background: var(--bg); border-radius: 8px; padding: 7px 14px; cursor: pointer; font: inherit; }
+	.item .foot .keep { background: var(--gr); color: var(--paper); border-color: var(--gr); }
+	.item .foot .keep[aria-pressed='true'] { background: var(--bg); color: var(--gr); }
+	.item .foot .later { margin-left: auto; }
+	.item.kept { border-color: var(--gr); }
+	.sentinel { height: 1px; }
+	.loading { color: var(--tx-2); text-align: center; padding: 20px; font-style: italic; }
+
+	.tray { border-left: 1px solid var(--ui-2); background: var(--bg-2); padding: 18px; position: sticky; top: 0; height: 100vh; overflow: auto; }
+	.tray h2 { margin: 0 0 4px; font-size: 1rem; font-weight: 600; }
+	.tray p { margin: 0 0 12px; color: var(--tx-2); font-size: 0.88rem; }
+	.tray ol { list-style: none; margin: 0; padding: 0; }
+	.tray li { display: flex; gap: 8px; padding: 8px 0; border-top: 1px solid var(--ui-2); font-size: 0.9rem; align-items: baseline; }
+	.tray li span { flex: 1; }
+	.tray li button { background: none; border: 0; color: var(--tx-3); cursor: pointer; font: inherit; padding: 0; }
+	.tray li button:hover { color: var(--re); }
+	.tray .export { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+	.tray .export button { border: 1px solid var(--ui-3); background: var(--bg); border-radius: 8px; padding: 9px 12px; cursor: pointer; font: inherit; text-align: left; }
+	.tray .export button.primary { background: var(--tx); color: var(--bg); border-color: var(--tx); }
+	.tray .keys { color: var(--tx-3); font-size: 0.8rem; margin-top: 18px; line-height: 1.7; }
+	kbd { border: 1px solid var(--ui-3); border-radius: 4px; padding: 0 5px; font: inherit; font-size: 0.75rem; }
+	@media (max-width: 860px) { .layout { grid-template-columns: 1fr; } .tray { position: static; height: auto; border-left: 0; border-top: 1px solid var(--ui-2); } }
+	@media print { .filters, .tray, .item .foot, .item:not(.kept) { display: none; } .item { border: 0; } }
+</style>
+</head>
+<body>
+<div class="layout">
+	<main class="feed">
+		<div class="filters no-print">
+			<a class="brand" href="index.html">lilypoint <small>the roll</small></a>
+			<span id="theme"></span>
+			<div class="row"><span class="lbl">Species</span><span id="fSpecies"></span></div>
+			<div class="row"><span class="lbl">Key</span><span id="fKey"></span></div>
+			<div class="row"><span class="lbl">Mode</span><span id="fMode"></span></div>
+			<div class="row"><span class="lbl">Bars</span><span id="fBars"></span></div>
+		</div>
+		<div id="items"></div>
+		<div class="loading" id="loading">Scroll for more.</div>
+		<div class="sentinel" id="sentinel"></div>
+	</main>
+	<aside class="tray no-print">
+		<h2>Kept</h2>
+		<p>Phrases you keep collect here, in order, ready to print as one piece.</p>
+		<ol id="kept"></ol>
+		<p id="keptEmpty">Nothing yet.</p>
+		<div class="export">
+			<button class="primary" id="pdf">Save kept as PDF</button>
+			<button id="ly">Download LilyPond</button>
+			<button id="play">Play kept</button>
+		</div>
+		<div class="keys">
+			<kbd>J</kbd> next <kbd>K</kbd> previous <kbd>Enter</kbd> keep <kbd>Space</kbd> play
+		</div>
+	</aside>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/abcjs@6.7.0/dist/abcjs-basic-min.js"></script>
+<script type="module">
+import { KEYS, MODES, SPECIES, generate, randomSeed, toLilyPond, downloadText, describe, speciesInfo } from './shared/core.js';
+import { toABC, toPlaybackNotes } from './shared/notation.js';
+import { Player } from './shared/playback.js';
+import { printSvgs } from './shared/pdf.js';
+import { el, initTheme, themeButton } from './shared/ui.js';
+
+initTheme();
+document.getElementById('theme').replaceWith(themeButton());
+const $ = id => document.getElementById(id);
+const player = new Player();
+const filter = { species: new Set([1, 2]), keys: new Set(['any']), modes: new Set(['major', 'minor']), bars: 4 };
+let items = []; // { result, node, kept }
+let focus = 0;
+
+function chips(container, list, isOn, onPick, label = x => x) {
+	container.replaceChildren(...list.map(v => el('button', { class: 'chip', type: 'button', 'aria-pressed': isOn(v) ? 'true' : 'false', onclick: () => { onPick(v); filters(); reset(); } }, label(v))));
+}
+function toggleSet(set, v, all) { if (set.has(v)) { if (set.size > 1) set.delete(v); } else set.add(v); }
+function filters() {
+	chips($('fSpecies'), SPECIES, s => filter.species.has(s.n), s => toggleSet(filter.species, s.n), s => s.short);
+	chips($('fKey'), ['any', ...KEYS], k => filter.keys.has(k), k => { if (k === 'any') { filter.keys = new Set(['any']); } else { filter.keys.delete('any'); toggleSet(filter.keys, k); if (!filter.keys.size) filter.keys.add('any'); } });
+	chips($('fMode'), MODES, m => filter.modes.has(m), m => toggleSet(filter.modes, m));
+	chips($('fBars'), [2, 4, 8], b => filter.bars === b, b => { filter.bars = b; }, b => String(b));
+}
+const pick = set => { const a = [...set]; return a[Math.floor(Math.random() * a.length)]; };
+function nextSpec() {
+	const key = filter.keys.has('any') ? KEYS[Math.floor(Math.random() * KEYS.length)] : pick(filter.keys);
+	return { key, mode: pick(filter.modes), species: pick(filter.species), measures: filter.bars, time: '4/4', seed: randomSeed() };
+}
+
+function itemNode(it, index) {
+	const s = it.result.spec;
+	const node = el('article', { class: 'item', tabindex: '-1' },
+		el('div', { class: 'head' }, el('b', {}, `${s.key} ${s.mode}`), speciesInfo(s.species).name.toLowerCase(), `${s.measures} bars`, el('span', { class: 'seed' }, 'seed ' + s.seed)),
+		el('div', { class: 'score', role: 'img', 'aria-label': describe(s) }),
+		el('div', { class: 'foot' },
+			el('button', { class: 'keep', type: 'button', 'aria-pressed': 'false', onclick: () => keep(it) }, 'Keep'),
+			el('button', { type: 'button', onclick: () => playOne(it) }, 'Play'),
+			el('button', { class: 'later', type: 'button', onclick: () => { it.node.remove(); items = items.filter(x => x !== it); if (items.length < 3) more(2); } }, 'Skip')));
+	node.addEventListener('focus', () => setFocus(items.indexOf(it)));
+	node.addEventListener('click', () => setFocus(items.indexOf(it)));
+	return node;
+}
+function draw(it) {
+	ABCJS.renderAbc(it.node.querySelector('.score'), toABC([it.result], { title: '', measuresPerLine: 4, upperName: '', lowerName: '' }), { responsive: 'resize', staffwidth: 700, scale: 0.95, foregroundColor: 'currentColor', paddingtop: 6, paddingbottom: 6, add_classes: true });
+}
+function more(n = 3) {
+	$('loading').textContent = 'Writing more phrases';
+	for (let i = 0; i < n; i++) {
+		let result = null;
+		for (let tries = 0; tries < 4 && !result; tries++) { try { result = generate(nextSpec()); } catch (e) { /* try another */ } }
+		if (!result) continue;
+		const it = { result, kept: false };
+		it.node = itemNode(it);
+		items.push(it);
+		$('items').append(it.node);
+		draw(it);
+	}
+	$('loading').textContent = 'Scroll for more.';
+}
+function reset() { items = []; $('items').replaceChildren(); focus = 0; more(3); }
+function setFocus(i) {
+	if (i < 0 || i >= items.length) return;
+	focus = i;
+	items.forEach((it, k) => it.node.classList.toggle('focus', k === i));
+	items[i].node.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+function keep(it) {
+	it.kept = !it.kept;
+	it.node.classList.toggle('kept', it.kept);
+	const b = it.node.querySelector('.keep');
+	b.setAttribute('aria-pressed', it.kept ? 'true' : 'false');
+	b.textContent = it.kept ? 'Kept' : 'Keep';
+	keptList();
+}
+function keptItems() { return items.filter(it => it.kept); }
+function keptList() {
+	const k = keptItems();
+	$('keptEmpty').hidden = k.length > 0;
+	$('kept').replaceChildren(...k.map((it, i) => el('li', {}, el('span', {}, `${i + 1}. ${describe(it.result.spec)}`), el('button', { type: 'button', onclick: () => keep(it) }, 'drop'))));
+}
+function playOne(it) {
+	const { notes, totalTicks } = toPlaybackNotes([it.result]);
+	player.play(notes, totalTicks, { bpm: 84, unit: it.result.unit, beatsPerBar: it.result.beats });
+}
+
+new IntersectionObserver(entries => { if (entries.some(e => e.isIntersecting)) more(3); }, { rootMargin: '600px' }).observe($('sentinel'));
+
+$('pdf').addEventListener('click', () => {
+	const k = keptItems(); if (!k.length) return;
+	const holder = el('div', { style: { position: 'absolute', left: '-9999px', width: '900px' } });
+	document.body.append(holder);
+	const svgs = k.map(it => { const box = el('div'); holder.append(box); ABCJS.renderAbc(box, toABC([it.result], { title: describe(it.result.spec), measuresPerLine: 4, upperName: '', lowerName: '' }), { staffwidth: 860, foregroundColor: '#000', paddingtop: 0, paddingbottom: 4 }); return box.querySelector('svg'); });
+	printSvgs(svgs, { title: 'Kept phrases' });
+	setTimeout(() => holder.remove(), 5000);
+});
+$('ly').addEventListener('click', async () => { const k = keptItems(); if (k.length) downloadText('kept.ly', await toLilyPond(k.map(it => it.result), { title: 'Kept phrases', composer: 'lilypoint' })); });
+$('play').addEventListener('click', () => { const k = keptItems(); if (!k.length) return; const { notes, totalTicks } = toPlaybackNotes(k.map(it => it.result)); player.play(notes, totalTicks, { bpm: 84, unit: k[0].result.unit, beatsPerBar: k[0].result.beats }); });
+addEventListener('keydown', e => {
+	if (e.target.matches && e.target.matches('input, select, textarea, button') && e.key !== 'j' && e.key !== 'k') return;
+	if (e.key === 'j' || e.key === 'J') { setFocus(focus + 1); if (focus >= items.length - 2) more(2); }
+	else if (e.key === 'k' || e.key === 'K') setFocus(focus - 1);
+	else if (e.key === 'Enter' && items[focus]) keep(items[focus]);
+	else if (e.code === 'Space' && items[focus]) { e.preventDefault(); playOne(items[focus]); }
+});
+
+filters();
+reset();
+setFocus(0);
+</script>
+</body>
+</html>

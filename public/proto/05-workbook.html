@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Workbook – lilypoint</title>
+<link rel="stylesheet" href="shared/tokens.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet" />
+<style>
+	body { font-family: 'Spectral', Georgia, serif; font-size: 16px; line-height: 1.55; background: var(--bg-2); }
+	.top { display: flex; align-items: baseline; gap: 14px; padding: 16px 28px 0; }
+	.top .brand { font-weight: 600; text-decoration: none; color: var(--tx); }
+	.top .brand small { font-weight: 300; color: var(--tx-2); margin-left: 6px; }
+	.top .right { margin-left: auto; }
+
+	.book { display: grid; grid-template-columns: 1fr 1fr; gap: 0; max-width: 1240px; margin: 18px auto 40px; padding: 0 20px; }
+	.leaf { background: var(--bg); border: 1px solid var(--ui-2); min-height: 82vh; padding: 40px 40px 48px; position: relative; }
+	.leaf.left { border-right: 0; border-radius: 6px 0 0 6px; box-shadow: inset -18px 0 24px -22px rgba(16, 15, 15, 0.35); }
+	.leaf.right { border-radius: 0 6px 6px 0; box-shadow: inset 18px 0 24px -22px rgba(16, 15, 15, 0.35); display: flex; flex-direction: column; }
+	h1 { font-weight: 300; font-size: 1.9rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+	.sub { color: var(--tx-2); font-style: italic; margin: 0 0 28px; }
+	h2 { font-size: 1rem; font-weight: 600; margin: 26px 0 8px; }
+
+	.presets { list-style: none; margin: 0; padding: 0; }
+	.presets li { border-top: 1px solid var(--ui-2); }
+	.presets li:last-child { border-bottom: 1px solid var(--ui-2); }
+	.presets button { width: 100%; text-align: left; background: none; border: 0; padding: 10px 4px; font: inherit; cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: baseline; color: var(--tx); }
+	.presets button:hover { background: var(--bg-2); }
+	.presets button[aria-current='true'] { color: var(--gr); }
+	.presets .what { font-style: italic; color: var(--tx-2); font-size: 0.9rem; display: block; }
+	.presets .n { color: var(--tx-3); font-variant-numeric: tabular-nums; }
+
+	table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+	th { text-align: left; font-weight: 400; color: var(--tx-2); font-style: italic; padding: 4px 6px 6px 0; border-bottom: 1px solid var(--ui-2); }
+	td { padding: 3px 6px 3px 0; border-bottom: 1px solid var(--ui-2); vertical-align: middle; }
+	td select, td input { width: 100%; background: none; border: 0; border-bottom: 1px dotted var(--ui-3); font: inherit; padding: 2px 0; color: var(--tx); }
+	td select:focus, td input:focus { outline: none; border-bottom-color: var(--cy); }
+	td.i { color: var(--tx-3); width: 1.6em; }
+	td .x { background: none; border: 0; color: var(--tx-3); cursor: pointer; font: inherit; padding: 0 4px; }
+	td .x:hover { color: var(--re); }
+	.rowtools { display: flex; gap: 16px; margin-top: 10px; }
+	.rowtools button { background: none; border: 0; padding: 0; font: inherit; color: var(--gr); cursor: pointer; }
+	.rowtools button:hover { text-decoration: underline; }
+
+	.pages { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+	.page { width: 100%; border: 1px solid var(--ui-2); background: var(--bg); }
+	.page svg { width: 100%; height: auto; display: block; }
+	.pager { display: flex; justify-content: center; align-items: center; gap: 18px; margin-top: 14px; font-style: italic; color: var(--tx-2); }
+	.pager button { background: none; border: 1px solid var(--ui-3); border-radius: 999px; width: 36px; height: 36px; cursor: pointer; font: inherit; color: var(--tx); }
+	.pager button:disabled { opacity: 0.35; cursor: default; }
+	.status { position: absolute; top: 14px; right: 18px; font-style: italic; color: var(--tx-2); font-size: 0.9rem; }
+	.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 22px; }
+	.actions button { border: 1px solid var(--ui-3); background: var(--bg); border-radius: 6px; padding: 8px 14px; font: inherit; cursor: pointer; }
+	.actions button.primary { background: var(--tx); color: var(--bg); border-color: var(--tx); }
+	.actions button:hover { border-color: var(--tx-3); }
+	.blank { color: var(--tx-3); font-style: italic; text-align: center; margin: auto; }
+	@media (max-width: 960px) { .book { grid-template-columns: 1fr; } .leaf.left { border-right: 1px solid var(--ui-2); border-radius: 6px 6px 0 0; } .leaf.right { border-top: 0; border-radius: 0 0 6px 6px; } }
+	@media print { body { background: white; } .top, .leaf.left, .pager, .status { display: none; } .book { display: block; padding: 0; margin: 0; } .leaf.right { border: 0; box-shadow: none; padding: 0; } .page { border: 0; page-break-after: always; } }
+</style>
+</head>
+<body>
+<div class="top no-print">
+	<a class="brand" href="index.html">lilypoint <small>workbook</small></a>
+	<span class="right" id="theme"></span>
+</div>
+<div class="book">
+	<section class="leaf left no-print">
+		<h1>Workbook</h1>
+		<p class="sub">Pick a lesson, or write your own table of contents. The pages on the right fill in as you go.</p>
+		<h2>Lessons</h2>
+		<ul class="presets" id="presets"></ul>
+		<h2>Contents</h2>
+		<table>
+			<thead><tr><th></th><th>Key</th><th>Mode</th><th>Species</th><th>Bars</th><th>Meter</th><th>Seed</th><th></th></tr></thead>
+			<tbody id="rows"></tbody>
+		</table>
+		<div class="rowtools">
+			<button id="addRow">Add a line</button>
+			<button id="shuffleKeys">Shuffle keys</button>
+			<button id="reseed">New notes, same plan</button>
+		</div>
+		<h2>Print</h2>
+		<div class="actions">
+			<button class="primary" id="pdf">Download PDF</button>
+			<button id="print">Print</button>
+			<button id="ly">LilyPond</button>
+			<button id="xml">MusicXML</button>
+		</div>
+	</section>
+	<section class="leaf right">
+		<span class="status" id="status"></span>
+		<div class="pages" id="pages"><p class="blank" id="blank">Choose a lesson to fill this page.</p></div>
+		<div class="pager no-print" id="pager" hidden>
+			<button id="prev" aria-label="Previous page">‹</button>
+			<span id="pageLabel"></span>
+			<button id="next" aria-label="Next page">›</button>
+		</div>
+	</section>
+</div>
+
+<script type="module">
+import { KEYS, MODES, TIME_SIGS, SPECIES, generate, randomSeed, toLilyPond, readUrlState, writeUrlState, downloadText, safeFilename } from './shared/core.js';
+import { toMusicXML } from './shared/notation.js';
+import { renderScore } from './shared/render-verovio.js';
+import { printSvgs, downloadPdf } from './shared/pdf.js';
+import { el, options, initTheme, themeButton, debounce } from './shared/ui.js';
+
+initTheme();
+document.getElementById('theme').replaceWith(themeButton());
+const $ = id => document.getElementById(id);
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const spec = (over) => ({ key: 'C', mode: 'major', species: 1, measures: 4, time: '4/4', seed: randomSeed(), ...over });
+
+const PRESETS = [
+	{ name: 'Ten-minute warm-up', what: 'four short phrases, first and second species, one key', build: () => { const key = pick(KEYS); return [spec({ key }), spec({ key, species: 2 }), spec({ key, mode: 'minor' }), spec({ key, mode: 'minor', species: 2 })]; } },
+	{ name: 'Species ladder', what: 'the five species in turn, same key throughout', build: () => { const key = pick(KEYS); return [1, 2, 3, 4, 5].map(species => spec({ key, species })); } },
+	{ name: 'Around the keys', what: 'first species, six keys, two bars each', build: () => [...KEYS].sort(() => Math.random() - 0.5).slice(0, 6).map(key => spec({ key, measures: 2 })) },
+	{ name: 'Minor and syncopated', what: 'fourth species in four minor keys', build: () => [...KEYS].sort(() => Math.random() - 0.5).slice(0, 4).map(key => spec({ key, mode: 'minor', species: 4 })) },
+	{ name: 'In three', what: 'second and third species in 3/4 and 6/8', build: () => { const key = pick(KEYS); return [spec({ key, species: 2, time: '3/4' }), spec({ key, species: 3, time: '3/4' }), spec({ key, species: 2, time: '6/8' }), spec({ key, species: 3, time: '6/8' })]; } },
+	{ name: 'One long line', what: 'sixteen bars of florid counterpoint', build: () => [spec({ key: pick(KEYS), species: 5, measures: 16 })] },
+];
+
+let rows = []; // specs
+let results = [];
+let engraved = null;
+let page = 1;
+let currentPreset = null;
+
+function presetList() {
+	$('presets').replaceChildren(...PRESETS.map((p, i) => el('li', {}, el('button', { type: 'button', 'aria-current': currentPreset === i ? 'true' : 'false', onclick: () => { currentPreset = i; rows = p.build(); presetList(); table(); engrave(); } },
+		el('span', {}, p.name, el('span', { class: 'what' }, p.what)), el('span', { class: 'n' }, p.build().length + ' phrases')))));
+}
+function table() {
+	$('rows').replaceChildren(...rows.map((s, i) => {
+		const cell = (node) => el('td', {}, node);
+		const sel = (list, value, key, label) => options(el('select', { onchange: e => { s[key] = key === 'species' ? Number(e.target.value) : e.target.value; engrave(); } }), list, value, label);
+		return el('tr', {},
+			el('td', { class: 'i' }, i + 1),
+			cell(sel(KEYS, s.key, 'key')),
+			cell(sel(MODES, s.mode, 'mode')),
+			cell(sel(SPECIES.map(x => ({ value: x.n, label: x.short })), s.species, 'species')),
+			cell(el('input', { type: 'number', min: 2, max: 16, value: s.measures, onchange: e => { s.measures = Math.max(2, Math.min(16, Number(e.target.value) || 4)); engrave(); } })),
+			cell(sel(TIME_SIGS, s.time, 'time')),
+			cell(el('input', { value: s.seed, inputmode: 'numeric', onchange: e => { s.seed = Number(e.target.value) || randomSeed(); e.target.value = s.seed; engrave(); } })),
+			cell(el('button', { class: 'x', type: 'button', 'aria-label': 'Remove line', onclick: () => { rows.splice(i, 1); table(); engrave(); } }, '×')));
+	}));
+}
+const engrave = debounce(async () => {
+	writeUrlState(rows);
+	results = [];
+	const failed = [];
+	for (const s of rows) { try { results.push(generate(s)); } catch (e) { failed.push(s); } }
+	$('status').textContent = failed.length ? `${failed.length} line${failed.length > 1 ? 's' : ''} found no counterpoint; change the seed.` : '';
+	$('blank').hidden = results.length > 0;
+	if (!results.length) { $('pages').replaceChildren($('blank')); $('pager').hidden = true; engraved = null; return; }
+	$('status').textContent = 'engraving';
+	try {
+		engraved = await renderScore($('pages'), results, { meta: { title: currentPreset != null ? PRESETS[currentPreset].name : 'Workbook', composer: 'lilypoint', upperName: '', lowerName: '', upperAbbr: '', lowerAbbr: '' }, paged: true, scale: 45, font: 'Leland', footer: 'auto', onProgress: t => { $('status').textContent = t; } });
+		$('status').textContent = '';
+		page = 1; showPage();
+	} catch (e) { $('status').textContent = 'Could not engrave: ' + e.message; }
+}, 80);
+function showPage() {
+	if (!engraved) return;
+	engraved.pages.forEach((svg, i) => { svg.parentElement.hidden = i !== page - 1; });
+	$('pager').hidden = engraved.pageCount < 2;
+	$('pageLabel').textContent = `page ${page} of ${engraved.pageCount}`;
+	$('prev').disabled = page <= 1; $('next').disabled = page >= engraved.pageCount;
+}
+$('prev').addEventListener('click', () => { page -= 1; showPage(); });
+$('next').addEventListener('click', () => { page += 1; showPage(); });
+$('addRow').addEventListener('click', () => { const last = rows[rows.length - 1]; rows.push(spec(last ? { ...last, seed: randomSeed() } : {})); table(); engrave(); });
+$('shuffleKeys').addEventListener('click', () => { for (const r of rows) r.key = pick(KEYS); table(); engrave(); });
+$('reseed').addEventListener('click', () => { for (const r of rows) r.seed = randomSeed(); table(); engrave(); });
+$('pdf').addEventListener('click', async () => { if (!engraved) return; const name = safeFilename(currentPreset != null ? PRESETS[currentPreset].name : 'workbook') + '.pdf'; try { await downloadPdf(engraved.pages, { filename: name, onePerPage: true }); } catch (e) { $('status').textContent = 'Direct PDF failed (' + e.message + '); opening print.'; printSvgs(engraved.pages, { title: '' }); } });
+$('print').addEventListener('click', () => engraved && printSvgs(engraved.pages, { title: '' }));
+$('ly').addEventListener('click', async () => downloadText('workbook.ly', await toLilyPond(results, { title: currentPreset != null ? PRESETS[currentPreset].name : 'Workbook', composer: 'lilypoint' })));
+$('xml').addEventListener('click', () => downloadText('workbook.musicxml', toMusicXML(results, { title: 'Workbook' }), 'application/vnd.recordare.musicxml+xml'));
+addEventListener('keydown', e => { if (e.target.matches && e.target.matches('input, select')) return; if (e.key === 'ArrowLeft' && !$('prev').disabled) $('prev').click(); if (e.key === 'ArrowRight' && !$('next').disabled) $('next').click(); });
+
+presetList();
+const { specs } = readUrlState();
+if (specs.length) { rows = specs; table(); engrave(); }
+else { currentPreset = 0; rows = PRESETS[0].build(); presetList(); table(); engrave(); }
+</script>
+</body>
+</html>

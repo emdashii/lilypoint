@@ -2,6 +2,20 @@
 
 Website for counterpoint generator using LilyPond
 
+## Main website and hosting
+
+The site is static. Netlify runs `bun run build` and publishes `dist/`; visitors generate music, play audio, and export scores in their browser. No backend or Netlify Functions are required.
+
+- `/` is Practice, based on prototype 08.
+- `/write.html` is Write, based on prototype 07.
+- `/about.html` explains the purpose, history, and earlier interfaces.
+- `/classic.html` preserves the previous form-based generator and Hacklily viewer.
+- `/proto/` keeps all eight prototypes at their existing URLs.
+
+The main room HTML files reuse `public/proto/shared/` modules. Keep their control markup in sync with 07 and 08 when changing shared behavior. Practice's `data-write-url` selects the main Write page; the prototype defaults to 07. Write stores a tab-scoped draft and encodes scores in URLs. Practice collections last until navigation or reload. Fonts, rendering libraries, and piano samples need network access.
+
+After building, run `bun test/proto-score-state.mjs`, `bun test/proto-generation.mjs`, and `bun test/proto-smoke.mjs`. Serve `dist/` to check the Practice-to-Write handoff, exports, About links, and classic generator.
+
 See the [counterpoint logic audit and practice roadmap](plans/counterpoint-audit.md) for the current musical guarantees, repaired defects, and remaining work before treating generated output as strict species exercises.
 
 ## Development
@@ -119,3 +133,19 @@ Modern generation uses the [student rule profile](plans/counterpoint-profiles.md
 For isolated, repeatable generation, call `writer.setSeed(seed)` on a `WritePhrase` instance before `writeThePhrase()`. Static `WritePhrase.setSeed(seed)` remains a default for callers that use the older interface. Neither method replaces `Math.random`.
 
 Notes store duration in integer ticks, with 4096 ticks per whole note, and preserve explicit pitch spelling when available. Use `getPitch()` for nullable sounding pitch and `getDurationTicks()` for time. `voiceToMusicalEvents()` and `musicalEventsToVoice()` in `src/validation/timed-events.ts` serialize and restore onset, duration, pitch, spelling, rests, and ties. The exporter splits spans at barlines without changing the stored notes.
+
+## UI prototypes
+
+`public/proto/` holds eight alternative interfaces that render notation in the browser. Build, serve `dist/`, and open `/proto/` to compare them.
+
+The latest pair combines feedback on the first six: `07-studio.html` is an editable sheet with a live phrase editor; `08-lessons.html` opens lessons into an endless practice feed. Both use abcjs with separate staves, sampled piano, highlighting, and PDF export of complete systems. The practice collection stays in memory across filter and lesson changes; **Open as a sheet** transfers it to 07's URL. Reloading 08 clears its session.
+
+The writing room keeps its draft in session storage for the current browser tab. Plain navigation back to Write restores the phrases, order, tempos, title, composer, and selected phrase, including an intentionally empty sheet. A URL containing `p`, such as **Open as a sheet**, intentionally replaces the draft.
+
+Practice uses a continuous sheet with controls in the margin. Its filters allow multiple species, keys, modes, and lengths of 2, 4, 8, 12, or 16 bars. Random mode and random length enable every option in their row. Lessons follow explicit sequences until species, key, or mode filters change. Kept phrases are snapshots, so rerolling an exercise preserves the earlier kept version. Both rooms export LilyPond; 07 also exports MIDI. Print session includes completed exercises and kept phrases without duplicates.
+
+In 07, tempo belongs to each phrase and is saved as an optional seventh field in its URL spec. Six-field links still load at 80 BPM. An appended phrase inherits the previous phrase's tempo. Tempo edits preserve the notes and update playback, PDF, MIDI, and LilyPond. Tempo and meter markings appear initially and at changes. `shared/midi.js` writes a conductor track because abcjs's MIDI writer omits inline tempo changes. Run `bun test/proto-score-state.mjs` after building to check URL compatibility, notation changes, MIDI tempo events, and the shared signature of C minor and E-flat major.
+
+`shared/studio.js` owns their engraving, audio, and export behavior. ABC uses `%%score {1 2}` for separate staves. PDF bounds must retain each SVG's viewBox origin because later systems have nonzero vertical offsets. Export every SVG, not just the first one. See `CLAUDE.md` for the original prototypes' module layout.
+
+The new rooms retry exhausted cantus searches with up to six consecutive seeds while preserving all musical settings. After building, run `bun test/proto-generation.mjs` for the seeded recovery regression check.
