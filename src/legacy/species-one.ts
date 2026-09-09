@@ -1,4 +1,4 @@
-import { Species } from '../species.js';
+import { Species } from './species.js';
 import { Note } from '../note.js';
 
 export class SpeciesOne extends Species {
@@ -33,7 +33,7 @@ export class SpeciesOne extends Species {
 			console.log("PreviousInterval: " + this.previousIntervals[this.previousIntervals.length - 1]);
 		}
 
-		const toChoose = Math.floor(Math.random() * this.noteOptions.length);
+		const toChoose = Math.floor(this.random() * this.noteOptions.length);
 		const chosen = this.noteOptions[toChoose];
 
 		return chosen;
@@ -61,7 +61,7 @@ export class SpeciesOne extends Species {
 				nextNote = lastNote + this.pickImitativeUp() - 1;
 			} else if (lastNote > 5) {
 				nextNote = lastNote - this.pickImitativeDown() - 1;
-			} else if (Math.random() < 0.5) {
+			} else if (this.random() < 0.5) {
 				nextNote = lastNote - this.pickImitativeDown() - 1;
 			} else {
 				nextNote = lastNote + this.pickImitativeUp() - 1;
@@ -74,7 +74,7 @@ export class SpeciesOne extends Species {
 	}
 
 	pickImitativeUp(): number {
-		const rand = Math.floor(Math.random() * 9);
+		const rand = Math.floor(this.random() * 9);
 		switch (rand) {
 			case 0:
 				return 1;
@@ -92,7 +92,7 @@ export class SpeciesOne extends Species {
 	}
 
 	pickImitativeDown(): number {
-		const rand = Math.floor(Math.random() * 7);
+		const rand = Math.floor(this.random() * 7);
 		switch (rand) {
 			case 0:
 				return 1;

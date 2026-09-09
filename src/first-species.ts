@@ -11,6 +11,7 @@ export class FirstSpecies extends Species {
 	generateCounterpoint(cantusFirmus: Note[]): Note[] {
 		const cf = cantusFirmus.map(n => n.getNote());
 		const engine = new SpeciesEngine(cf, this.scaleDegrees, {
+			...this.engineOptions,
 			allowRepeat: true,
 			weakDissonance: 'none',
 		});

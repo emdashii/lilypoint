@@ -1,12 +1,8 @@
-/**
- * Per-species counterpoint validators built on the timed-event rules engine
- * (species-rules.ts). One shared base class; each species supplies its
- * configuration. Thresholds are calibrated so all known-correct examples in
- * tests/fixtures/examples/ pass ("examples win").
- *
- * Primary API: validate(input) -> Violation[] (empty = valid).
- * validateAllRules(phrase) is a convenience adapter for generated Phrases
- * (CF assumed in the lower voice, as WritePhrase produces).
+import { soundingPitch } from '../pitch.js';
+import { checkStudentRules } from './student-rules.js';
+/** Independent score validation. Historical constructors preserve fixture
+ * compatibility; generation explicitly selects the student profile.
+ * See plans/counterpoint-profiles.md for the policy boundary.
  */
 
 import { Phrase } from '../phrase.js';
@@ -26,6 +22,7 @@ import {
 	isConsonant,
 	DissonanceKind,
 	isTieContinuation,
+	classifyDissonance,
 } from './species-rules.js';
 import { TimedEvent, phraseToTimedVoices } from './timed-events.js';
 
@@ -58,8 +55,10 @@ export interface SpeciesConfig {
 	maxSpacing: number;
 }
 
+export type RuleProfile = 'student' | 'historical';
+
 export class SpeciesValidator {
-	constructor(protected config: SpeciesConfig) {}
+	constructor(protected config: SpeciesConfig, protected profile: RuleProfile = 'historical') {}
 
 	/** Validate a parsed known-correct example fixture. */
 	validateExample(example: ExampleVoices): Violation[] {
@@ -88,6 +87,13 @@ export class SpeciesValidator {
 			let end = 0;
 			for (let i = 0; i < voice.length; i++) {
 				const event = voice[i];
+				if (event.spelling) {
+					try {
+						if (soundingPitch(event.spelling) !== event.pitch) throw new Error('mismatch');
+					} catch {
+						violations.push({ rule: 'structure', at: event.start, detail: 'spelling does not match pitch' });
+					}
+				}
 				if (!Number.isFinite(event.start) || !Number.isFinite(event.duration) || event.duration <= 0 ||
 					Math.abs(event.start - end) > 1e-9 ||
 					(event.pitch !== null && (!Number.isInteger(event.pitch) || event.pitch < 0 || event.pitch > 87))) {
@@ -106,9 +112,11 @@ export class SpeciesValidator {
 		if (violations.length) return violations;
 
 		violations.push(...this.checkRatio(input));
+		if (this.profile === 'student' && input.species === 4) violations.push(...this.checkSyncopation(input));
 		violations.push(...checkBeginsPerfect(input));
 		violations.push(...checkEndsPerfect(input));
-		violations.push(...checkNoVoiceCrossing(input));
+		violations.push(...checkNoVoiceCrossing(input, this.profile === 'student' ? 0 : 1 / 3));
+		if (this.profile === 'student') violations.push(...checkStudentRules(input));
 		violations.push(...checkSpacing(input, this.config.maxSpacing));
 		violations.push(...checkNoParallelPerfects(input));
 		violations.push(...checkMelodicLeaps(input.cp));
@@ -135,7 +143,7 @@ export class SpeciesValidator {
 		const violations = this.validatePhrase(phrase);
 		const rules = new Set(violations.map(v => v.rule));
 		const allRuleNames = [
-			'structure', 'ratio', 'beginsPerfect', 'endsPerfect', 'noVoiceCrossing', 'spacing',
+			'structure', 'ratio', 'syncopation', 'spelling', 'metric', 'directPerfect', 'melodicRecovery', 'cadence', 'afterbeatPerfects', 'beginsPerfect', 'endsPerfect', 'noVoiceCrossing', 'spacing',
 			'noParallelPerfects', 'melodicLeaps', 'finalApproachByStep',
 			this.config.allConsonant ? 'allConsonant' : 'dissonanceTreatment',
 			...(this.config.noUnisonOnStrongBeats ? ['noMidPhraseUnison'] : []),
@@ -163,32 +171,36 @@ export class SpeciesValidator {
 
 	// -----------------------------------------------------------------------
 
+	protected checkSyncopation(input: SpeciesInput): Violation[] {
+		const violations: Violation[] = [];
+		const fail = (at: number, detail: string) => violations.push({ rule: 'syncopation', at, detail });
+		const opening = input.cp[0];
+		if (!opening || opening.pitch !== null || opening.duration !== input.cf[0].duration / 2) fail(0, 'fourth species starts with a half-pulse rest');
+		const aligned = alignToCantusFirmus(input);
+		for (let i = 1; i < input.cf.length - 1; i++) {
+			const index = aligned.findIndex(a => a.cfIndex === i && a.beatPos === 0);
+			if (index < 0 || !aligned[index].tiedFromPrevious) fail(input.cf[i].start, 'student fourth species requires every interior downbeat to be held');
+			if (i === input.cf.length - 2 && (index < 0 || aligned[index].interval === null || isConsonant(aligned[index].interval!) || classifyDissonance(aligned, index) !== 'suspension')) fail(input.cf[i].start, 'cadence requires a dissonant suspension');
+		}
+		return violations;
+	}
+
 	protected checkRatio(input: SpeciesInput): Violation[] {
 		const { notesPerCfNote, allowOpeningRest } = this.config;
 		if (notesPerCfNote === null) return [];
 
-		const aligned = alignToCantusFirmus(input);
 		const violations: Violation[] = [];
-		const counts = new Map<number, number>();
-		for (const a of aligned) {
-			counts.set(a.cfIndex, (counts.get(a.cfIndex) ?? 0) + 1);
+		for (let i = 0; i < input.cf.length; i++) {
+			const cf = input.cf[i];
+			const expected = i === input.cf.length - 1 ? 1 : notesPerCfNote;
+			const subdivision = cf.duration / expected;
+			const events = input.cp.filter(e => e.start >= cf.start - 1e-9 && e.start < cf.start + cf.duration - 1e-9);
+			const valid = events.length === expected && events.every((e, j) =>
+				Math.abs(e.start - cf.start - j * subdivision) < 1e-9 && Math.abs(e.duration - subdivision) < 1e-9 &&
+				(e.pitch !== null || (i === 0 && j === 0 && allowOpeningRest)));
+			if (!valid) violations.push({ rule: 'ratio', at: cf.start, detail: `CF note ${i} requires ${expected} equal subdivisions` });
 		}
 
-		const lastCf = input.cf.length - 1;
-		for (let i = 0; i < input.cf.length; i++) {
-			const count = counts.get(i) ?? 0;
-			// Final CF note carries a single held note in all species
-			const expected = i === lastCf ? 1 : notesPerCfNote;
-			if (count === expected) continue;
-			// Opening rest: first CF note may have one fewer onset
-			if (i === 0 && allowOpeningRest && count === expected - 1) continue;
-			// Penultimate measure in species 3+ sometimes reduces activity at the
-			// cadence; treated during calibration if fixtures require it.
-			violations.push({
-				rule: 'ratio', at: input.cf[i].start,
-				detail: `CF note ${i} has ${count} counterpoint onsets, expected ${expected}`,
-			});
-		}
 		return violations;
 	}
 
@@ -227,7 +239,7 @@ export class SpeciesValidator {
 // ---------------------------------------------------------------------------
 
 export class FirstSpeciesValidator extends SpeciesValidator {
-	constructor() {
+	constructor(profile: RuleProfile = 'historical') {
 		super({
 			species: 1,
 			notesPerCfNote: 1,
@@ -237,12 +249,12 @@ export class FirstSpeciesValidator extends SpeciesValidator {
 			allConsonant: true,
 			noUnisonOnStrongBeats: true,
 			maxSpacing: 20,
-		});
+		}, profile);
 	}
 }
 
 export class SecondSpeciesValidator extends SpeciesValidator {
-	constructor() {
+	constructor(profile: RuleProfile = 'historical') {
 		super({
 			species: 2,
 			notesPerCfNote: 2,
@@ -252,12 +264,12 @@ export class SecondSpeciesValidator extends SpeciesValidator {
 			allConsonant: false,
 			noUnisonOnStrongBeats: true,
 			maxSpacing: 20,
-		});
+		}, profile);
 	}
 }
 
 export class ThirdSpeciesValidator extends SpeciesValidator {
-	constructor() {
+	constructor(profile: RuleProfile = 'historical') {
 		super({
 			species: 3,
 			notesPerCfNote: 4,
@@ -267,12 +279,12 @@ export class ThirdSpeciesValidator extends SpeciesValidator {
 			allConsonant: false,
 			noUnisonOnStrongBeats: true,
 			maxSpacing: 20,
-		});
+		}, profile);
 	}
 }
 
 export class FourthSpeciesValidator extends SpeciesValidator {
-	constructor() {
+	constructor(profile: RuleProfile = 'historical') {
 		super({
 			species: 4,
 			notesPerCfNote: 2,
@@ -282,12 +294,12 @@ export class FourthSpeciesValidator extends SpeciesValidator {
 			allConsonant: false,
 			noUnisonOnStrongBeats: false, // suspensions may resolve near the CF
 			maxSpacing: 20,
-		});
+		}, profile);
 	}
 }
 
 export class FifthSpeciesValidator extends SpeciesValidator {
-	constructor() {
+	constructor(profile: RuleProfile = 'historical') {
 		super({
 			species: 5,
 			notesPerCfNote: null, // florid: mixed rhythm
@@ -297,6 +309,6 @@ export class FifthSpeciesValidator extends SpeciesValidator {
 			allConsonant: false,
 			noUnisonOnStrongBeats: false,
 			maxSpacing: 20,
-		});
+		}, profile);
 	}
 }

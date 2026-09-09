@@ -1,16 +1,10 @@
-/**
- * Backtracking counterpoint solver shared by all five species generators.
- *
- * Each species describes its counterpoint as a sequence of rhythm slots
- * (CpSlot) against the cantus firmus; the engine assigns a pitch to every
- * slot with depth-first search, backtracking whenever a slot has no legal
- * pitch. The constraints mirror the calibrated validators in
- * src/validation/ (the generator is deliberately a bit STRICTER than the
- * validator — e.g. it never crosses voices even though Fux occasionally
- * does — so its output always validates).
- *
- * Randomness comes from Math.random (seedable via WritePhrase.setSeed), used
- * to order candidate pitches, so the search is deterministic per seed.
+import { createRandom, RandomSource } from './random.js';
+import { KeyInfo } from './key.js';
+import { spellPitch } from './pitch.js';
+import { regularMelodicInterval, spelledConsonance } from './validation/student-rules.js';
+/** Shared bounded pitch search. Species supply rhythm slots and rule options.
+ * Randomness belongs to a generation request. The assembled score is validated
+ * independently by WritePhrase before it becomes the returned phrase.
  */
 
 import { Note } from './note.js';
@@ -25,6 +19,8 @@ export interface CpSlot {
 	relLyDur: number;
 	/** This slot may tie from the previous slot (fourth/fifth species suspensions) */
 	mayTieFromPrev?: boolean;
+	mustTieFromPrev?: boolean;
+	mustSuspend?: boolean;
 }
 
 export interface SolvedNote {
@@ -58,6 +54,10 @@ export function solvedToNotes(solved: SolvedNote[]): Note[] {
 export interface EngineOptions {
 	/** Allow repeating the previous pitch (first species only) */
 	allowRepeat?: boolean;
+	minor?: boolean;
+	student?: boolean;
+	key?: KeyInfo;
+	random?: RandomSource;
 	/** Weak-beat dissonance policy */
 	weakDissonance: 'none' | 'passing' | 'passing+neighbor';
 	/** Node budget before giving up (search is usually far cheaper) */
@@ -77,12 +77,14 @@ type Obligation =
 export class SpeciesEngine {
 	private scaleClasses: Set<number>;
 	private nodesVisited = 0;
+	private random: RandomSource;
 
 	constructor(
 		private cf: number[],
 		scaleDegrees: number[],
 		private options: EngineOptions
 	) {
+		this.random = options.random ?? createRandom();
 		this.scaleClasses = new Set(scaleDegrees.map(d => ((d % 12) + 12) % 12));
 	}
 
@@ -154,6 +156,16 @@ export class SpeciesEngine {
 			if (this.options.allowRepeat) pitches.push(prev!.pitch);
 		}
 
+
+		// Alter degree seven only at the final approach. Natural minor remains
+		// available elsewhere, so an augmented second is not added to the scale.
+		if (index === slots.length - 2 && this.options.minor) {
+			const tonicClass = ((this.cf.at(-1)! % 12) + 12) % 12;
+			for (let p = 0; p <= 87; p++) if ((p + 1) % 12 === tonicClass &&
+				prev && MELODIC_DELTAS.includes(p - prev.pitch) &&
+				(obligation.kind === 'none' || (Math.sign(p - prev.pitch) === obligation.dir && Math.abs(p - prev.pitch) <= 2))) pitches.push(p);
+		}
+
 		const tieCandidate = Boolean(slot.mayTieFromPrev) && prev !== null &&
 			obligation.kind === 'none';
 
@@ -167,6 +179,8 @@ export class SpeciesEngine {
 
 			// Range: never cross below the CF; unison only at the very ends
 			if (interval < 0) return;
+			if (slot.mustTieFromPrev && !tiesPrev) return;
+			if (slot.mustSuspend && CONSONANT.has(intervalMod)) return;
 			if (interval === 0 && !isFirst && !isFinal) return;
 			if (interval > MAX_SPACING) return;
 
@@ -176,10 +190,34 @@ export class SpeciesEngine {
 				if (prev !== null) {
 					const step = Math.abs(pitch - prev.pitch);
 					if (step < 1 || step > 2) return;
+					if (pitch > prev.pitch && step !== 1) return;
 				}
 			}
 
 			const consonant = CONSONANT.has(intervalMod);
+			if (this.options.student) {
+				const key = this.options.key;
+				const spelling = key ? spellPitch(pitch, key, this.options.minor && index === slots.length - 2 ? 'cdefgab'[('cdefgab'.indexOf(key.key[0]) + 6) % 7] : undefined) : undefined;
+				if (key && spelling && consonant && !spelledConsonance(spelling, spellPitch(cfPitch, key))) return;
+				if (key && spelling && prev && !regularMelodicInterval(spellPitch(prev.pitch, key, this.options.minor && isFinal ? 'cdefgab'[('cdefgab'.indexOf(key.key[0]) + 6) % 7] : undefined), spelling)) return;
+				if (prev && prevSlot) {
+					const cpMove = pitch - prev.pitch;
+					const cfMove = cfPitch - this.cf[prevSlot.cfIndex];
+					if ([0,7].includes(intervalMod) && cpMove !== 0 && Math.sign(cpMove) === Math.sign(cfMove)) return;
+					if (isFinal && Math.sign(cpMove) === Math.sign(this.cf.at(-1)! - this.cf.at(-2)!)) return;
+					const attacks = assignment.filter((_, i) => i === 0 || !assignment[i - 1].tiedToNext);
+					if (!tiesPrev && attacks.length >= 2) {
+						const leap = attacks.at(-1)!.pitch - attacks.at(-2)!.pitch;
+						if (Math.abs(leap) > 4 && (Math.abs(cpMove) < 1 || Math.abs(cpMove) > 2 || Math.sign(cpMove) === Math.sign(leap))) return;
+					}
+				}
+				if (this.options.weakDissonance === 'passing+neighbor' && slot.beatPos === 0.5 && !consonant) return;
+				if (slot.mustTieFromPrev && slot.mustSuspend && intervalMod !== 10) return;
+				if (slots.some(s => s.mustTieFromPrev) && slot.beatPos === 0.5 && [0,7].includes(intervalMod)) {
+					const before = slots.slice(0,index).findLastIndex(s => s.beatPos === 0.5);
+					if (before >= 0 && Math.abs(assignment[before].pitch - this.cf[slots[before].cfIndex]) % 12 === intervalMod) return;
+				}
+			}
 			if (obligation.kind === 'step' && obligation.consonant && !consonant) return;
 			let nextObligation: Obligation = { kind: 'none' };
 
@@ -203,7 +241,7 @@ export class SpeciesEngine {
 					} else {
 						// passing or neighbor: continue by step either way; pick now so
 						// the obligation is well-defined
-						nextObligation = { kind: 'step', dir: Math.random() < 0.7 ? dir : (-dir as 1 | -1) };
+						nextObligation = { kind: 'step', dir: this.random() < 0.7 ? dir : (-dir as 1 | -1) };
 					}
 				}
 			}
@@ -275,13 +313,13 @@ export class SpeciesEngine {
 		return this.weightedShuffle(results);
 	}
 
-	/** Weighted random order (deterministic under the seeded Math.random). */
+	/** Weighted random order from the request random source. */
 	private weightedShuffle<T extends { weight: number }>(items: T[]): T[] {
 		const pool = [...items];
 		const ordered: T[] = [];
 		while (pool.length > 0) {
 			const total = pool.reduce((sum, item) => sum + item.weight, 0);
-			let r = Math.random() * total;
+			let r = this.random() * total;
 			let picked = pool.length - 1;
 			for (let i = 0; i < pool.length; i++) {
 				r -= pool[i].weight;
@@ -312,14 +350,14 @@ export function uniformSlots(cfLength: number, perNote: 1 | 2 | 4): CpSlot[] {
 	return slots;
 }
 
-/** Fourth species: paired halves where each downbeat may tie from the upbeat before. */
+/** Fourth species: opening silence, mandatory interior ties, cadential suspension. */
 export function syncopatedSlots(cfLength: number): CpSlot[] {
 	const slots: CpSlot[] = [];
 	for (let i = 0; i < cfLength; i++) {
 		if (i === cfLength - 1) {
 			slots.push({ cfIndex: i, beatPos: 0, relLyDur: 1 });
 		} else {
-			slots.push({ cfIndex: i, beatPos: 0, relLyDur: 2, mayTieFromPrev: i > 0 });
+			if (i > 0) slots.push({ cfIndex: i, beatPos: 0, relLyDur: 2, mayTieFromPrev: true, mustTieFromPrev: true, mustSuspend: i === cfLength - 2 });
 			slots.push({ cfIndex: i, beatPos: 0.5, relLyDur: 2 });
 		}
 	}
@@ -327,7 +365,7 @@ export function syncopatedSlots(cfLength: number): CpSlot[] {
 }
 
 /** Fifth species: a random mix of rhythm templates per CF note. */
-export function floridSlots(cfLength: number): CpSlot[] {
+export function floridSlots(cfLength: number, random: RandomSource = createRandom()): CpSlot[] {
 	const templates: { beatPos: number; relLyDur: number }[][] = [
 		[{ beatPos: 0, relLyDur: 2 }, { beatPos: 0.5, relLyDur: 2 }],
 		[{ beatPos: 0, relLyDur: 4 }, { beatPos: 0.25, relLyDur: 4 }, { beatPos: 0.5, relLyDur: 4 }, { beatPos: 0.75, relLyDur: 4 }],
@@ -343,7 +381,7 @@ export function floridSlots(cfLength: number): CpSlot[] {
 		}
 		const template = i === 0
 			? templates[0]
-			: templates[Math.floor(Math.random() * templates.length)];
+			: templates[Math.floor(random() * templates.length)];
 		for (let k = 0; k < template.length; k++) {
 			slots.push({
 				cfIndex: i,

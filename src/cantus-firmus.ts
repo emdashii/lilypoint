@@ -1,3 +1,4 @@
+import { createRandom, RandomSource } from './random.js';
 import { Note } from './note.js';
 import { NoteType } from './types-and-globals.js';
 import { KeyInfo, getKey } from './key.js';
@@ -10,7 +11,7 @@ export class CantusFirmus {
     private length: number;
     private scaleDegrees: NoteType[] = [];
 
-    constructor(keyName: string, length: number = 8, mode: string = "major") {
+    constructor(keyName: string, length: number = 8, mode: string = "major", private random: RandomSource = createRandom()) {
         this.keyInfo = getKey(keyName, mode);
         if (!Number.isSafeInteger(length) || length < 3) throw new Error('Cantus firmus requires at least three notes');
         this.length = length;
@@ -307,116 +308,55 @@ export class CantusFirmus {
     }
 
     generate(): Note[] {
-        verboseLog('\n🎵 Starting Cantus Firmus Generation 🎵');
-        verboseLog(`Key: ${Object.entries(NoteType).find(([k, v]) => v === this.tonic)?.[0] || this.tonic}, Length: ${this.length}`);
-        verboseLog(`Scale degrees: [${this.scaleDegrees.join(', ')}]`);
-
-        const maxAttempts = 1000;
-        let attempts = 0;
-
-        while (attempts < maxAttempts) {
-            attempts++;
-            verboseLog(`\n--- Attempt ${attempts} ---`);
-            this.notes = [];
-
-            // Start with tonic
-            this.notes.push(new Note(this.tonic, 1));
-            verboseLog(`Starting with tonic: ${this.tonic}`);
-
-            // Build the melody
-            const targetClimax = Math.floor(this.length / 2);
-            verboseLog(`Target climax at position: ${targetClimax}`);
-
-            for (let i = 1; i < this.length - 1; i++) {
-                const lastNote = this.notes[i - 1].getNote();
-                let possibleNotes: NoteType[] = [];
-
-                // Determine direction based on position relative to climax
-                const shouldAscend = i <= targetClimax;
-                verboseLog(`Position ${i}: should ${shouldAscend ? 'ascend' : 'descend'} from note ${lastNote}`);
-
-                // Get possible next notes
-                if (shouldAscend) {
-                    // Moving toward climax
-                    possibleNotes = this.scaleDegrees.filter(note => {
-                        const interval = note - lastNote;
-                        return interval > 0 && interval <= 5 && !this.isTritone(lastNote, note);
-                    });
-                } else {
-                    // Moving away from climax
-                    possibleNotes = this.scaleDegrees.filter(note => {
-                        const interval = lastNote - note;
-                        return interval >= -2 && interval <= 5 && !this.isTritone(lastNote, note);
-                    });
-                }
-                verboseLog(`Initial possible notes: [${possibleNotes.join(', ')}]`);
-
-                // Prefer stepwise motion (70% of the time)
-                if (Math.random() < 0.7) {
-                    const stepwiseOptions = possibleNotes.filter(note =>
-                        this.isStepwise(lastNote, note)
-                    );
-                    if (stepwiseOptions.length > 0) {
-                        verboseLog(`Using stepwise options: [${stepwiseOptions.join(', ')}]`);
-                        possibleNotes = stepwiseOptions;
-                    }
-                }
-
-                if (possibleNotes.length > 0) {
-                    const chosen = possibleNotes[Math.floor(Math.random() * possibleNotes.length)];
-                    this.notes.push(new Note(chosen, 1));
-                    verboseLog(`Chose note: ${chosen}`);
-                } else {
-                    // Fallback to any scale degree within range
-                    const fallback = this.scaleDegrees[Math.floor(Math.random() * this.scaleDegrees.length)];
-                    this.notes.push(new Note(fallback, 1));
-                    verboseLog(`⚠️ No valid options, using fallback: ${fallback}`);
-                }
-            }
-
-            // Establish the cadence before validating the entire melody.
-            this.notes[this.length - 2] = new Note(this.scaleDegrees[1], 1);
-
-            // End with tonic
-            this.notes.push(new Note(this.tonic, 1));
-            verboseLog(`Ending with tonic: ${this.tonic}`);
-
-            verboseLog(`Generated sequence: [${this.notes.map(n => n.getNote()).join(', ')}]`);
-
-            if (this.validateCantusFirmus(this.notes)) {
-                verboseLog(`\n🎉 Valid cantus firmus generated in ${attempts} attempts!`);
-                return this.notes;
-            }
-            verboseLog(`Attempt ${attempts} failed validation, trying again...`);
-        }
-
-        if (attempts >= maxAttempts) {
-            console.warn(`\n⚠️ Could not generate valid cantus firmus after ${maxAttempts} attempts, using simple version`);
-            this.generateSimple();
-        }
-
-        return this.notes;
-    }
-
-    private generateSimple(): void {
-        verboseLog('Generating simple cantus firmus');
-        // Fallback: generate a simple, valid cantus firmus
         this.notes = [];
-
-        // Conservative fallback with one central peak and a stepwise cadence.
-        // It must pass exactly the same checks as a random candidate.
-        for (let i = 0; i < this.length; i++) {
-            this.notes.push(new Note(this.scaleDegrees[i % 2], 1));
+        let budget = 100000;
+        const shuffle = <T>(items: T[]): T[] => {
+            for (let i = items.length - 1; i > 0; i--) {
+                const j = Math.floor(this.random() * (i + 1));
+                [items[i], items[j]] = [items[j], items[i]];
+            }
+            return items;
+        };
+        const firstPeak = Math.max(1, Math.floor(this.length / 4));
+        const lastPeak = Math.min(this.length - 2, Math.floor(3 * this.length / 4));
+        const positions = shuffle(Array.from({ length: lastPeak - firstPeak + 1 }, (_, i) => i + firstPeak));
+        for (const peakIndex of positions) {
+            for (const peak of shuffle(this.scaleDegrees.slice(1, 6))) {
+                const path = [new Note(this.tonic, 1)];
+                const search = (): boolean => {
+                    if (--budget < 0) return false;
+                    const i = path.length;
+                    if (i === this.length) return this.validateCantusFirmus(path);
+                    const choices = i === this.length - 1 ? [this.tonic]
+                        : i === this.length - 2 ? [this.scaleDegrees[1]]
+                        : i === peakIndex ? [peak]
+                        : shuffle(this.scaleDegrees.filter(p => p < peak));
+                    for (const pitch of choices) {
+                        if ((i === peakIndex) !== (pitch === peak)) continue;
+                        const previous = path[i - 1].getNote();
+                        if (pitch === previous || Math.abs(pitch - previous) > 5) continue;
+                        if (i > 1) {
+                            const leap = previous - path[i - 2].getNote();
+                            const move = pitch - previous;
+                            if (Math.abs(leap) > 4 && (Math.abs(move) > 2 || Math.sign(move) === Math.sign(leap))) continue;
+                        }
+                        path.push(new Note(pitch, 1));
+                        if (!this.hasProhibitedIntervals(path) && !this.tooManyLeapsInARow(path) &&
+                            !this.tooMuchMotionInOneDirection(path) && !this.outlinesTritone(path) && search()) return true;
+                        path.pop();
+                        if (budget < 0) return false;
+                    }
+                    return false;
+                };
+                if (search()) {
+                    this.notes = path;
+                    return this.notes;
+                }
+                if (budget < 0) break;
+            }
+            if (budget < 0) break;
         }
-        this.notes[0] = new Note(this.tonic, 1);
-        this.notes[this.length - 1] = new Note(this.tonic, 1);
-        this.notes[this.length - 2] = new Note(this.scaleDegrees[1], 1);
-        if (this.length > 3) {
-            this.notes[Math.min(Math.floor(this.length / 2), this.length - 3)] = new Note(this.scaleDegrees[2], 1);
-        }
-        if (!this.validateCantusFirmus(this.notes)) {
-            throw new Error('Could not generate a valid cantus firmus');
-        }
+        throw new Error('Cantus firmus search exhausted its budget or legal melodies');
     }
 
     getNotes(): Note[] {

@@ -1,8 +1,9 @@
+import { createRandom, RandomSource } from './random.js';
 export class GenerateLowerVoice {
 	private lowerVoice: number[] = [];
 	private length: number;
 
-	constructor(length: number = 8) {
+	constructor(length: number = 8, private random: RandomSource = createRandom()) {
 		this.length = length;
 		
 		this.lowerVoice.push(1);
@@ -15,7 +16,7 @@ export class GenerateLowerVoice {
 				nextNote = lastNote + this.pickRandomInterval() - 1;
 			} else if (lastNote > 4) {
 				nextNote = lastNote - this.pickRandomInterval() - 1;
-			} else if (Math.random() < 0.5) {
+			} else if (this.random() < 0.5) {
 				nextNote = lastNote + this.pickRandomInterval() - 1;
 			} else {
 				nextNote = lastNote - this.pickRandomInterval() - 1;
@@ -27,7 +28,7 @@ export class GenerateLowerVoice {
 	}
 
 	pickRandomInterval(): number {
-		const rand = Math.floor(Math.random() * 20);
+		const rand = Math.floor(this.random() * 20);
 		switch (rand) {
 			case 0:
 			case 1:

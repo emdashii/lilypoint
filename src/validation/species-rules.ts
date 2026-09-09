@@ -1,20 +1,6 @@
-/**
- * Species counterpoint rules engine, operating on timed events so the two
- * voices are aligned by musical time (beat position) rather than array index.
- *
- * Works on both:
- *  - known-correct fixtures (tests/fixtures/examples/*.ly), where the cantus
- *    firmus is whole notes, and
- *  - generated Phrases (converted via phraseToTimedVoices), where the cantus
- *    firmus is one note per beat.
- *
- * Alignment is per CF note: each counterpoint event is assigned to the CF note
- * sounding at its onset, at a relative position 0..1 within that CF note
- * (0 = downbeat / strong position).
- *
- * Every rule returns Violation[] (empty = pass) so failures are debuggable.
- * Rule thresholds are calibrated so that all known-correct examples pass
- * ("examples win" — see tests/fixtures/examples/FORMAT.md).
+/** Harmonic analysis at the union of both voices' change times.
+ * Alignment preserves the distinction between attacks and held notes.
+ * Rule defaults retain the historical fixture policy; student rules are separate.
  */
 
 import { TimedEvent } from './timed-events.js';
@@ -29,6 +15,7 @@ export interface Violation {
 /** A counterpoint event annotated with its position relative to the CF. */
 export interface AlignedEvent {
 	event: TimedEvent;
+	attack?: boolean;
 	/** Index of the CF note sounding at this event's onset */
 	cfIndex: number;
 	/** The CF event itself */
@@ -74,30 +61,31 @@ export function isStep(semitones: number): boolean {
 // Alignment
 // ---------------------------------------------------------------------------
 
-/** Assign each sounding CP event to the CF note sounding at its onset. */
+/** Split sounding CP events at cantus changes for harmonic analysis. */
 export function alignToCantusFirmus(input: SpeciesInput): AlignedEvent[] {
 	const { cp, cf } = input;
 	const aligned: AlignedEvent[] = [];
 
 	for (let i = 0; i < cp.length; i++) {
-		const event = cp[i];
-		if (event.pitch === null) continue; // rests carry no vertical interval
-
-		const cfIndex = cf.findIndex(
-			c => event.start >= c.start - 1e-9 && event.start < c.start + c.duration - 1e-9
-		);
-		if (cfIndex === -1) continue; // event past the end of the CF (shouldn't happen)
-		const cfNote = cf[cfIndex];
-
-		aligned.push({
-			event,
-			cfIndex,
-			cf: cfNote,
-			beatPos: (event.start - cfNote.start) / cfNote.duration,
-			interval: cfNote.pitch === null ? null : Math.abs(event.pitch - cfNote.pitch),
-			tiedFromPrevious: i > 0 && isTieContinuation(cp[i - 1], event),
-		});
-	}
+  const original = cp[i];
+  if (original.pitch === null) continue;
+  for (let cfIndex = 0; cfIndex < cf.length; cfIndex++) {
+   const cfNote = cf[cfIndex];
+   const start = Math.max(original.start, cfNote.start);
+   const end = Math.min(original.start + original.duration, cfNote.start + cfNote.duration);
+   if (end <= start + 1e-9) continue;
+   const held = start > original.start + 1e-9;
+   const tied = i > 0 && isTieContinuation(cp[i - 1], original);
+   aligned.push({
+    event: { ...original, start, duration: end - start },
+    attack: !held && !tied,
+    cfIndex, cf: cfNote,
+    beatPos: (start - cfNote.start) / cfNote.duration,
+    interval: cfNote.pitch === null ? null : Math.abs(original.pitch - cfNote.pitch),
+    tiedFromPrevious: held || tied,
+   });
+  }
+ }
 
 	return aligned;
 }
@@ -320,6 +308,7 @@ export function classifyDissonance(
 	const prev = index > 0 ? aligned[index - 1] : null;
 	const next = index < aligned.length - 1 ? aligned[index + 1] : null;
 	if (a.event.pitch === null) return 'unclassified';
+	if (!prev || !next || Math.abs(prev.event.start + prev.event.duration - a.event.start) > 1e-9 || Math.abs(a.event.start + a.event.duration - next.event.start) > 1e-9) return 'unclassified';
 
 	const pitch = a.event.pitch;
 	const approach = prev?.event.pitch != null ? pitch - prev.event.pitch : null;

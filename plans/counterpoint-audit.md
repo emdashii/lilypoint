@@ -1,12 +1,12 @@
 # Counterpoint logic audit and practice roadmap
 
-Audited September 8, 2026, starting at commit `21f94aa`. This report describes the TypeScript generator and the repairs made in this working tree.
+Audited September 8, 2026, starting at commit `21f94aa`. Updated September 9 after completing the six numbered repairs and the incremental pitch/time extension.
 
 ## Verdict
 
 Keep the shared species solver. Its separation between rhythm slots and pitch search is the right foundation. Keep chromatic piano-key numbers for sounding pitch, too. The mapping is consistent: A0 is 0, middle C is 39, an octave is 12, and MIDI pitch is the stored value plus 21. Moving to MIDI numbers alone would not simplify the musical rules.
 
-The project is reasonably close to producing useful short exercises. It is not yet a dependable strict-counterpoint generator across all five species and lengths. The main remaining work is a better cantus generator, explicit musical rule profiles, and a richer representation of spelling and time. These can extend the current solver without replacing the application.
+The six numbered findings below are implemented and verified. Modern generation uses the documented [student rule profile](counterpoint-profiles.md), a bounded cantus search, request-local randomness, and an independent validation gate. Historical fixtures retain their separate permissive profile. The piano-practice release target remains separate work, particularly rendering, playback, hand ranges, and reviewed scores.
 
 ## Repairs completed
 
@@ -25,37 +25,36 @@ These repairs change seeded output. They do not establish exact compatibility wi
 
 ## What to store
 
-The present `Note` stores a sounding pitch, a LilyPond duration denominator, and a tie flag. That works for the current generated rhythms, which use undotted powers of two. `TimedEvent` already moves in the right direction by describing absolute musical time.
+`Note` now stores integer duration ticks, sounding pitch, optional letter/accidental/written-octave spelling, an explicit rest flag, and a tie-to-next flag. There are 4096 ticks per whole note. `getPitch()` returns `null` for a rest. `getNote()` remains a legacy pitched-note accessor and must not be used to interpret rests.
 
-Extend this incrementally:
+`voiceToMusicalEvents()` produces serializable events with `onsetTicks`, `durationTicks`, nullable pitch, optional spelling, and ties. `musicalEventsToVoice()` restores them and rejects gaps, overlaps, fractional ticks, mismatched spelling, and invalid ties. `pitchInterval()` returns both signed semitone distance and signed diatonic distance, so C to D-sharp differs from C to E-flat.
 
-1. **Pitch:** retain chromatic pitch and preserve letter, accidental, and written octave when they become available. Compute both diatonic distance and semitone distance for intervals. C to D-sharp and C to E-flat must remain distinguishable. Key-based spelling is sufficient for today's diatonic output, but cannot represent arbitrary chromatic intentions.
-2. **Time:** store onset and duration in integer ticks for the supported rhythm vocabulary, or reduced fractions if arbitrary tuplets become a requirement. Do not store a LilyPond denominator as the core duration. Dotted notes, rests, and tied spans need explicit representation.
-3. **Analysis:** derive sounding intervals at the union of both voices' change times. Preserve the difference between a new attack and a held note. Rhythmic rules count attacks or notated subdivisions; harmonic rules inspect everything that sounds.
-4. **Notation:** derive LilyPond tokens from the musical events. Split at barlines and carry ties in this adapter. Avoid changing what `Note.length` means between generation and export, as `adjustForSpeciesRhythm()` currently does.
+The generation vocabulary still uses binary subdivisions. Stored durations can represent dotted notes and longer spans down to one tick. Arbitrary tuplets require a future rational-time representation. The `Note` constructor and `setLength()` retain the denominator-based compatibility interface; `getLength()` is the reciprocal duration and may be fractional for dotted notes. New code uses `getDurationTicks()` and `setDurationTicks()`.
 
-The useful public operations would be generation from a request, validation of the resulting score, and export. Species should supply rhythm and rule configuration to those operations. Keep rule details inside those modules. `src/species.ts` still contains old rule flags and helper implementations that the modern species' `generateCounterpoint()` methods bypass; they should not remain a second apparent specification.
+The validator's `TimedEvent` remains a whole-note-unit adapter for existing fixtures. Harmonic alignment splits at the union of voice changes and reports whether each segment is an attack or a held note. Rhythm checks inspect original subdivisions rather than counting these harmonic segments. `lyDuration` is a compatibility hint and does not govern analysis.
 
-## Remaining work, in order
+The exporter derives LilyPond tokens from spelling and tick durations, splits spans at barlines, and inserts ties for sounding fragments. It preserves explicit rests and spelling. Score assembly scales copies of normalized solver notes, so it never changes the duration or meaning of a previously returned note.
 
-All findings below have high confidence from source inspection. Effort estimates include tests: S is hours, M is roughly one or two days, and L is several days or more. These are estimates, not commitments.
+Modern `Species` now supplies only scale and engine configuration. The old rule flags and helpers live under `src/legacy/`, where the negative-species implementations still use them.
 
-| Priority | Finding and evidence | Impact | Effort / change risk |
-| --- | --- | --- | --- |
-| 1 | `src/cantus-firmus.ts`, `generate()`, requires ascent through the first half of a melody drawn from seven pitches. | Long phrases cannot sustain that ascent. With C major and seeds 1 through 20, all 32-note and 64-note samples used the fallback and each length produced only one distinct melody. Eight-note samples produced 10 distinct melodies and 16-note samples produced 20. | M / medium |
-| 2 | `src/species-engine.ts`, `syncopatedSlots()`, makes every tie optional. Fourth-species validation checks counts and dissonances but does not require sustained syncopation. | A consonant second-species line can pass as fourth species. The opening rest, cadential suspension, and limits on breaking species are not enforced. | M / medium |
-| 3 | `getScaleDegrees()` in both cantus generation and `WritePhrase` uses natural minor exclusively. | Minor cadences cannot select a raised leading tone. The project's own species definitions require this when approaching the tonic from below. | M / medium, requires spelling-aware intervals |
-| 4 | `src/validation/species-rules.ts`, `alignToCantusFirmus()`, aligns only at counterpoint onsets. `checkRatio()` counts events without enforcing their exact durations. | A held counterpoint note can miss a changing harmony; irregular subdivisions can satisfy an event-count rule. This matters when adding dotted rhythms, imported scores, and sustained events. | M / medium |
-| 5 | `SpeciesEngine` primarily checks local semitone constraints. Validators mirror a limited subset, with thresholds widened for textbook examples. | Passing tests does not prove a strict exercise. Direct approaches to perfect intervals, melodic recovery, characteristic cadence patterns, and species-specific metric restrictions need an explicit policy. | L / high if changed without a written profile |
-| 6 | `WritePhrase.setSeed()` replaces global `Math.random`; generation returns without a final independent validation gate. | Other generators and tests share hidden random state. Generator/validator drift can reach export. | M / low to medium |
+## Numbered work completed, in order
 
-For priority 1, replace forced ascent and rejection sampling with a bounded cantus search. Reserve one peak in a chosen middle region, prune illegal melodic moves, and plan the final approach before filling the interior. Return search failure explicitly if no valid melody fits. The current conservative fallback prevents unchecked output, but is not a satisfactory source of varied practice pieces.
+| Priority | Original finding | Implemented result |
+| --- | --- | --- |
+| 1 | Forced ascent exhausted seven pitches and collapsed long phrases to one fallback. | Bounded backtracking reserves a middle-region peak and the re-do cadence, prunes melodic violations, and reports failure explicitly. The deterministic fallback is removed. |
+| 2 | Optional ties allowed second-species lines to pass as fourth species. | Generation requires the opening rest, every interior tie, and a dissonant cadential suspension. The student validator checks these independently. Its initial policy permits zero breaks. Historical fixtures remain separate. |
+| 3 | Natural minor could not supply a raised leading tone. | The solver can select raised degree seven at the final counterpoint approach and preserves its letter, including E-sharp in F-sharp minor. Spelled intervals reject augmented seconds. Generated cantus lines use re-do, which needs no alteration. |
+| 4 | Onset-only harmony and event counts missed held dissonances and irregular durations. | Harmonic analysis includes cantus changes under held notes. Fixed-ratio rules require exact onset positions and durations. Suspension classification also rejects a resolution across a rest. |
+| 5 | Rule thresholds conflated student exercises and historical exceptions. | The [profile document](counterpoint-profiles.md) defines separate policies. Student checks include direct perfect approaches, contrary-step recovery, cadence direction, spelling, metric restrictions, and fourth-species weak-beat perfect intervals. Positive and negative cases exercise each policy. |
+| 6 | Seeding replaced global randomness and output lacked independent validation. | Each request shares an injected random source across its searches. Instance `setSeed()` isolates writers. Static `WritePhrase.setSeed()` is a compatibility default and never changes `Math.random`. An independent student validator checks the assembled score before the writer returns it. Failed candidates retry within a 50-attempt bound. |
 
-For priorities 2 through 5, write separate profiles for strict student exercises and the more permissive historical examples. Keep the Fux fixtures, but do not make every exception a general permission. Pair positive examples with deliberately invalid examples that differ in one musical fact. A passing fixture suite alone cannot identify an overly permissive validator.
+The cantus search has a 100,000-node budget and the species search defaults to 200,000 nodes per attempt. A bounded search can fail explicitly. These limits do not promise success for every arbitrary cantus, length, or seed.
+
+On September 9, C-major cantus generation with seeds 1 through 20 produced 16 distinct 8-note melodies, 18 distinct 16-note melodies, and 20 distinct melodies at both 32 and 64 notes. The 20-sample batches took 16, 3, 3, and 11 milliseconds respectively on this machine. These are local measurements, not performance guarantees. The regression requires at least 15 distinct melodies at each long length and exercises the actual generator.
 
 ## Piano-practice release target
 
-Start with a bounded release: two voices, 8 to 16 cantus notes, a documented rule profile, reproducible major-key exercises, and reliable score export. Add strict minor cadences and the remaining species as their tests meet the same standard.
+The generator now covers two voices, a documented student profile, reproducible major and minor exercises, and all five species. The release work below still needs UI, rendering, playback, and human musical review. Automated coverage includes 8 and 16 cantus notes in all supported keys, modes, and species.
 
 The current duration arithmetic correctly fills the requested number of measures. However, it places one cantus note per denominator beat: in 4/4, third species becomes sixteenths over quarters. This is a deliberate rhythmic reduction rather than the whole-note cantus used in the fixtures. Give the user control over cantus pulse and tempo, with explicit handling of compound meter.
 
@@ -63,14 +62,16 @@ For piano use, prioritize:
 
 - A piano staff with configurable clefs and comfortable ranges for each hand. Both exported voices currently use treble clef, which can be valid for the current register but is not a complete piano-layout policy.
 - Downloadable `.ly`, rendered PDF, and MIDI with tempo. The exporter emits a MIDI block, but the page currently downloads `.txt` and hands rendering to a Hacklily iframe.
-- An exposed seed, repeat/regenerate controls, and phrase-level validation diagnostics. Reject invalid output before presenting it as a finished exercise.
+- UI controls for the seed and repeat/regenerate actions, plus phrase-level validation diagnostics. The generation API already isolates instance seeds and rejects invalid output.
 - A small set of reviewed practice scores, checked by playing them and inspecting the engraving. Mathematical validity does not establish musical variety or comfortable hand movement.
 
 Accept a release when its documented key/species/length combinations pass seeded generation tests, bad-score fixtures fail for the intended reason, exports preserve pitch and timing, and representative PDF/MIDI artifacts have been rendered and reviewed. Treat long-phrase variety and search time as measured requirements.
 
 ## Verification and scope
 
-The baseline had 401 passing tests. After the repairs, all 424 tests pass, typechecking passes, and the production build passes. The expanded suite includes 260 generated cases across 13 keys, two modes, five species, and two seeds, plus exhaustive piano-pitch export round trips and targeted negative tests. Run `bun test`, `bun run typecheck`, and `bun run build` from the repository root.
+The original baseline had 401 tests, and the first audit repairs brought it to 424. The completed roadmap has 440 passing tests. Typechecking and the production build pass. Run `bun test`, `bun run typecheck`, and `bun run build` from the repository root.
+
+`tests/integration/audit-roadmap.test.ts` adds 260 student-profile generation cases across 13 keys, two modes, five species, and two lengths. It also checks pitch/time storage round trips, dotted and barline-split export, minor leading-tone spelling, long-cantus diversity, profile-specific negative cases, seed isolation, and rejection of deliberately corrupted solver output. Existing historical fixtures and exhaustive piano-pitch export tests still pass.
 
 This audit covers the modern TypeScript pitch, rhythm, cantus, solver, validation, and export paths. It does not certify the legacy C++ or negative-species algorithms, hosted rendering, browser behavior, PDF engraving, or MIDI playback. No dependency/security audit or exhaustive search-space proof was performed. The C++ random-number header mirrors TypeScript's current routine, despite its xorshift32 name. Cross-implementation output equivalence was not tested; README now describes the harness without promising exact text equality after spelling repairs.
 

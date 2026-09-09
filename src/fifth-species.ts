@@ -12,9 +12,10 @@ export class FifthSpecies extends Species {
 	generateCounterpoint(cantusFirmus: Note[]): Note[] {
 		const cf = cantusFirmus.map(n => n.getNote());
 		const engine = new SpeciesEngine(cf, this.scaleDegrees, {
+			...this.engineOptions,
 			weakDissonance: 'passing+neighbor',
 		});
-		const solved = engine.solve(floridSlots(cf.length));
+		const solved = engine.solve(floridSlots(cf.length, this.engineOptions.random));
 		if (!solved) {
 			throw new CounterpointUnsolvableError('fifth species', cf);
 		}

@@ -1,3 +1,6 @@
+import { createRandom, setDefaultSeed } from './random.js';
+import { FirstSpeciesValidator, SecondSpeciesValidator, ThirdSpeciesValidator, FourthSpeciesValidator, FifthSpeciesValidator } from './validation/species-validator.js';
+import { spellPitch } from './pitch.js';
 import { Note } from './note.js';
 import { Phrase } from './phrase.js';
 import { NoteType } from './types-and-globals.js';
@@ -51,15 +54,12 @@ export class WritePhrase {
 		this.timeSignature = timeSignature;
 	}
 
-	static setSeed(seed: number): void {
-		Math.random = (() => {
-			let s = seed;
-			return () => {
-				s = Math.imul(s ^ s >>> 15, s | 1);
-				s ^= s + Math.imul(s ^ s >>> 7, s | 61);
-				return ((s ^ s >>> 14) >>> 0) / 4294967296;
-			};
-		})();
+	static setSeed(seed: number): void { setDefaultSeed(seed); }
+	private seed?: number;
+	private random = createRandom();
+	setSeed(seed: number): void {
+		if (!Number.isSafeInteger(seed)) throw new Error('Seed must be a safe integer');
+		this.seed = seed;
 	}
 
 	getPhraseLength(): number { return this.phraseLength; }
@@ -107,6 +107,7 @@ export class WritePhrase {
 			throw new Error('Phrase length must be a positive integer with at least three beats');
 		}
 		this.getKey();
+		this.random = createRandom(this.seed);
 		this.phraseN = new Phrase();
 		this.upperVoiceI = [];
 		this.lowerVoiceI = [];
@@ -122,7 +123,7 @@ export class WritePhrase {
 		if (this.speciesType === -1) {
 			// Legacy imitative counterpoint
 			verboseLog('\n📜 Using Legacy Imitative Counterpoint (Species -1)');
-			const imitative = new SpeciesOne();
+			const imitative = new SpeciesOne(this.random);
 			imitative.writeImitativeTwoVoices(this.phraseLength * this.beatsPerMeasure);
 			this.lowerVoiceI = imitative.getImitativeLower();
 			this.upperVoiceI = imitative.getImitativeUpper();
@@ -178,18 +179,28 @@ export class WritePhrase {
 		// The backtracking engine occasionally finds no counterpoint for a given
 		// cantus firmus; regenerate the CF and retry (deterministic per seed).
 		const maxAttempts = 50;
+		const random = this.random;
 		let cantusFirmusNotes: Note[] = [];
 		let counterpointNotes: Note[] = [];
 
 		for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-			const cantusFirmus = new CantusFirmus(this.key.getKeyName(), totalBeats, this.mode);
+			const cantusFirmus = new CantusFirmus(this.key.getKeyName(), totalBeats, this.mode, random);
 			cantusFirmusNotes = cantusFirmus.generate();
 			verboseLog(`Attempt ${attempt}: CF [${cantusFirmusNotes.map(n => n.getNote()).join(', ')}]`);
 
 			const species = this.createSpecies();
 			species.setScaleDegrees(scaleDegrees);
+			species.setEngineOptions({ minor: this.mode === 'minor', student: true, key: this.getKey(), random });
 			try {
 				counterpointNotes = species.generateCounterpoint(cantusFirmusNotes);
+				const candidate = this.assembleScore(counterpointNotes, cantusFirmusNotes);
+				const Validator = [FirstSpeciesValidator, SecondSpeciesValidator, ThirdSpeciesValidator, FourthSpeciesValidator, FifthSpeciesValidator][this.speciesType - 1];
+				const violations = new Validator('student').validatePhrase(candidate);
+				if (violations.length) {
+					if (attempt < maxAttempts) continue;
+					throw new Error('Generated score failed validation: ' + JSON.stringify(violations));
+				}
+				this.phraseN = candidate;
 				break;
 			} catch (error) {
 				if (error instanceof CounterpointUnsolvableError && attempt < maxAttempts) {
@@ -200,47 +211,22 @@ export class WritePhrase {
 			}
 		}
 
-		verboseLog(`Generated ${counterpointNotes.length} counterpoint notes`);
-		verboseLog('Counterpoint notes:', counterpointNotes.map(n => n.getNote()).join(', '));
-
-		// Step 3: Assign voices to the phrase
-		verboseLog('\n--- Step 3: Assign Voices ---');
-		verboseLog('Assigning cantus firmus to lower voice');
-		verboseLog('Assigning counterpoint to upper voice');
-		
-		// Cantus firmus typically goes in the lower voice
-		for (const note of cantusFirmusNotes) {
-			this.phraseN.addNoteToLowerVoice(note);
-		}
-
-		// Counterpoint goes in the upper voice
-		for (const note of counterpointNotes) {
-			this.phraseN.addNoteToUpperVoice(note);
-		}
-
-		// Handle special cases for different species rhythms
-		verboseLog('\n--- Step 4: Adjust Rhythms ---');
-		this.adjustForSpeciesRhythm();
-		verboseLog('Rhythm adjustments complete');
 	}
 
-	private adjustForSpeciesRhythm(): void {
-		// Species classes emit durations RELATIVE to one cantus firmus note
-		// (1 = full CF note, 2 = half of it, 4 = quarter of it). Each CF note
-		// occupies one beat unit, so scaling both voices by the beat unit
-		// yields final LilyPond durations (e.g. relative half × beat unit 4
-		// = 8, an eighth note in 4/4).
-		const lowerVoice = this.phraseN.getLowerVoice();
-		const upperVoice = this.phraseN.getUpperVoice();
-
-		verboseLog(`Adjusting rhythm for ${this.getSpeciesName(this.speciesType)}`);
-		verboseLog(`Time signature: ${this.timeSignature}, Beat unit: ${this.beatUnit}`);
-
-		lowerVoice.forEach(note => note.setLength(this.beatUnit));
-		upperVoice.forEach(note => note.setLength(note.getLength() * this.beatUnit));
-
-		verboseLog(`Lower voice lengths: [${lowerVoice.map(n => n.getLength()).join(', ')}]`);
-		verboseLog(`Upper voice lengths: [${upperVoice.map(n => n.getLength()).join(', ')}]`);
+	private assembleScore(counterpoint: Note[], cantus: Note[]): Phrase {
+		const phrase = new Phrase(counterpoint.map(n => n.scaled(this.beatUnit)), cantus.map(n => n.scaled(this.beatUnit)), this.getKey());
+		phrase.setTimeSignature(this.timeSignature);
+		for (const voice of [phrase.getLowerVoice(), phrase.getUpperVoice()]) {
+			for (let i = 0; i < voice.length; i++) {
+				const note = voice[i];
+				if (note.isRest()) continue;
+				const tonicLetter = this.key.getKeyName()[0].toLowerCase();
+				const leadingLetter = 'cdefgab'[('cdefgab'.indexOf(tonicLetter) + 6) % 7];
+				const isLeading = this.mode === 'minor' && i === voice.length - 2 && voice[i + 1].getNote() - note.getNote() === 1;
+				note.setSpelling(note.getSpelling() ?? spellPitch(note.getNote(), this.getKey(), isLeading ? leadingLetter : undefined));
+			}
+		}
+		return phrase;
 	}
 
 	// Legacy methods below - kept for backward compatibility with negative species types
@@ -359,7 +345,7 @@ export class WritePhrase {
 
 	// Legacy methods for backward compatibility
 	private writeLowerVoice(): void {
-		const lower = new GenerateLowerVoice(this.phraseLength * this.beatsPerMeasure);
+		const lower = new GenerateLowerVoice(this.phraseLength * this.beatsPerMeasure, this.random);
 		this.lowerVoiceI = lower.getLowerVoice();
 		for (const i of this.lowerVoiceI) {
 			this.phraseN.addNoteToLowerVoice(this.convertIntToNote(i));
@@ -367,14 +353,14 @@ export class WritePhrase {
 	}
 
 	private writeUpperVoiceOne(): void {
-		if (Math.random() < 0.5) {
+		if (this.random() < 0.5) {
 			this.upperVoiceI.push(5);
 		} else {
 			this.upperVoiceI.push(8);
 		}
 
 		for (let i = 1; i < this.lowerVoiceI.length - 2; i++) {
-			const one = new SpeciesOne();
+			const one = new SpeciesOne(this.random);
 			one.setNoteBefore(this.upperVoiceI[i - 1]);
 			one.setNoteBelow(this.lowerVoiceI[i]);
 			one.setNoteBeforeAndBelow(this.lowerVoiceI[i - 1]);
@@ -394,7 +380,7 @@ export class WritePhrase {
 	}
 
 	private writeUpperVoiceTwo(): void {
-		const imitative = new SpeciesOne();
+		const imitative = new SpeciesOne(this.random);
 		imitative.writeImitativeTwoVoices(Math.floor(this.phraseLength * this.beatsPerMeasure / 2));
 		this.lowerVoiceI = imitative.getImitativeLower();
 		for (const i of this.lowerVoiceI) {

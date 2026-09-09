@@ -110,3 +110,12 @@ Colors from https://stephango.com/flexoki
 Caleb Nelson and Elliott Claus wrote the original C++ implementation of the music generator, at
 https://github.com/emdashii/counterpoint_generator Elliott Claus wrote the TypeScript implementation of the music
 generator, at https://github.com/emdahsii/lilypoint, which can be found at https://lilypoint.mazzaella.com/
+
+
+## Counterpoint generation and stored scores
+
+Modern generation uses the [student rule profile](plans/counterpoint-profiles.md) and validates the assembled score before returning it. The [audit](plans/counterpoint-audit.md) records completed repairs, verification, and the remaining piano-practice release work.
+
+For isolated, repeatable generation, call `writer.setSeed(seed)` on a `WritePhrase` instance before `writeThePhrase()`. Static `WritePhrase.setSeed(seed)` remains a default for callers that use the older interface. Neither method replaces `Math.random`.
+
+Notes store duration in integer ticks, with 4096 ticks per whole note, and preserve explicit pitch spelling when available. Use `getPitch()` for nullable sounding pitch and `getDurationTicks()` for time. `voiceToMusicalEvents()` and `musicalEventsToVoice()` in `src/validation/timed-events.ts` serialize and restore onset, duration, pitch, spelling, rests, and ties. The exporter splits spans at barlines without changing the stored notes.

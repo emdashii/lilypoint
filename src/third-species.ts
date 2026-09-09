@@ -11,6 +11,7 @@ export class ThirdSpecies extends Species {
 	generateCounterpoint(cantusFirmus: Note[]): Note[] {
 		const cf = cantusFirmus.map(n => n.getNote());
 		const engine = new SpeciesEngine(cf, this.scaleDegrees, {
+			...this.engineOptions,
 			weakDissonance: 'passing+neighbor',
 		});
 		const solved = engine.solve(uniformSlots(cf.length, 4));
