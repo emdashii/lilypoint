@@ -6,13 +6,14 @@ Website for counterpoint generator using LilyPond
 
 The site is static. Netlify runs `bun run build` and publishes `dist/`; visitors generate music, play audio, and export scores in their browser. No backend or Netlify Functions are required.
 
-- `/` is Practice, based on prototype 08.
-- `/write.html` is Write, based on prototype 07.
+- `/` is Write, based on prototype 07.
+- `/practice.html` is Practice, based on prototype 08.
 - `/about.html` explains the purpose, history, and earlier interfaces.
+- `/write.html` redirects to `/` so older sheet links still open.
 - `/classic.html` preserves the previous form-based generator and Hacklily viewer.
 - `/proto/` keeps all eight prototypes at their existing URLs.
 
-The main room HTML files reuse `public/proto/shared/` modules. Keep their control markup in sync with 07 and 08 when changing shared behavior. Practice's `data-write-url` selects the main Write page; the prototype defaults to 07. Write stores a tab-scoped draft and encodes scores in URLs. Practice collections last until navigation or reload. Fonts, rendering libraries, and piano samples need network access.
+The main room HTML files reuse `public/proto/shared/` modules. Keep their control markup in sync with 07 and 08 when changing shared behavior. Practice's `data-write-url` selects the main Write page at `/`; the prototype defaults to 07. Write stores a tab-scoped draft and encodes scores in URLs. Practice collections last until navigation or reload. Fonts, rendering libraries, and piano samples need network access.
 
 After building, run `bun test/proto-score-state.mjs`, `bun test/proto-generation.mjs`, and `bun test/proto-smoke.mjs`. Serve `dist/` to check the Practice-to-Write handoff, exports, About links, and classic generator.
 

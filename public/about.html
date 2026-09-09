@@ -12,7 +12,7 @@
 <body>
   <header class="topbar">
     <a class="brand" href="/"><span>♮</span>lilypoint</a>
-    <nav class="nav" aria-label="Main navigation"><a href="/">Practice</a><a href="/write.html">Write</a><a class="active" aria-current="page" href="/about.html">About</a></nav>
+    <nav class="nav" aria-label="Main navigation"><a href="/">Write</a><a href="/practice.html">Practice</a><a class="active" aria-current="page" href="/about.html">About</a></nav>
     <div class="top-end"><span id="theme"></span></div>
   </header>
   <main class="about">
@@ -21,15 +21,15 @@
     <p class="intro">lilypoint generates two-voice counterpoint for you to read, hear, and play. Choose a key and a species, try a fresh phrase, and keep the music you want to come back to.</p>
     <p class="intro">Counterpoint brings independent melodies together. Its rules make it an interesting meeting point between music theory and programming, and a source of new material for sight-reading.</p>
     <div class="rooms">
-      <div class="room"><h2>The practice room</h2><p>Start with a lesson or choose your own filters. Listen with a count-in, isolate either voice, loop an exercise, and collect phrases for a practice sheet.</p><a href="/">Start practicing →</a></div>
-      <div class="room"><h2>The writing room</h2><p>Build a sheet phrase by phrase. Change the musical settings, reroll a phrase, arrange the order, and set the tempo. Export a PDF, MIDI, or LilyPond file.</p><a href="/write.html">Open a sheet →</a></div>
+      <div class="room"><h2>The writing room</h2><p>Build a sheet phrase by phrase. Change the musical settings, reroll a phrase, arrange the order, and set the tempo. Export a PDF, MIDI, or LilyPond file.</p><a href="/">Open a sheet →</a></div>
+      <div class="room"><h2>The practice room</h2><p>Start with a lesson or choose your own filters. Listen with a count-in, isolate either voice, loop an exercise, and collect phrases for a practice sheet.</p><a href="/practice.html">Start practicing →</a></div>
     </div>
     <section aria-labelledby="history">
       <h2 id="history">How it got here</h2>
       <div class="history">
         <div class="date">The original</div><div><h3>C++ and LilyPond</h3><p>Elliott Claus and Caleb Nelson built the first generator in C++. It turned musical rules into two-voice phrases and exported text for LilyPond to typeset. Elliott's <a href="https://mazzaella.com/posts/sheet-music-generator/">June 2022 project post</a> records the work, examples, and some of the rough edges. The <a href="https://github.com/emdashii/counterpoint_generator">original source code</a> is still available.</p></div>
         <div class="date">August 2025</div><div><h3>A version for the browser</h3><p>Elliott used AI to help convert the C++ implementation to TypeScript and bring it online as lilypoint, using Bun to build the site and Netlify to host it. The <a href="/classic.html">classic web interface</a> collects settings in a form, generates LilyPond text, and offers a Hacklily viewer for the score.</p></div>
-        <div class="date">The experiments</div><div><h3>Eight ways to work with the music</h3><p>The <a href="/proto/">prototype gallery</a> explores an editable sheet, a phrase deck, a practice bench, sentence-based controls, a workbook, and a continuous feed. Prototypes <a href="/proto/07-studio.html">07</a> and <a href="/proto/08-lessons.html">08</a> combine those ideas into the writing and practice rooms that now form the main site. All eight remain available to try.</p></div>
+        <div class="date">September 2026</div><div><h3>Eight ways to work with the music</h3><p>The <a href="/proto/">prototype gallery</a> explores an editable sheet, a phrase deck, a practice bench, sentence-based controls, a workbook, and a continuous feed. I used Fable 5.1 to generate the first six prototypes, then GPT-6-Astra to make <a href="/proto/07-studio.html">07</a> and <a href="/proto/08-lessons.html">08</a>, which became the writing and practice rooms. All eight remain available to try. Astra also fixed numerous bugs with the typescript port and counterpoint logic.</p></div>
       </div>
     </section>
     <section aria-labelledby="using">

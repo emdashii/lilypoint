@@ -4,3 +4,9 @@ publish = "dist"
 
 [build.environment]
 BUN_VERSION = "1.3.0"
+
+[[redirects]]
+from = "/write.html"
+to = "/"
+status = 301
+force = true
