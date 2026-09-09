@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
-import { ExportToFile } from '../../src/export-to-file.js';
+import { ExportToFile, LILYPOND_VERSION } from '../../src/export-to-file.js';
 import { Phrase } from '../../src/phrase.js';
 import { Note } from '../../src/note.js';
 import { NoteType } from '../../src/types-and-globals.js';
@@ -105,6 +105,22 @@ describe('ExportToFile', () => {
 			expect(output).toBeDefined();
 			expect(typeof output).toBe('string');
 			expect(output.length).toBeGreaterThan(0);
+		});
+
+		test('should start with a version statement', async () => {
+			const filename = './tests/temp/test-output-version';
+			testFiles.push(filename + '.txt');
+			const exporter = new ExportToFile();
+			await exporter.setFileName(filename);
+			exporter.setTitle('Title');
+			exporter.setComposer('Composer');
+			const phrase = createTestPhrase();
+			exporter.addPhrase(phrase);
+
+			const output = await exporter.writeOutput();
+
+			expect(output.startsWith(`\\version "${LILYPOND_VERSION}"\n`)).toBe(true);
+			expect(LILYPOND_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
 		});
 
 		test('should include header information', async () => {

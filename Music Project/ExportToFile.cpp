@@ -48,6 +48,9 @@ void ExportToFile::WriteOutput() {
 
 	// Else use that file stream and start writing our output
 
+	// Declare the LilyPond release this output targets
+	outputFileStream << "\\version \"" << LILYPOND_VERSION << "\"" << endl << endl;
+
 	// Output general header information
 	outputFileStream << "\\header {" << endl
 		<< "title = \"" << title << "\"" << endl
@@ -55,7 +58,7 @@ void ExportToFile::WriteOutput() {
 		<< "tagline = \"Written By Caleb Nelson and Elliott Claus's Counterpoint Generation Program\"" << endl
 		<< "}" << endl
 		<< "\\paper {" << endl
-		<< "	system-system-spacing #'basic-distance = #16" << endl
+		<< "	system-system-spacing.basic-distance = #16" << endl
 		<< "}" << endl << endl << endl;
 		//<< "global = { \\key " << key << " \\major \\time " << time << " }" << endl << endl << endl;
 
@@ -142,7 +145,9 @@ void ExportToFile::verifyEnding(string &fileName) {
 
 // General output outline
 /*
- 
+
+\version "2.26.0"
+
 \header {
 title = "Epic Title"
 composer = "Cool Composer"
@@ -150,7 +155,7 @@ tagline = "Written By Caleb Nelson and Elliott Claus's Counterpoint Generation P
 }
 
 \paper {
-  system-system-spacing #'basic-distance = #16
+  system-system-spacing.basic-distance = #16
 }
 global = { \key c \major \time 4/4 }
 

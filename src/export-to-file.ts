@@ -4,6 +4,9 @@ import { Note } from './note.js';
 import { Phrase } from './phrase.js';
 import { KeyInfo } from './key.js';
 
+/** LilyPond release the generated output is written for. */
+export const LILYPOND_VERSION = "2.26.0";
+
 export class ExportToFile {
 	private fileName: string = "";
 	private title: string = "";
@@ -70,6 +73,9 @@ export class ExportToFile {
 	async writeOutput(): Promise<string> {
 		try {
 			let output = "";
+
+			// Declare the LilyPond release this output targets
+			output += `\\version "${LILYPOND_VERSION}"\n\n`;
 
 			// Output general header information
 			output += "\\header {\n";

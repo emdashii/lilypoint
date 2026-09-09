@@ -6,6 +6,9 @@
 
 using namespace std;
 
+// LilyPond release the generated output is written for
+const string LILYPOND_VERSION = "2.26.0";
+
 // NOTE: exported code can be pasted at https://www.hacklily.org/ to see sheet music generate by it
 class ExportToFile {
 public:
