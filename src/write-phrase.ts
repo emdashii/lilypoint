@@ -41,16 +41,14 @@ export class WritePhrase {
 	}
 
 	private parseTimeSignature(timeSignature: string): void {
-		const parts = timeSignature.split('/');
-		if (parts.length === 2) {
-			this.beatsPerMeasure = parseInt(parts[0]);
-			this.beatUnit = parseInt(parts[1]);
-		} else {
-			// Default to 4/4 if parsing fails
-			this.beatsPerMeasure = 4;
-			this.beatUnit = 4;
-			this.timeSignature = "4/4";
+		if (!/^[1-9]\d*\/(1|2|4|8|16|32|64)$/.test(timeSignature)) {
+			throw new Error(`Invalid time signature: ${timeSignature}`);
 		}
+		const [beats, unit] = timeSignature.split('/').map(Number);
+		if (!Number.isSafeInteger(beats)) throw new Error(`Invalid time signature: ${timeSignature}`);
+		this.beatsPerMeasure = beats;
+		this.beatUnit = unit;
+		this.timeSignature = timeSignature;
 	}
 
 	static setSeed(seed: number): void {
@@ -86,10 +84,9 @@ export class WritePhrase {
 
 	setLength(length: number): void { this.phraseLength = length; }
 	setTimeSignature(timeSignature: string): void {
-		this.timeSignature = timeSignature;
 		this.parseTimeSignature(timeSignature);
 	}
-	setBeatsPerMeasure(beatsPerMeasure: number): void { this.beatsPerMeasure = beatsPerMeasure; } // Legacy method
+	setBeatsPerMeasure(beatsPerMeasure: number): void { this.setTimeSignature(`${beatsPerMeasure}/${this.beatUnit}`); } // Legacy method
 	setSpeciesType(speciesType: number): void { this.speciesType = speciesType; }
 	setKey(key: string): void { this.key = new Key(key, this.mode); }
 	setMode(mode: string): void {
@@ -105,6 +102,15 @@ export class WritePhrase {
 	}
 
 	writeThePhrase(): void {
+		if (!Number.isSafeInteger(this.phraseLength) || this.phraseLength < 1 ||
+			!Number.isSafeInteger(this.getTotalLength()) || this.getTotalLength() < 3) {
+			throw new Error('Phrase length must be a positive integer with at least three beats');
+		}
+		this.getKey();
+		this.phraseN = new Phrase();
+		this.upperVoiceI = [];
+		this.lowerVoiceI = [];
+		this.intervalStrings = [];
 		verboseLog('\n🎼 === Starting Phrase Generation ===');
 		verboseLog(`Key: ${this.key.getKeyName()} ${this.mode}`);
 		verboseLog(`Species Type: ${this.speciesType}`);

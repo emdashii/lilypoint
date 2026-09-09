@@ -95,7 +95,7 @@ export function alignToCantusFirmus(input: SpeciesInput): AlignedEvent[] {
 			cf: cfNote,
 			beatPos: (event.start - cfNote.start) / cfNote.duration,
 			interval: cfNote.pitch === null ? null : Math.abs(event.pitch - cfNote.pitch),
-			tiedFromPrevious: i > 0 && cp[i - 1].tiedToNext,
+			tiedFromPrevious: i > 0 && isTieContinuation(cp[i - 1], event),
 		});
 	}
 
@@ -103,11 +103,16 @@ export function alignToCantusFirmus(input: SpeciesInput): AlignedEvent[] {
 }
 
 /** Merge tied notes into single sounding notes (for melodic-line analysis). */
+export function isTieContinuation(previous: TimedEvent, next: TimedEvent): boolean {
+	return previous.tiedToNext && previous.pitch !== null && previous.pitch === next.pitch &&
+		Math.abs(previous.start + previous.duration - next.start) < 1e-9;
+}
+
 export function mergeTies(voice: TimedEvent[]): TimedEvent[] {
 	const merged: TimedEvent[] = [];
 	for (const event of voice) {
 		const prev = merged[merged.length - 1];
-		if (prev && prev.tiedToNext && prev.pitch === event.pitch) {
+		if (prev && isTieContinuation(prev, event)) {
 			merged[merged.length - 1] = { ...prev, duration: prev.duration + event.duration, tiedToNext: event.tiedToNext };
 		} else {
 			merged.push({ ...event });
@@ -321,7 +326,9 @@ export function classifyDissonance(
 	const leave = next?.event.pitch != null ? (next.event.pitch as number) - pitch : null;
 
 	// Suspension: tied into this (dissonant) event, resolving down by step
-	if (a.tiedFromPrevious && leave !== null && (leave === -1 || leave === -2)) {
+	if (a.tiedFromPrevious && prev?.interval != null && isConsonant(prev.interval) &&
+		next?.interval != null && isConsonant(next.interval) &&
+		leave !== null && (leave === -1 || leave === -2)) {
 		return 'suspension';
 	}
 

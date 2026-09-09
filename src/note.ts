@@ -6,8 +6,8 @@ export class Note {
 	private tied: boolean = false;
 
 	constructor(note: NoteType, length: number = 4) {
-		this.note = note;
-		this.length = length;
+		this.setNote(note);
+		this.setLength(length);
 	}
 
 	getNote(): NoteType {
@@ -19,11 +19,14 @@ export class Note {
 	}
 
 	setNote(note: NoteType): void {
+		if (!Number.isInteger(note) || note < 0 || note > 87) throw new Error('Pitch must be an integer piano-key index from 0 to 87');
 		this.note = note;
-		console.log("setNote used: " + note);
 	}
 
 	setLength(length: number): void {
+		if (!Number.isSafeInteger(length) || length < 1 || !Number.isInteger(Math.log2(length))) {
+			throw new Error('Note duration must be a positive power-of-two denominator');
+		}
 		this.length = length;
 	}
 

@@ -2,6 +2,8 @@
 
 Website for counterpoint generator using LilyPond
 
+See the [counterpoint logic audit and practice roadmap](plans/counterpoint-audit.md) for the current musical guarantees, repaired defects, and remaining work before treating generated output as strict species exercises.
+
 ## Development
 
 ### Prerequisites
@@ -54,7 +56,7 @@ Then open http://localhost:8000 in your browser.
 
 ### Cross-Implementation Comparison (C++ vs TypeScript)
 
-Both implementations share the same xorshift32 random number generator, so given the same seed they produce identical LilyPond note sequences for the three legacy species.
+Both implementations share a seeded random-number routine. The comparison harness checks the three legacy species; modern species have no C++ equivalent. Exact LilyPond text can differ as TypeScript's key spelling improves, so inspect pitch and spelling differences separately.
 
 To run the comparison:
 

@@ -12,6 +12,7 @@ export class CantusFirmus {
 
     constructor(keyName: string, length: number = 8, mode: string = "major") {
         this.keyInfo = getKey(keyName, mode);
+        if (!Number.isSafeInteger(length) || length < 3) throw new Error('Cantus firmus requires at least three notes');
         this.length = length;
         this.tonic = this.getTonicNote(keyName);
         this.scaleDegrees = this.getScaleDegrees(mode);
@@ -299,36 +300,7 @@ export class CantusFirmus {
         }
         verboseLog(`✓ Tonic check passed: first=${firstNote}, last=${lastNote}, tonic=${this.tonic}`);
 
-        // Penultimate note should approach final by step - auto-fix if needed
-        if (notes.length >= 2) {
-            const penultimate = notes[notes.length - 2].getNote();
-            if (!this.isStepwise(penultimate, lastNote)) {
-                verboseLog(`⚠️ Penultimate stepwise check failed: ${penultimate} -> ${lastNote}, fixing...`);
-                
-                // Find the correct penultimate note (step above or below tonic)
-                const stepAbove = this.tonic + 2; // Whole step above
-                const stepBelow = this.tonic - 2; // Whole step below
-                const halfStepAbove = this.tonic + 1; // Half step above
-                const halfStepBelow = this.tonic - 1; // Half step below
-                
-                // Prefer notes in the scale
-                const candidates = [stepAbove, stepBelow, halfStepAbove, halfStepBelow];
-                let correctedNote = stepAbove; // Default
-                
-                for (const candidate of candidates) {
-                    if (this.scaleDegrees.includes(candidate as NoteType)) {
-                        correctedNote = candidate;
-                        break;
-                    }
-                }
-                
-                // Update the penultimate note
-                notes[notes.length - 2] = new Note(correctedNote as NoteType, 1);
-                verboseLog(`✓ Fixed penultimate note to: ${correctedNote} -> ${lastNote}`);
-            } else {
-                verboseLog(`✓ Penultimate stepwise check passed: ${penultimate} -> ${lastNote}`);
-            }
-        }
+        if (!this.isStepwise(notes[notes.length - 2].getNote(), lastNote)) return false;
 
         verboseLog('✅ All validation checks passed!');
         return true;
@@ -402,6 +374,9 @@ export class CantusFirmus {
                 }
             }
 
+            // Establish the cadence before validating the entire melody.
+            this.notes[this.length - 2] = new Note(this.scaleDegrees[1], 1);
+
             // End with tonic
             this.notes.push(new Note(this.tonic, 1));
             verboseLog(`Ending with tonic: ${this.tonic}`);
@@ -410,7 +385,7 @@ export class CantusFirmus {
 
             if (this.validateCantusFirmus(this.notes)) {
                 verboseLog(`\n🎉 Valid cantus firmus generated in ${attempts} attempts!`);
-                break;
+                return this.notes;
             }
             verboseLog(`Attempt ${attempts} failed validation, trying again...`);
         }
@@ -428,23 +403,19 @@ export class CantusFirmus {
         // Fallback: generate a simple, valid cantus firmus
         this.notes = [];
 
-        // Simple ascending and descending pattern
-        const pattern = [0, 2, 4, 5, 4, 2, 1, 0]; // Scale degrees: 1-3-5-6-5-3-2-1
-
+        // Conservative fallback with one central peak and a stepwise cadence.
+        // It must pass exactly the same checks as a random candidate.
         for (let i = 0; i < this.length; i++) {
-            const patternIndex = i % pattern.length;
-            const scaleDegreeIndex = pattern[patternIndex];
-
-            if (scaleDegreeIndex < this.scaleDegrees.length) {
-                this.notes.push(new Note(this.scaleDegrees[scaleDegreeIndex], 1));
-            } else {
-                this.notes.push(new Note(this.tonic, 1));
-            }
+            this.notes.push(new Note(this.scaleDegrees[i % 2], 1));
         }
-
-        // Ensure it ends on tonic
-        if (this.notes.length > 0) {
-            this.notes[this.notes.length - 1] = new Note(this.tonic, 1);
+        this.notes[0] = new Note(this.tonic, 1);
+        this.notes[this.length - 1] = new Note(this.tonic, 1);
+        this.notes[this.length - 2] = new Note(this.scaleDegrees[1], 1);
+        if (this.length > 3) {
+            this.notes[Math.min(Math.floor(this.length / 2), this.length - 3)] = new Note(this.scaleDegrees[2], 1);
+        }
+        if (!this.validateCantusFirmus(this.notes)) {
+            throw new Error('Could not generate a valid cantus firmus');
         }
     }
 

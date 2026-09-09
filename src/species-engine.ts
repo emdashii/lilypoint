@@ -72,7 +72,7 @@ const MAX_SPACING = 16; // generator keeps to the textbook tenth
 type Obligation =
 	| { kind: 'none' }
 	/** next pitch must move by step in this direction (passing/neighbor/suspension) */
-	| { kind: 'step'; dir: 1 | -1 };
+	| { kind: 'step'; dir: 1 | -1; consonant?: boolean };
 
 export class SpeciesEngine {
 	private scaleClasses: Set<number>;
@@ -160,6 +160,7 @@ export class SpeciesEngine {
 		const results: { note: SolvedNote; obligation: Obligation; tiesPrev: boolean; weight: number }[] = [];
 
 		const consider = (pitch: number, tiesPrev: boolean): void => {
+			if (!Number.isInteger(pitch) || pitch < 0 || pitch > 87) return;
 			const interval = pitch - cfPitch;
 			const intervalMod = ((interval % 12) + 12) % 12;
 			const strong = slot.beatPos === 0;
@@ -179,6 +180,7 @@ export class SpeciesEngine {
 			}
 
 			const consonant = CONSONANT.has(intervalMod);
+			if (obligation.kind === 'step' && obligation.consonant && !consonant) return;
 			let nextObligation: Obligation = { kind: 'none' };
 
 			if (!consonant) {
@@ -186,7 +188,8 @@ export class SpeciesEngine {
 				if (tiesPrev) {
 					// Suspension: tied dissonance on the downbeat resolves down by step
 					if (!strong) return;
-					nextObligation = { kind: 'step', dir: -1 };
+					if (!prev || !prevSlot || !CONSONANT.has(Math.abs(prev.pitch - this.cf[prevSlot.cfIndex]) % 12)) return;
+					nextObligation = { kind: 'step', dir: -1, consonant: true };
 				} else {
 					// Struck dissonance: weak beats only, entered by step
 					if (strong) return;

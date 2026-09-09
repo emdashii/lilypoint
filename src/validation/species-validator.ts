@@ -25,6 +25,7 @@ import {
 	checkDissonanceTreatment,
 	isConsonant,
 	DissonanceKind,
+	isTieContinuation,
 } from './species-rules.js';
 import { TimedEvent, phraseToTimedVoices } from './timed-events.js';
 
@@ -83,6 +84,26 @@ export class SpeciesValidator {
 
 	validate(input: SpeciesInput): Violation[] {
 		const violations: Violation[] = [];
+		for (const [name, voice] of [['counterpoint', input.cp], ['cantus firmus', input.cf]] as const) {
+			let end = 0;
+			for (let i = 0; i < voice.length; i++) {
+				const event = voice[i];
+				if (!Number.isFinite(event.start) || !Number.isFinite(event.duration) || event.duration <= 0 ||
+					Math.abs(event.start - end) > 1e-9 ||
+					(event.pitch !== null && (!Number.isInteger(event.pitch) || event.pitch < 0 || event.pitch > 87))) {
+					violations.push({ rule: 'structure', at: event.start, detail: `${name}: invalid pitch, duration, gap, or overlap` });
+				}
+				if (event.tiedToNext && (!voice[i + 1] || !isTieContinuation(event, voice[i + 1]))) {
+					violations.push({ rule: 'structure', at: event.start, detail: `${name}: tie must join adjacent notes of equal pitch` });
+				}
+				end = event.start + event.duration;
+			}
+		}
+		const endOf = (voice: TimedEvent[]) => voice.length ? voice[voice.length - 1].start + voice[voice.length - 1].duration : 0;
+		if (Math.abs(endOf(input.cp) - endOf(input.cf)) > 1e-9) {
+			violations.push({ rule: 'structure', at: 0, detail: 'voices must have equal total duration' });
+		}
+		if (violations.length) return violations;
 
 		violations.push(...this.checkRatio(input));
 		violations.push(...checkBeginsPerfect(input));
@@ -114,7 +135,7 @@ export class SpeciesValidator {
 		const violations = this.validatePhrase(phrase);
 		const rules = new Set(violations.map(v => v.rule));
 		const allRuleNames = [
-			'ratio', 'beginsPerfect', 'endsPerfect', 'noVoiceCrossing', 'spacing',
+			'structure', 'ratio', 'beginsPerfect', 'endsPerfect', 'noVoiceCrossing', 'spacing',
 			'noParallelPerfects', 'melodicLeaps', 'finalApproachByStep',
 			this.config.allConsonant ? 'allConsonant' : 'dissonanceTreatment',
 			...(this.config.noUnisonOnStrongBeats ? ['noMidPhraseUnison'] : []),

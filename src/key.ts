@@ -28,6 +28,7 @@ export class Key {
 }
 
 export function getKey(keyName: string, mode: string = "major"): KeyInfo {
+	if (mode !== 'major' && mode !== 'minor') throw new Error(`Unsupported mode: ${mode}`);
 
 	if (mode === "minor") {
 		// Minor keys
@@ -41,21 +42,23 @@ export function getKey(keyName: string, mode: string = "major"): KeyInfo {
 			case "F#":
 				return { key: 'fis', type: 'is', mode: 'minor', notes: ['fis', 'cis', 'gis'] };
 			case "C":
-				return { key: 'c', type: 'is', mode: 'minor', notes: ['fis', 'cis', 'gis', 'dis'] };
+				return { key: 'c', type: 'es', mode: 'minor', notes: ['bes', 'ees', 'aes'] };
 			case "G":
-				return { key: 'g', type: 'is', mode: 'minor', notes: ['fis', 'cis', 'gis', 'dis', 'ais'] };
+				return { key: 'g', type: 'es', mode: 'minor', notes: ['bes', 'ees'] };
 			case "D":
 				return { key: 'd', type: 'es', mode: 'minor', notes: ['bes'] };
 			case "Bb":
-				return { key: 'bes', type: 'es', mode: 'minor', notes: ['bes', 'ees'] };
+				return { key: 'bes', type: 'es', mode: 'minor', notes: ['bes', 'ees', 'aes', 'des', 'ges'] };
 			case "F":
-				return { key: 'f', type: 'es', mode: 'minor', notes: ['bes', 'ees', 'aes'] };
+				return { key: 'f', type: 'es', mode: 'minor', notes: ['bes', 'ees', 'aes', 'des'] };
 			case "Eb":
-				return { key: 'ees', type: 'es', mode: 'minor', notes: ['bes', 'ees', 'aes', 'des'] };
+				return { key: 'ees', type: 'es', mode: 'minor', notes: ['bes', 'ees', 'aes', 'des', 'ges', 'ces'] };
 			case "Ab":
-				return { key: 'aes', type: 'es', mode: 'minor', notes: ['bes', 'ees', 'aes', 'des', 'ges'] };
+				return { key: 'aes', type: 'es', mode: 'minor', notes: ['bes', 'ees', 'aes', 'des', 'ges', 'ces', 'fes'] };
 			case "Db":
-				return { key: 'des', type: 'es', mode: 'minor', notes: ['bes', 'ees', 'aes', 'des', 'ges', 'ces'] };
+				return { key: 'des', type: 'es', mode: 'minor', notes: ['beses', 'ees', 'aes', 'des', 'ges', 'ces', 'fes'] };
+			case "Gb":
+				return { key: 'ges', type: 'es', mode: 'minor', notes: ['beses', 'eeses', 'aes', 'des', 'ges', 'ces', 'fes'] };
 			default:
 				throw new Error(`Unsupported minor key: ${keyName}`);
 		}

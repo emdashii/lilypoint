@@ -152,11 +152,8 @@ describe('getKey', () => {
 			const d = getKey('D', 'minor');
 			expect(d.notes).toEqual(['bes']);
 
-			// G minor - 2 flats (but wait, G minor actually has sharps in the key signature)
-			// Let me check the actual code...
-			// According to the source, G has ['fis', 'cis', 'gis', 'dis', 'ais'] for minor
 			const g = getKey('G', 'minor');
-			expect(g.notes).toEqual(['fis', 'cis', 'gis', 'dis', 'ais']);
+			expect(g.notes).toEqual(['bes', 'ees']);
 		});
 
 		test('should handle all minor keys', () => {

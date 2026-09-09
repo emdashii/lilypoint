@@ -141,7 +141,7 @@ export class ExportToFile {
 
 		// write comment with phrase info
 		output += `% Phrase ${phraseNumber}\n`;
-		output += `${topPhraseName} = { \\clef "treble" \\key ${phrase.getKeyString()} \\major \\time ${phrase.getTimeSig()}\n`;
+		output += `${topPhraseName} = { \\clef "treble" \\key ${phrase.getKeyString()} \\${phrase.getKey().mode} \\time ${phrase.getTimeSig()}\n`;
 
 		// Time to print out the notes for the top voice of this phrase
 		for (const note of phrase.getUpperVoice()) {
@@ -151,7 +151,7 @@ export class ExportToFile {
 		// End top voice of this phrase
 		output += '\\bar "||" }\n';
 
-		output += `${bottomPhraseName} = { \\clef "treble" \\key ${phrase.getKeyString()} \\major \\time ${phrase.getTimeSig()}\n`;
+		output += `${bottomPhraseName} = { \\clef "treble" \\key ${phrase.getKeyString()} \\${phrase.getKey().mode} \\time ${phrase.getTimeSig()}\n`;
 
 		// Time to print out the notes for the bottom voice of this phrase
 		for (const note of phrase.getLowerVoice()) {
@@ -200,6 +200,20 @@ export class ExportToFile {
 			output = this.convertNoteToOutputFlats(note.getNote(), noteLengthString);
 		} else {
 			output = this.convertNoteToOutputSharps(note.getNote(), noteLengthString);
+		}
+		// Preserve diatonic spellings such as E-sharp and C-flat, including
+		// their written octave when the accidental crosses B/C.
+		const natural: Record<string, number> = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 };
+		for (const spelling of keyInfo?.notes ?? []) {
+			const suffix = spelling.slice(1);
+			const alteration = suffix.startsWith('is') ? suffix.length / 2 : -suffix.length / 2;
+			const chromatic = natural[spelling[0]] + alteration;
+			const midi = note.getNote() + 21;
+			if (((chromatic % 12) + 12) % 12 !== midi % 12) continue;
+			const octave = (midi - chromatic) / 12 - 1;
+			const marks = octave >= 3 ? "'".repeat(octave - 3) : ','.repeat(3 - octave);
+			output = spelling + marks + noteLengthString;
+			break;
 		}
 
 		// Append tie marker for tied notes (fourth species suspensions)
