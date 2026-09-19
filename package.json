@@ -8,13 +8,13 @@
 		"build": "bun run build:bundle && bun run build:web && bun run build:copy",
 		"build:bundle": "bun build src/main.ts --target=node --outdir=dist --sourcemap=external",
 		"build:web": "tsc --noEmit false --outDir dist --declaration false --allowImportingTsExtensions false",
-		"build:copy": "copyfiles -u 1 \"public/**/*\" dist",
+		"build:copy": "copyfiles -u 1 \"public/**/*\" dist && copyfiles LICENSE dist",
 		"typecheck": "tsc --noEmit",
 		"dev": "bun --watch src/main.ts"
 	},
 	"keywords": [],
 	"author": "",
-	"license": "ISC",
+	"license": "GPL-3.0-only",
 	"devDependencies": {
 		"@types/bun": "^1.3.0",
 		"copyfiles": "^2.4.1",

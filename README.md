@@ -13,11 +13,12 @@ The site is static. Netlify runs `bun run build` and publishes `dist/`; visitors
 - `/about.html` explains the purpose, history, and earlier interfaces.
 - `/write.html` redirects to `/` so older sheet links still open.
 - `/classic.html` preserves the previous form-based generator and Hacklily viewer.
-- `/proto/` keeps all eight prototypes at their existing URLs.
+- `/proto/` keeps all eight prototypes at their existing URLs. Search engines are asked not to index that gallery.
+- Unknown paths serve a site 404 page with links back to Write, Practice, and About.
 
 The main room HTML files reuse `public/proto/shared/` modules. Keep their control markup in sync with 07 and 08 when changing shared behavior. Practice's `data-write-url` selects the main Write page at `/`; the prototype defaults to 07. Write stores a tab-scoped draft and encodes scores in URLs. Practice collections last until navigation or reload. Fonts, rendering libraries, and piano samples need network access.
 
-After building, run `bun test/proto-score-state.mjs`, `bun test/proto-generation.mjs`, and `bun test/proto-smoke.mjs`. Serve `dist/` to check the Practice-to-Write handoff, exports, About links, and classic generator.
+After building, run `bun test/proto-score-state.mjs`, `bun test/proto-generation.mjs`, `bun test/proto-smoke.mjs`, and `bun test/site-static.mjs`. Serve `dist/` to check the Practice-to-Write handoff, exports, About links, and classic generator.
 
 See the [counterpoint logic audit and practice roadmap](plans/counterpoint-audit.md) for the current musical guarantees, repaired defects, and remaining work before treating generated output as strict species exercises.
 
@@ -126,7 +127,7 @@ Colors from https://stephango.com/flexoki
 
 Caleb Nelson and Elliott Claus wrote the original C++ implementation of the music generator, at
 https://github.com/emdashii/counterpoint_generator Elliott Claus wrote the TypeScript implementation of the music
-generator, at https://github.com/emdahsii/lilypoint, which can be found at https://lilypoint.mazzaella.com/
+generator, at https://github.com/emdashii/lilypoint, which can be found at https://lilypoint.mazzaella.com/
 
 
 ## Counterpoint generation and stored scores

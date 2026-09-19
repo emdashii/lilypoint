@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /proto/
+
+Sitemap: https://lilypoint.mazzaella.com/sitemap.xml

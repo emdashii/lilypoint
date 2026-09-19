@@ -5,17 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>About · lilypoint</title>
   <meta name="description" content="The story of lilypoint, from a C++ counterpoint generator to a browser-based place to practice and write sheet music.">
+  <link rel="canonical" href="https://lilypoint.mazzaella.com/about.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="lilypoint">
+  <meta property="og:title" content="About · lilypoint">
+  <meta property="og:description" content="The story of lilypoint, from a C++ counterpoint generator to a browser-based place to practice and write sheet music.">
+  <meta property="og:url" content="https://lilypoint.mazzaella.com/about.html">
+  <meta property="og:image" content="https://lilypoint.mazzaella.com/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#476553">
   <link rel="icon" href="/favicon/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
+  <link rel="apple-touch-icon" href="/favicon/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
   <link rel="stylesheet" href="/proto/shared/studio.css">
   <link rel="stylesheet" href="/site.css">
 </head>
 <body>
+  <a class="skip-link" href="#content">Skip to content</a>
   <header class="topbar">
     <a class="brand" href="/"><span>♮</span>lilypoint</a>
     <nav class="nav" aria-label="Main navigation"><a href="/">Write</a><a href="/practice.html">Practice</a><a class="active" aria-current="page" href="/about.html">About</a></nav>
     <div class="top-end"><span id="theme"></span></div>
   </header>
-  <main class="about">
+  <main class="about" id="content">
     <span class="eyebrow">Music, rules, and a little curiosity</span>
     <h1>A place to practice.<br>A sheet to make your own.</h1>
     <p class="intro">lilypoint generates two-voice counterpoint for you to read, hear, and play. Choose a key and a species, try a fresh phrase, and keep the music you want to come back to.</p>
@@ -38,11 +52,17 @@
       <p>No account is required. Write remembers your draft in the current browser tab. Practice keeps its collection until you reload or leave the page. Download a sheet or save a Write link to return to your music later.</p>
       <p>The main rooms draw notation and create PDFs in the browser. A LilyPond download contains the source for engraving separately. Fonts, notation libraries, and piano samples load over the internet.</p>
     </section>
+    <section aria-labelledby="privacy">
+      <h2 id="privacy">Privacy</h2>
+      <p>lilypoint does not create accounts and does not currently collect analytics. Theme preference is stored in this browser. The writing room keeps a draft in session storage for the current tab.</p>
+      <p>The site is hosted on Netlify, which may keep ordinary access logs. Fonts load from Google Fonts. Notation, PDF libraries, and piano samples load from jsDelivr. The classic generator can open a score in Hacklily. Those services see the requests your browser makes to them.</p>
+      <p>The source is published under the GNU General Public License, version 3. Questions about the project can go through <a href="https://github.com/emdashii/lilypoint">the GitHub repository</a> or <a href="https://mazzaella.com/">Elliott's site</a>.</p>
+    </section>
     <section aria-labelledby="credits">
       <h2 id="credits">Credits &amp; source</h2>
       <p>Created by <a href="https://mazzaella.com/">Elliott Claus</a>, building on the original project with Caleb Nelson. The main rooms use <a href="https://www.abcjs.net/">abcjs</a> for notation and piano playback, jsPDF and svg2pdf.js for PDF export, and the <a href="https://stephango.com/flexoki">Flexoki</a> color palette.</p>
       <p>lilypoint is free to use. If it helps your practice, you can <a href="https://ko-fi.com/mazzaella">support it on Ko-fi</a>.</p>
-      <p><a href="https://github.com/emdashii/lilypoint">Browse the lilypoint source</a> · <a href="/classic.html">Classic generator</a> · <a href="/proto/">All prototypes</a></p>
+      <p><a href="https://github.com/emdashii/lilypoint">Browse the lilypoint source</a> · <a href="/LICENSE">License</a> · <a href="/classic.html">Classic generator</a> · <a href="/proto/">All prototypes</a></p>
       <p class="footnote">Built with Bun. Hosted as a static site on Netlify.</p>
     </section>
   </main>

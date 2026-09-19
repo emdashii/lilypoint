@@ -23,6 +23,7 @@ npm-debug.log*
 
 # Output files
 *.txt
+!/public/robots.txt
 
 CLAUDE.md
 # UI prototypes ship their own browser modules

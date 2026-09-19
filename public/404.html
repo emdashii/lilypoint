@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Page not found · lilypoint</title>
+  <meta name="description" content="That address is not a page on lilypoint. Open Write, Practice, or About instead.">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#476553">
+  <link rel="icon" href="/favicon/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
+  <link rel="apple-touch-icon" href="/favicon/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="stylesheet" href="/proto/shared/studio.css">
+  <link rel="stylesheet" href="/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to recovery links</a>
+  <header class="topbar">
+    <a class="brand" href="/"><span>♮</span>lilypoint</a>
+    <nav class="nav" aria-label="Main navigation"><a href="/">Write</a><a href="/practice.html">Practice</a><a href="/about.html">About</a></nav>
+    <div class="top-end"><span id="theme"></span></div>
+  </header>
+  <main class="about" id="content">
+    <span class="eyebrow">404</span>
+    <h1>This page is not on the sheet.</h1>
+    <p class="intro">That address does not match a page on lilypoint. The writing and practice rooms are still here.</p>
+    <div class="rooms">
+      <div class="room"><h2>The writing room</h2><p>Build a sheet phrase by phrase, then export PDF, MIDI, or LilyPond.</p><a href="/">Open a sheet →</a></div>
+      <div class="room"><h2>The practice room</h2><p>Start a lesson, hear the voices, and keep phrases for later.</p><a href="/practice.html">Start practicing →</a></div>
+    </div>
+    <p><a href="/about.html">About lilypoint</a></p>
+  </main>
+  <script type="module">
+    import { initTheme, themeButton } from '/proto/shared/ui.js';
+    initTheme(); document.getElementById('theme').replaceWith(themeButton());
+  </script>
+</body>
+</html>

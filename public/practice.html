@@ -1,6 +1,33 @@
 <!doctype html>
 <!-- Main room; shares behavior and rendering with the preserved prototypes. -->
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>The practice room · lilypoint</title><link rel="stylesheet" href="proto/shared/studio.css"><meta name="description" content="Generate two-voice counterpoint, practice with piano playback, and build printable sheet music."><link rel="icon" href="/favicon/favicon.ico"><link rel="manifest" href="/site.webmanifest"><link rel="stylesheet" href="/site.css"></head><body data-write-url="/">
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The practice room · lilypoint</title>
+  <meta name="description" content="Practice species counterpoint with lessons, piano playback, and a collection you can open as a sheet.">
+  <link rel="canonical" href="https://lilypoint.mazzaella.com/practice.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="lilypoint">
+  <meta property="og:title" content="The practice room · lilypoint">
+  <meta property="og:description" content="Practice species counterpoint with lessons, piano playback, and a collection you can open as a sheet.">
+  <meta property="og:url" content="https://lilypoint.mazzaella.com/practice.html">
+  <meta property="og:image" content="https://lilypoint.mazzaella.com/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#476553">
+  <link rel="icon" href="/favicon/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
+  <link rel="apple-touch-icon" href="/favicon/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="proto/shared/studio.css">
+  <link rel="stylesheet" href="/site.css">
+</head>
+<body data-write-url="/">
+<a class="skip-link" href="#home">Skip to lessons</a>
 <header class="topbar"><a class="brand" href="/"><span>♮</span>lilypoint</a><nav class="nav" aria-label="Main navigation"><a href="/">Write</a><a class="active" aria-current="page" href="/practice.html">Practice</a><a href="/about.html">About</a></nav><div class="top-end"><span class="eyebrow">The practice room</span><span id="theme"></span></div></header>
 <main id="home" class="practice-home"><div class="hero"><div class="eyebrow">A little practice, every day</div><h1>Find your way<br>through two voices.</h1><p>Choose a starting point. Settle into an exercise, hear the voices together, and keep the phrases you want to come back to.</p></div><div id="lessons" class="lessons"></div></main>
 <div id="session" hidden><div class="practice-layout"><main class="practice-main"><button id="back" class="quiet">← All lessons</button><div id="lesson-name" class="eyebrow"></div><div class="sentence">Write <select id="length" aria-label="Default exercise length"><option value="2">two bars</option><option value="4" selected>four bars</option><option value="8">eight bars</option><option value="12">twelve bars</option><option value="16">sixteen bars</option><option value="mix">varying lengths</option></select> of <select id="sentence-species" aria-label="Exercise species"></select> counterpoint in <select id="sentence-key" aria-label="Exercise key"></select>, in <select id="time" aria-label="Time signature"><option>2/4</option><option>3/4</option><option selected>4/4</option><option>6/8</option><option value="mix">3/4 or 6/8</option></select> time.</div><p id="guidance" class="muted"></p>
