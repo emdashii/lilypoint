@@ -2,12 +2,12 @@ import { KEYS, MODES, SPECIES, defaultSpec, randomSeed, speciesInfo, encodeSpecs
 import { $, el, setup, status, button, pills, draw, exportScore, downloadLilyPond, generatePhrase as generate, Piano, transportOptions, wireTransport } from './studio.js';
 setup();
 const lessons=[
-  {title:'Ten-minute warm-up',description:'Four short phrases. First and second species, major then minor, in one key.',species:[1,2],keys:['C'],modes:['major','minor'],time:'4/4',bars:4,pattern:[{species:1,mode:'major'},{species:2,mode:'major'},{species:1,mode:'minor'},{species:2,mode:'minor'}],guide:'First species, then second. Repeat in minor. The four-phrase sequence continues with fresh music as you scroll.'},
-  {title:'Species ladder',description:'Work through all five species in order, keeping the same key.',species:[1,2,3,4,5],keys:['D'],modes:['minor'],time:'4/4',bars:4,pattern:[1,2,3,4,5].map(species=>({species})),guide:'Move from first through fifth species in D minor. After fifth species, the ladder starts again with new phrases.'},
-  {title:'Around the keys',description:'First species in six keys. Two bars in each, then another round.',species:[1],keys:['C','G','D','A','E','F'],modes:['major'],time:'4/4',bars:2,pattern:['C','G','D','A','E','F'].map(key=>({key})),guide:'C, G, D, A, E, then F major. Read each key signature before you play.'},
+  {title:'Ten-minute warm-up',description:'Four short phrases. First and second species, major then minor, in one key.',species:[1,2],keys:['C'],modes:['major','minor'],time:'4/4',bars:4,pattern:[{species:1,mode:'major'},{species:2,mode:'major'},{species:1,mode:'minor'},{species:2,mode:'minor'}],guide:'First species, then second. Repeat in minor.'},
+  {title:'Species ladder',description:'Work through all five species in order, keeping the same key.',species:[1,2,3,4,5],keys:['D'],modes:['minor'],time:'4/4',bars:4,pattern:[1,2,3,4,5].map(species=>({species})),guide:'First through fifth species in D minor, then the ladder starts again.'},
+  {title:'Around the keys',description:'First species in six keys. Two bars in each, then another round.',species:[1],keys:['C','G','D','A','E','F'],modes:['major'],time:'4/4',bars:2,pattern:['C','G','D','A','E','F'].map(key=>({key})),guide:'C, G, D, A, E, then F major.'},
   {title:'Minor and syncopated',description:'Fourth species in four minor keys. Hold the ties through the barline.',species:[4],keys:['D','A','E','G'],modes:['minor'],time:'4/4',bars:4,pattern:['D','A','E','G'].map(key=>({key})),guide:'Practice suspensions in D, A, E, and G minor. Listen for the resolution after each tied note.'},
   {title:'In three',description:'Second and third species, alternating 3/4 and 6/8.',species:[2,3],keys:['F'],modes:['major'],time:'mix',bars:4,pattern:[{species:2,time:'3/4'},{species:3,time:'3/4'},{species:2,time:'6/8'},{species:3,time:'6/8'}],guide:'Two phrases in 3/4, then two in 6/8. Follow the beaming to feel the change in grouping.'},
-  {title:'One long line',description:'Twelve bars of fifth species. Mixed rhythms, ties, and a longer arc.',species:[5],keys:['G'],modes:['major'],time:'4/4',bars:12,pattern:[{}],guide:'Play each voice alone before combining them. Choose lengths below to vary the next exercises.'},
+  {title:'One long line',description:'Twelve bars of fifth species. Mixed rhythms, ties, and a longer arc.',species:[5],keys:['G'],modes:['major'],time:'4/4',bars:12,pattern:[{}],guide:'Play each voice alone before combining them.'},
 ];
 const LENGTHS=[2,4,8,12,16];
 let filter={species:new Set([1]),keys:new Set(['C']),modes:new Set(['major']),lengths:new Set([4])}, items=[],kept=[],finished=new Map(),focus=0,activeLesson=null,sequence=0,followLesson=true;
@@ -61,7 +61,7 @@ function collection(){
 function revise(it,change){
   piano.stop();const old=it.result, replacement=generate({...old.spec,...change});
   // A kept phrase is a snapshot; rerolling the exercise never overwrites the collection.
-  it.result=replacement;it.visual=draw(it.score,[it.result],80,undefined,true);it.playButton.dataset.id=String(it.result.id);describeItem(it);collection();status('Exercise updated');
+  it.result=replacement;it.visual=draw(it.score,[it.result],80,undefined,true);it.playButton.dataset.id=String(it.result.id);describeItem(it);collection();
 }
 function reroll(it){revise(it,{seed:randomSeed()});}
 function describeItem(it){const s=it.result.spec;it.info.textContent=`${s.key} ${s.mode} · ${speciesInfo(s.species).short} · ${s.measures} bars · ${s.time}`;it.score.setAttribute('aria-label',`${speciesInfo(s.species).name}, ${s.key} ${s.mode}, ${s.measures} bars in ${s.time}`);}
@@ -69,7 +69,7 @@ function more(n=2){
   if(activeLesson===null)return;
   for(let i=0;i<n;i++){
     let result;
-    try { result=generate(nextSpec()); } catch(e) { status('Could not write this exercise. Try More exercises again.');continue; }
+    try { result=generate(nextSpec()); } catch(e) { status('Could not write this exercise.');continue; }
     const s=result.spec;
     const it={result,number:sequence};
     it.keepButton=button('+ Keep',()=>keep(it),'primary');
@@ -88,13 +88,14 @@ function reset(custom=true){
   if(custom===true)followLesson=false;
   const lesson=lessons[activeLesson];
   $('lesson-name').textContent=lesson.title+(followLesson?'':' · customized');
-  $('guidance').textContent=followLesson?lesson.guide:'Fresh exercises use your selected species, keys, modes, and lengths.';
-  piano.stop();items=[];focus=0;sequence=0;$('feed').replaceChildren();refreshFilters();status('Fresh exercises · collection saved');more(3);select(0);
+  const guide=followLesson?lesson.guide:'';
+  $('guidance').textContent=guide;$('guidance').hidden=!guide;
+  piano.stop();items=[];focus=0;sequence=0;$('feed').replaceChildren();refreshFilters();more(3);select(0);
 }
 function start(index){
   const l=lessons[index];activeLesson=index;
   filter={species:new Set(l.species),keys:new Set(l.keys),modes:new Set(l.modes),lengths:new Set([l.bars])};followLesson=true;
-  $('length').value=l.bars;$('time').value=l.time;$('lesson-name').textContent=l.title;$('guidance').textContent=l.guide;
+  $('length').value=l.bars;$('time').value=l.time;$('lesson-name').textContent=l.title;
   $('home').hidden=true;$('session').hidden=false;reset(false);window.scrollTo(0,0);
 }
 $('lessons').replaceChildren(...lessons.map((l,i)=>el('button',{class:'lesson',onclick:()=>start(i)},el('span',{class:'number'},String(i+1).padStart(2,'0')),el('span',{class:'arrow'},'↗'),el('h2',{},l.title),el('p',{},l.description))));

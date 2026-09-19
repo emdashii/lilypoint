@@ -39,7 +39,7 @@ function list() {
 }
 function update(change) {
   if(!results[selected])return;
-  try { const next=generate({...results[selected].spec,...change}); piano.stop(); results[selected]=next; render(); status('Phrase updated'); } catch(e) {status(e.message);}
+  try { const next=generate({...results[selected].spec,...change}); piano.stop(); results[selected]=next; render(); } catch(e) {status(e.message);}
 }
 function changeTempo(tempo) {
   const r=results[selected];if(!r||r.spec.tempo===tempo)return;
@@ -72,8 +72,8 @@ function render() {
     const wrap=el('section',{class:'sheet-phrase'+(i===selected?' selected':''),onclick:()=>select(i)},el('div',{class:'phrase-label'},`${String(i+1).padStart(2,'0')}`,`${r.spec.key} ${r.spec.mode}`),score);
     $('sheet').append(wrap);visuals.push(draw(score,[r],r.spec.tempo,undefined,false,{previous:results[i-1]?.spec}));
   });
-  if(!results.length)$('sheet').append(el('p',{class:'muted'},'Your next phrase begins here.'));
-  $('summary').textContent=`${results.reduce((n,r)=>n+r.spec.measures,0)} bars · two voices`;
+  if(!results.length)$('sheet').append(el('p',{class:'muted'},'No phrases yet.'));
+  $('summary').textContent=`${results.reduce((n,r)=>n+r.spec.measures,0)} bars`;
   save();
 }
 $('add').onclick=()=>{piano.stop();results.push(generate(defaultSpec({...results[selected]?.spec,tempo:results.at(-1)?.spec.tempo||80,seed:randomSeed()})));selected=results.length-1;render();$('sheet').lastElementChild.scrollIntoView({block:'center',behavior:'smooth'});};

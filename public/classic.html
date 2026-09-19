@@ -37,7 +37,7 @@
 						<span class="spaced">lilypoint</span>
 					</h1>
 					<h2>~</h2>
-					<p>generate musical counterpoint phrases using counterpoint rules</p>
+					<p>generate musical counterpoint phrases</p>
 					<p>
 						output is a
 						<a href="https://lilypond.org/">lilypond</a>
@@ -143,9 +143,7 @@
 						<div id="loading" class="loading" style="display: none">
 							<p>generating counterpoint...</p>
 						</div>
-						<div id="results" class="results">
-							<p>configure your counterpoint settings and click "create counterpoint" to see the results</p>
-						</div>
+						<div id="results" class="results"></div>
 						<div id="lilypond-output" class="lilypond-text" style="display: none">
 							<h4>generated LilyPond code:</h4>
 							<pre id="lilypond-content"></pre>
@@ -189,7 +187,7 @@
 						<a href="https://github.com/emdashii/lilypoint">elliott claus</a>
 					</p>
 					<p>
-						learn more at about this project at
+						learn more about this project at
 						<a href="https://mazzaella.com/posts/sheet-music-generator/">mazzaella.com</a>
 					</p>
 				</footer>
@@ -485,7 +483,7 @@
 
 				document.getElementById('clearOutput').addEventListener('click', () => {
 					document.getElementById('testOutput').innerHTML = '';
-					document.getElementById('results').innerHTML = '<p>Configure your counterpoint settings above and click "Generate Counterpoint" to see the results.</p>';
+					document.getElementById('results').innerHTML = '';
 					document.getElementById('error').style.display = 'none';
 					document.getElementById('lilypond-output').style.display = 'none';
 					document.getElementById('lilypond-viewer').style.display = 'none';

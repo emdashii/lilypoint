@@ -45,7 +45,7 @@ for (const needle of ['og:image', 'Skip to the sheet', 'rel="canonical"']) {
 }
 
 const about = readFileSync('dist/about.html', 'utf8');
-if (!about.includes('id="privacy"') || !about.includes('does not currently collect analytics')) {
+if (!about.includes('id="privacy"') || !about.includes('does not collect analytics')) {
 	console.error('about.html is missing the privacy section');
 	process.exit(1);
 }
