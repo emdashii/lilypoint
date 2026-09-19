@@ -28,7 +28,7 @@ export function draw(node, results, tempo = 80, width, forPrint = false, context
   const perLine = Math.max(1, Math.min(4, Math.floor((available - 90) / Math.max(125, density * 16))));
   const source = abc(results, tempo, perLine);
   const visual = ABCJS.renderAbc(node, forPrint && !results.some(r=>r.spec.tempo!=null) ? source.replace(/^Q:.*\n/m,'') : source, {
-    responsive:'resize', staffwidth:available, foregroundColor:'#171714', add_classes:true,
+    responsive:'resize', staffwidth:available, foregroundColor:'#100f0f', add_classes:true,
     oneSvgPerLine:true, paddingtop:18, paddingbottom:28, paddingleft:8, paddingright:8,
     staffsep:65, stretchlast:true,
   })[0];
