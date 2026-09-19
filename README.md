@@ -2,6 +2,8 @@
 
 Website for counterpoint generator using LilyPond
 
+lilypoint is free to use. If it helps your practice, you can [support it on Ko-fi](https://ko-fi.com/mazzaella).
+
 ## Main website and hosting
 
 The site is static. Netlify runs `bun run build` and publishes `dist/`; visitors generate music, play audio, and export scores in their browser. No backend or Netlify Functions are required.
