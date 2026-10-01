@@ -1,14 +1,18 @@
-import { describe, test, expect, afterEach } from 'bun:test';
+import { describe, test, expect, beforeAll, afterEach } from 'bun:test';
 import { ExportToFile } from '../../src/export-to-file.js';
 import { Phrase } from '../../src/phrase.js';
 import { Note } from '../../src/note.js';
 import { NoteType } from '../../src/types-and-globals.js';
 import { getKey } from '../../src/key.js';
-import { unlink } from 'node:fs/promises';
+import { mkdir, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 
 const testFiles: string[] = [];
 let testCounter = 0;
+
+beforeAll(async () => {
+	await mkdir('tests/temp', { recursive: true });
+});
 
 afterEach(async () => {
 	for (const file of testFiles) {

@@ -67,10 +67,16 @@ Then open http://localhost:8000 in your browser.
 
 ### Testing
 
--   `bun test` — Run all tests
+-   `bun run test:all` — Typecheck, run the TypeScript suite, build, and run all four built-module scripts. The manual GitHub Actions workflow runs this command.
+-   `bun test` — Run the TypeScript suite; this excludes `test/*.mjs` and the optional C++ comparison.
+-   `bun run test:built` — Run the four built-module scripts against the current `dist/`. Build first when source or public files change.
 -   `bun test tests/unit` — Unit tests only
 -   `bun test tests/integration` — Integration tests only
 -   `bun test tests/e2e` — E2E tests only
+
+The E2E tests check musical generation and published examples through validators. The built-module scripts check score state, recovery, exports, and static site files without driving a browser. See [test quality and coverage](plans/test-quality.md) for the cleanup decisions and remaining limits.
+
+CI runs only when you start it manually. After `.github/workflows/test.yml` is pushed to the default branch, open **Actions → Tests → Run workflow**, select the branch to test, and start the run. Pushes and pull-request updates do not trigger it.
 
 ### Cross-Implementation Comparison (C++ vs TypeScript)
 

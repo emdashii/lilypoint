@@ -5,6 +5,9 @@
 	"main": "index.js",
 	"type": "module",
 	"scripts": {
+		"test": "bun test",
+		"test:built": "bun test/proto-generation.mjs && bun test/proto-score-state.mjs && bun test/proto-smoke.mjs && bun test/site-static.mjs",
+		"test:all": "bun run typecheck && bun test && bun run build && bun run test:built",
 		"build": "bun run build:bundle && bun run build:web && bun run build:copy",
 		"build:bundle": "bun build src/main.ts --target=node --outdir=dist --sourcemap=external",
 		"build:web": "tsc --noEmit false --outDir dist --declaration false --allowImportingTsExtensions false",

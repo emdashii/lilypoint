@@ -9,7 +9,9 @@ import { parseMusicBlock } from '../helpers/ly-parser.js';
 import {
 	FirstSpeciesValidator,
 	SecondSpeciesValidator,
+	ThirdSpeciesValidator,
 	FourthSpeciesValidator,
+	FifthSpeciesValidator,
 } from '../../src/validation/species-validator.js';
 import { SpeciesInput } from '../../src/validation/species-rules.js';
 
@@ -25,6 +27,52 @@ function input(species: number, cf: string, cp: string): SpeciesInput {
 function rulesFlagged(violations: { rule: string }[]): string[] {
 	return [...new Set(violations.map(v => v.rule))];
 }
+
+// Keep the rhythm and total duration unchanged when breaking the pitches.
+// The legal control prevents a validator that rejects every dissonance from
+// satisfying the negative assertion; the broken version must name the rule.
+for (const [species, validator, opening] of [
+	[3, new ThirdSpeciesValidator(), "g'4 a'4 g'4 e'4"],
+	[5, new FifthSpeciesValidator(), "g'2 a'4 g'4"],
+] satisfies [number, ThirdSpeciesValidator | FifthSpeciesValidator, string][]) {
+	describe(`Species ${species} dissonance treatment`, () => {
+		const cf = "c'1 d'1 c'1";
+		test('allows a weak passing dissonance but rejects a fresh downbeat dissonance', () => {
+			const legal = input(species, cf, `${opening} f'4 g'4 a'4 b'4 c''1`);
+			const broken = input(species, cf, `${opening} e'4 g'4 a'4 b'4 c''1`);
+			expect(validator.validate(legal)).toEqual([]);
+			const violations = validator.validate(broken);
+			expect(violations.some(v => v.rule === 'dissonanceTreatment' && v.at === 1)).toBe(true);
+			expect(rulesFlagged(violations)).not.toContain('structure');
+			expect(rulesFlagged(violations)).not.toContain('ratio');
+		});
+
+		test('rejects a weak dissonance approached by leap', () => {
+			const broken = input(species, cf, `${opening} f'4 e''4 a'4 b'4 c''1`);
+			const violations = validator.validate(broken);
+			expect(violations.some(v => v.rule === 'dissonanceTreatment' && v.at === 1.25)).toBe(true);
+			expect(rulesFlagged(violations)).not.toContain('structure');
+			expect(rulesFlagged(violations)).not.toContain('ratio');
+		});
+	});
+}
+
+test('third species rejects 2:1 rhythm even when both voices span the same time', () => {
+	const violations = new ThirdSpeciesValidator().validate(input(3,
+		"c'1 d'1 c'1", "g'2 e'2 f'2 b'2 c''1"));
+	expect(rulesFlagged(violations)).toContain('ratio');
+	expect(rulesFlagged(violations)).not.toContain('structure');
+});
+
+test('fifth species allows a prepared suspension but requires downward resolution', () => {
+	const validator = new FifthSpeciesValidator();
+	const legal = input(5, "c'1 d'1 c'1", "g'4 a'4 c''2~ c''2 b'4 b'4 c''1");
+	const broken = input(5, "c'1 d'1 c'1", "g'4 a'4 c''2~ c''2 d''4 b'4 c''1");
+	expect(validator.validate(legal)).toEqual([]);
+	const violations = validator.validate(broken);
+	expect(violations.some(v => v.rule === 'dissonanceTreatment' && v.at === 1)).toBe(true);
+	expect(rulesFlagged(violations)).not.toContain('structure');
+});
 
 describe('FirstSpeciesValidator catches violations', () => {
 	const v = new FirstSpeciesValidator();

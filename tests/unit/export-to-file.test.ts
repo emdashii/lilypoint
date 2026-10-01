@@ -1,13 +1,20 @@
-import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
+import { mkdir, mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { describe, test, expect, beforeAll, afterEach } from 'bun:test';
 import { ExportToFile, LILYPOND_VERSION } from '../../src/export-to-file.js';
 import { Phrase } from '../../src/phrase.js';
 import { Note } from '../../src/note.js';
 import { NoteType } from '../../src/types-and-globals.js';
-import { getKey, KeyInfo } from '../../src/key.js';
+import { getKey } from '../../src/key.js';
 import { unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 
 describe('ExportToFile', () => {
+	beforeAll(async () => {
+		await mkdir('tests/temp', { recursive: true });
+	});
+
 	// Store test files to clean up
 	const testFiles: string[] = [];
 
@@ -25,68 +32,19 @@ describe('ExportToFile', () => {
 		testFiles.length = 0;
 	});
 
-	describe('constructor', () => {
-		test('should create with no parameters', () => {
+	test.each(['score', 'score.txt'])('writes %s with exactly one .txt suffix and complete contents', async name => {
+		const directory = await mkdtemp(join(tmpdir(), 'lilypoint-export-'));
+		try {
 			const exporter = new ExportToFile();
-			expect(exporter).toBeDefined();
-		});
-
-		test('should create with all parameters', () => {
-			const exporter = new ExportToFile('test-file', 'Test Title', 'Test Composer');
-			expect(exporter).toBeDefined();
-		});
-	});
-
-	describe('addPhrase', () => {
-		test('should add a phrase', () => {
-			const exporter = new ExportToFile('test', 'title', 'composer');
-			const phrase = new Phrase();
-
-			expect(() => exporter.addPhrase(phrase)).not.toThrow();
-		});
-
-		test('should add multiple phrases', () => {
-			const exporter = new ExportToFile('test', 'title', 'composer');
-			const phrase1 = new Phrase();
-			const phrase2 = new Phrase();
-
-			expect(() => {
-				exporter.addPhrase(phrase1);
-				exporter.addPhrase(phrase2);
-			}).not.toThrow();
-		});
-	});
-
-	describe('setFileName', () => {
-		test('should set filename', async () => {
-			const exporter = new ExportToFile();
-			await expect(exporter.setFileName('test-output')).resolves.toBeUndefined();
-		});
-
-		test('should add .txt extension if missing', async () => {
-			const exporter = new ExportToFile();
-			await exporter.setFileName('test-output');
-			// The filename should now have .txt extension
-		});
-
-		test('should keep .txt extension if already present', async () => {
-			const exporter = new ExportToFile();
-			await expect(exporter.setFileName('test-output.txt')).resolves.toBeUndefined();
-		});
-	});
-
-	describe('setComposer', () => {
-		test('should set composer name', () => {
-			const exporter = new ExportToFile();
-			expect(() => exporter.setComposer('John Doe')).not.toThrow();
-		});
-	});
-
-	describe('setTitle', () => {
-		test('should set title', () => {
-			const exporter = new ExportToFile();
-			expect(() => exporter.setTitle('My Composition')).not.toThrow();
-		});
+			await exporter.setFileName(join(directory, name));
+			exporter.addPhrase(createTestPhrase());
+			const output = await exporter.writeOutput();
+			expect(await readdir(directory)).toEqual(['score.txt']);
+			expect(await readFile(join(directory, 'score.txt'), 'utf8')).toBe(output);
+			expect(output).toContain("c''4 d''4 e''4");
+		} finally {
+			await rm(directory, { recursive: true, force: true });
+		}
 	});
 
 	describe('writeOutput', () => {
@@ -224,22 +182,6 @@ describe('ExportToFile', () => {
 			expect(output).toContain('\\time 4/4');
 		});
 
-		test('should convert notes to LilyPond format', async () => {
-			const filename = './tests/temp/test-output-8';
-			testFiles.push(filename + '.txt');
-			const exporter = new ExportToFile();
-			await exporter.setFileName(filename);
-			exporter.setTitle('Title');
-			exporter.setComposer('Composer');
-			const phrase = createTestPhrase();
-			exporter.addPhrase(phrase);
-
-			const output = await exporter.writeOutput();
-
-			// Should contain LilyPond note notation
-			expect(output).toContain("'");
-			expect(output.match(/[a-g]/g)).toBeTruthy();
-		});
 
 		test('should handle multiple phrases', async () => {
 			const filename = './tests/temp/test-output-9';

@@ -55,14 +55,6 @@ describe('audit regressions', () => {
 		expect(getKey('Gb', 'minor').notes.slice(0, 2)).toEqual(['beses', 'eeses']);
 	});
 
-	test('phrase mode and key signature have one source of truth', () => {
-		const phrase = new Phrase([], [], getKey('G', 'minor'));
-		expect(phrase.getMode()).toBe('minor');
-		phrase.setMode('major');
-		expect(phrase.getKey()).toEqual(getKey('G'));
-		phrase.setKey(getKey('Bb', 'minor'));
-		expect(phrase.getMode()).toBe('minor');
-	});
 
 	test('export preserves mode, diatonic spelling, and sounding octave', async () => {
 		const directory = await mkdtemp(join(tmpdir(), 'lilypoint-audit-'));

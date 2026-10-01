@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { Key, getKey, KeyInfo } from '../../src/key.js';
+import { Key, getKey } from '../../src/key.js';
 
 describe('Key', () => {
 	describe('constructor', () => {
@@ -116,13 +116,24 @@ describe('getKey', () => {
 			expect(eb.notes).toEqual(['bes', 'ees', 'aes']);
 		});
 
-		test('should handle all major keys', () => {
-			const majorKeys = ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb'];
-
-			for (const keyName of majorKeys) {
-				const info = getKey(keyName, 'major');
-				expect(info.mode).toBe('major');
-				expect(info.key).toBeDefined();
+		test('should spell every supported major key and its full signature', () => {
+			const cases: [string, string, string, string[]][] = [
+				['C', 'c', 'natural', []],
+				['G', 'g', 'is', ['fis']],
+				['D', 'd', 'is', ['fis', 'cis']],
+				['A', 'a', 'is', ['fis', 'cis', 'gis']],
+				['E', 'e', 'is', ['fis', 'cis', 'gis', 'dis']],
+				['B', 'b', 'is', ['fis', 'cis', 'gis', 'dis', 'ais']],
+				['F#', 'fis', 'is', ['fis', 'cis', 'gis', 'dis', 'ais', 'eis']],
+				['F', 'f', 'es', ['bes']],
+				['Bb', 'bes', 'es', ['bes', 'ees']],
+				['Eb', 'ees', 'es', ['bes', 'ees', 'aes']],
+				['Ab', 'aes', 'es', ['bes', 'ees', 'aes', 'des']],
+				['Db', 'des', 'es', ['bes', 'ees', 'aes', 'des', 'ges']],
+				['Gb', 'ges', 'es', ['bes', 'ees', 'aes', 'des', 'ges', 'ces']],
+			];
+			for (const [name, key, type, notes] of cases) {
+				expect(getKey(name, 'major')).toEqual({ key, type, mode: 'major', notes });
 			}
 		});
 	});
@@ -156,13 +167,24 @@ describe('getKey', () => {
 			expect(g.notes).toEqual(['bes', 'ees']);
 		});
 
-		test('should handle all minor keys', () => {
-			const minorKeys = ['A', 'E', 'B', 'F#', 'C', 'G', 'D', 'Bb', 'F', 'Eb', 'Ab', 'Db'];
-
-			for (const keyName of minorKeys) {
-				const info = getKey(keyName, 'minor');
-				expect(info.mode).toBe('minor');
-				expect(info.key).toBeDefined();
+		test('should spell every supported minor key and its full signature', () => {
+			const cases: [string, string, string, string[]][] = [
+				['A', 'a', 'natural', []],
+				['E', 'e', 'is', ['fis']],
+				['B', 'b', 'is', ['fis', 'cis']],
+				['F#', 'fis', 'is', ['fis', 'cis', 'gis']],
+				['D', 'd', 'es', ['bes']],
+				['G', 'g', 'es', ['bes', 'ees']],
+				['C', 'c', 'es', ['bes', 'ees', 'aes']],
+				['F', 'f', 'es', ['bes', 'ees', 'aes', 'des']],
+				['Bb', 'bes', 'es', ['bes', 'ees', 'aes', 'des', 'ges']],
+				['Eb', 'ees', 'es', ['bes', 'ees', 'aes', 'des', 'ges', 'ces']],
+				['Ab', 'aes', 'es', ['bes', 'ees', 'aes', 'des', 'ges', 'ces', 'fes']],
+				['Db', 'des', 'es', ['beses', 'ees', 'aes', 'des', 'ges', 'ces', 'fes']],
+				['Gb', 'ges', 'es', ['beses', 'eeses', 'aes', 'des', 'ges', 'ces', 'fes']],
+			];
+			for (const [name, key, type, notes] of cases) {
+				expect(getKey(name, 'minor')).toEqual({ key, type, mode: 'minor', notes });
 			}
 		});
 	});

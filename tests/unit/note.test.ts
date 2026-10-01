@@ -1,155 +1,31 @@
 import { describe, test, expect } from 'bun:test';
-import { Note } from '../../src/note.js';
 import { NoteType } from '../../src/types-and-globals.js';
+import { Note } from '../../src/note.js';
+import { voiceToMusicalEvents } from '../../src/validation/timed-events.js';
 
-describe('Note', () => {
-	describe('constructor', () => {
-		test('should create note with specified value and length', () => {
-			const note = new Note(NoteType.Note_C4, 4);
-			expect(note.getNote()).toBe(NoteType.Note_C4);
-			expect(note.getLength()).toBe(4);
-		});
+test('default notes occupy one quarter each in stored events', () => {
+	const events = voiceToMusicalEvents([new Note(39), new Note(41)]);
+	expect(events.map(e => [e.pitch, e.onsetTicks, e.durationTicks, e.tiedToNext])).toEqual([
+		[39, 0, 1024, false], [41, 1024, 1024, false],
+	]);
+});
 
-		test('should use default length of 4 when not specified', () => {
-			const note = new Note(NoteType.Note_D4);
-			expect(note.getNote()).toBe(NoteType.Note_D4);
-			expect(note.getLength()).toBe(4);
-		});
+test('editing one note leaves another note and an earlier stored snapshot unchanged', () => {
+	const edited = new Note(39);
+	const untouched = new Note(39);
+	const snapshot = voiceToMusicalEvents([edited, untouched]);
+	edited.setNote(41);
+	edited.setLength(2);
+	edited.setTied(true);
+	expect(voiceToMusicalEvents([edited, untouched]).map(e => [e.pitch, e.onsetTicks, e.durationTicks, e.tiedToNext])).toEqual([
+		[41, 0, 2048, true], [39, 2048, 1024, false],
+	]);
+	expect(snapshot.map(e => [e.pitch, e.onsetTicks, e.durationTicks, e.tiedToNext])).toEqual([
+		[39, 0, 1024, false], [39, 1024, 1024, false],
+	]);
+});
 
-		test('should handle different note values', () => {
-			const notes = [
-				NoteType.Note_A0,
-				NoteType.Note_C4,
-				NoteType.Note_A4,
-				NoteType.Note_C8,
-			];
-
-			for (const noteValue of notes) {
-				const note = new Note(noteValue, 2);
-				expect(note.getNote()).toBe(noteValue);
-				expect(note.getLength()).toBe(2);
-			}
-		});
-
-		test('should handle different note lengths', () => {
-			const lengths = [1, 2, 4, 8, 16];
-
-			for (const length of lengths) {
-				const note = new Note(NoteType.Note_C4, length);
-				expect(note.getLength()).toBe(length);
-			}
-		});
-	});
-
-	describe('getNote', () => {
-		test('should return the note value', () => {
-			const note = new Note(NoteType.Note_E4, 4);
-			expect(note.getNote()).toBe(NoteType.Note_E4);
-			expect(note.getNote()).toBe(43);
-		});
-
-		test('should return sharp/flat note values correctly', () => {
-			const sharpNote = new Note(NoteType.Note_C4_sharp, 4);
-			expect(sharpNote.getNote()).toBe(NoteType.Note_C4_sharp);
-			expect(sharpNote.getNote()).toBe(40);
-
-			const flatNote = new Note(NoteType.Note_B4_flat, 4);
-			expect(flatNote.getNote()).toBe(NoteType.Note_B4_flat);
-			expect(flatNote.getNote()).toBe(49);
-		});
-	});
-
-	describe('getLength', () => {
-		test('should return the note length', () => {
-			const note = new Note(NoteType.Note_G4, 8);
-			expect(note.getLength()).toBe(8);
-		});
-
-		test('should return updated length after setLength', () => {
-			const note = new Note(NoteType.Note_C4, 4);
-			expect(note.getLength()).toBe(4);
-
-			note.setLength(2);
-			expect(note.getLength()).toBe(2);
-		});
-	});
-
-	describe('setNote', () => {
-		test('should update the note value', () => {
-			const note = new Note(NoteType.Note_C4, 4);
-			expect(note.getNote()).toBe(NoteType.Note_C4);
-
-			note.setNote(NoteType.Note_D4);
-			expect(note.getNote()).toBe(NoteType.Note_D4);
-		});
-
-		test('should allow setting to any valid NoteType', () => {
-			const note = new Note(NoteType.Note_C4, 4);
-
-			const newValues = [
-				NoteType.Note_A0,
-				NoteType.Note_F4_sharp,
-				NoteType.Note_B4_flat,
-				NoteType.Note_C8,
-			];
-
-			for (const newValue of newValues) {
-				note.setNote(newValue);
-				expect(note.getNote()).toBe(newValue);
-			}
-		});
-	});
-
-	describe('setLength', () => {
-		test('should update the note length', () => {
-			const note = new Note(NoteType.Note_C4, 4);
-			expect(note.getLength()).toBe(4);
-
-			note.setLength(8);
-			expect(note.getLength()).toBe(8);
-		});
-
-		test('should allow setting various lengths', () => {
-			const note = new Note(NoteType.Note_C4, 4);
-
-			const newLengths = [1, 2, 4, 8, 16];
-
-			for (const newLength of newLengths) {
-				note.setLength(newLength);
-				expect(note.getLength()).toBe(newLength);
-			}
-		});
-	});
-
-	describe('getTied / setTied', () => {
-		test('should default to false', () => {
-			const note = new Note(NoteType.Note_C4, 4);
-			expect(note.getTied()).toBe(false);
-		});
-
-		test('should set tied to true', () => {
-			const note = new Note(NoteType.Note_C4, 4);
-			note.setTied(true);
-			expect(note.getTied()).toBe(true);
-		});
-
-		test('should set tied back to false', () => {
-			const note = new Note(NoteType.Note_C4, 4);
-			note.setTied(true);
-			expect(note.getTied()).toBe(true);
-			note.setTied(false);
-			expect(note.getTied()).toBe(false);
-		});
-
-		test('should be independent between note instances', () => {
-			const note1 = new Note(NoteType.Note_C4, 4);
-			const note2 = new Note(NoteType.Note_C4, 4);
-			note1.setTied(true);
-			expect(note1.getTied()).toBe(true);
-			expect(note2.getTied()).toBe(false);
-		});
-	});
-
+describe('Piano pitch numbering', () => {
 	describe('NoteType enum', () => {
 		test('should have correct values for common notes', () => {
 			expect(NoteType.Note_A0).toBe(0);
@@ -186,22 +62,4 @@ describe('Note', () => {
 		});
 	});
 
-	describe('Note immutability behavior', () => {
-		test('should create independent note instances', () => {
-			const note1 = new Note(NoteType.Note_C4, 4);
-			const note2 = new Note(NoteType.Note_C4, 4);
-
-			expect(note1.getNote()).toBe(note2.getNote());
-			expect(note1.getLength()).toBe(note2.getLength());
-
-			// Modifying one should not affect the other
-			note1.setNote(NoteType.Note_D4);
-			note1.setLength(8);
-
-			expect(note1.getNote()).toBe(NoteType.Note_D4);
-			expect(note2.getNote()).toBe(NoteType.Note_C4);
-			expect(note1.getLength()).toBe(8);
-			expect(note2.getLength()).toBe(4);
-		});
-	});
 });
