@@ -2,7 +2,7 @@ import { Collection, parseScore, scoreQuery } from './collection.js';
 import { el } from './ui.js';
 import { downloadText } from './core.js';
 
-export function mountCollection(parent,{onPractice,onWrite}={}) {
+export function mountCollection(parent,{onPractice,onWrite,onAddToSession}={}) {
   const store=new Collection(()=>localStorage);
   const notice=el('p',{role:'status',class:'muted'}),rows=el('div',{class:'saved-scores'});
   const run=action=>{try{action();}catch(e){notice.textContent=e.message;}render();};
@@ -19,6 +19,7 @@ export function mountCollection(parent,{onPractice,onWrite}={}) {
     rows.replaceChildren(...store.data.entries.map(entry=>el('div',{class:'saved-score'},el('strong',{},entry.name),
       el('div',{class:'library-tools'},el('button',{onclick:()=>onWrite?onWrite(parseScore(entry)):location.assign((document.body.dataset.writeUrl||'/')+'?score='+scoreQuery(parseScore(entry).results,entry))},'Open in Write'),
         el('button',{onclick:()=>onPractice?onPractice(parseScore(entry)):location.assign((document.body.dataset.practiceUrl||'/practice.html')+'?saved='+encodeURIComponent(entry.id))},'Practice'),
+        onAddToSession&&el('button',{onclick:()=>onAddToSession(parseScore(entry))},'Add to session'),
         el('button',{'aria-label':`Delete ${entry.name}`,onclick:()=>run(()=>{store.remove(entry.id);notice.textContent=`Deleted “${entry.name}”.`;})},'Delete')))));
     if(!store.data.entries.length)rows.append(el('p',{},'No saved scores. Save an exercise or a sheet to return to it here.'));
   }

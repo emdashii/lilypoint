@@ -199,7 +199,8 @@ export function toMusicXML(results, meta = {}) {
 			layout[v].forEach((m, mi) => {
 				let x = '<measure number="' + (number + mi) + '">';
 				if (mi === 0) {
-					x += '<attributes><divisions>' + (TICKS_PER_WHOLE / 4) + '</divisions><key><fifths>' + keyFifths(r.keyInfo) + '</fifths><mode>' + r.spec.mode + '</mode></key><time><beats>' + r.beats + '</beats><beat-type>' + r.unit + '</beat-type></time>' + (ri === 0 ? '<clef><sign>G</sign><line>2</line></clef>' : '') + '</attributes>';
+					const clefs={treble:['G',2],bass:['F',4],alto:['C',3],tenor:['C',4]},clef=clefs[r.spec[v+'Clef']||'treble'];
+					x += '<attributes><divisions>' + (TICKS_PER_WHOLE / 4) + '</divisions><key><fifths>' + keyFifths(r.keyInfo) + '</fifths><mode>' + r.spec.mode + '</mode></key><time><beats>' + r.beats + '</beats><beat-type>' + r.unit + '</beat-type></time><clef><sign>'+clef[0]+'</sign><line>'+clef[1]+'</line></clef></attributes>';
 				}
 				x += m.map(c => xmlNote(c, 1)).join('');
 				if (mi === layout.count - 1) x += '<barline location="right"><bar-style>' + (ri === results.length - 1 ? 'light-heavy' : 'light-light') + '</bar-style></barline>';

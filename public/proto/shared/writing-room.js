@@ -26,7 +26,7 @@ if(exact)selected=Math.max(0,Math.min(results.length-1,exact.selected||0));
 const piano=new Piano(active=>{ $('play').textContent=active?'■ Stop':'▶ Play phrase'; $('play-all').textContent=active?'■ Stop':'Play sheet'; });
 wireTransport(piano);
 const library=mountCollection(document.querySelector('.margin'),{onWrite:score=>{piano.stop();exact=score;results=score.results;selected=0;$('title').value=score.name;$('composer').value=score.composer;render();}});
-document.querySelector('.margin').insertBefore(el('div',{class:'library-tools'},button('Save sheet',()=>library.save(results,{name:$('title').value.trim()||'Untitled score',composer:$('composer').value})),button('Practice sheet →',()=>{if(results.length)location.href=(document.body.dataset.practiceUrl||'/practice.html')+'?score='+scoreQuery(results,{name:$('title').value,composer:$('composer').value});})),libraryNode());
+document.querySelector('.margin').insertBefore(el('div',{class:'library-tools'},button('Save sheet',()=>library.save(results,{name:$('title').value.trim()||'Untitled score',composer:$('composer').value}),'save-sheet'),button('Practice sheet →',()=>{if(results.length)location.href=(document.body.dataset.practiceUrl||'/practice.html')+'?score='+scoreQuery(results,{name:$('title').value,composer:$('composer').value});},'practice-sheet')),libraryNode());
 function libraryNode(){return document.querySelector('.margin .library');}
 $('toggle-editor').onclick=()=>{const expanded=document.querySelector('.editor').classList.toggle('expanded');$('toggle-editor').setAttribute('aria-expanded',expanded);};
 function save() {
@@ -35,7 +35,8 @@ function save() {
   url.searchParams.set('title',$('title').value);
   url.searchParams.set('composer',$('composer').value);
   url.searchParams.set('selected',selected);
-  if(exact)url.searchParams.set('score',JSON.stringify(scoreFile(results,{name:$('title').value,composer:$('composer').value})));
+  if(exact&&results.length)url.searchParams.set('score',JSON.stringify(scoreFile(results,{name:$('title').value,composer:$('composer').value})));
+  else url.searchParams.delete('score');
   history.replaceState(null,'',url);
   try { sessionStorage.setItem(DRAFT_KEY,url.search); } catch { /* Keep editing through URL state. */ }
   try { sessionStorage.setItem(EXACT_DRAFT_KEY,JSON.stringify({...scoreFile(results,{name:$('title').value,composer:$('composer').value}),selected})); } catch { /* Collection export is available. */ }
@@ -69,6 +70,7 @@ function editor() {
   const s=results[selected]?.spec;
   $('editing').textContent=s?`Editing phrase ${String(selected+1).padStart(2,'0')}`:'Add a phrase to begin';
   for(const id of ['play','play-all','reroll','pdf','midi','ly','print'])$(id).disabled=!s;
+  document.querySelectorAll('.save-sheet,.practice-sheet').forEach(b=>b.disabled=!s);
   if(!s){for(const id of ['species','keys','modes','bars','meter'])$(id).replaceChildren();return;}
   $('tempo').value=s.tempo||80;
   $('tempo').setAttribute('aria-label',`Tempo for phrase ${selected+1}`);

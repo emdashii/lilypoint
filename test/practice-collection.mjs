@@ -7,6 +7,8 @@ import { toLilyPond } from '../dist/proto/shared/core.js';
 
 const result=generatePhrase({key:'D',mode:'minor',species:4,measures:4,time:'4/4',seed:42,tempo:93,upperClef:'alto',lowerClef:'bass'});
 const saved=snapshot(result),reopened=restore(JSON.parse(JSON.stringify(saved)));
+const zero=generatePhrase({key:'C',mode:'major',species:1,measures:4,time:'4/4',seed:0,tempo:80});
+assert.equal(snapshot(restore(snapshot(zero))).effectiveSeed,zero.spec.seed,'existing safe-integer URL seeds remain savable');
 assert.deepEqual(snapshot(reopened),saved);
 const musicalPlayback=r=>toPlaybackNotes([r]).notes.map(({phraseId,...note})=>note);
 assert.deepEqual(musicalPlayback(reopened),musicalPlayback(result));

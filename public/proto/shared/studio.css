@@ -86,7 +86,7 @@ kbd { font:10px 'DM Sans',sans-serif; border:1px solid var(--ui-2); border-radiu
 .exercise-tools button { font-size:11px; padding:5px 7px; flex:1 0 42%; }
 @media(hover:none) { .exercise-tools { opacity:1; } }
 @media(max-width:700px) { #feed { background:linear-gradient(to right,transparent 100px,var(--paper) 100px); } .exercise { grid-template-columns:100px minmax(0,1fr); } .exercise-margin { padding-right:8px; } .exercise .score { padding:10px 5px 20px; } .exercise-tools button { font-size:10px; } }
-.collection { position:sticky; top:25px; align-self:start; border-left:1px solid var(--ui-2); padding-left:24px; }
+.collection { align-self:start; border-left:1px solid var(--ui-2); padding-left:24px; }
 .collection h2 { font:26px 'Instrument Serif',Georgia,serif; margin:8px 0; }
 .collection p { font-size:12px; color:var(--tx-2); }
 .collection ol { padding:0; list-style:none; margin:25px 0; }
@@ -103,6 +103,16 @@ kbd { font:10px 'DM Sans',sans-serif; border:1px solid var(--ui-2); border-radiu
 .library-tools { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
 .library p { font-size:13px; }
 .exercise-tools input { width:100%; min-width:0; font-size:12px; }
+.session-entry { display:grid; gap:8px; padding:15px 0; border-top:1px solid var(--ui-2); }
+.session-entry label { display:flex; align-items:center; gap:8px; font-size:13px; }
+.session-entry input { width:65px; }
+.session-entry textarea { width:100%; min-width:0; min-height:55px; }
+.transport-settings { display:flex; flex-wrap:wrap; align-items:center; gap:12px; max-width:1216px; margin:10px auto 0; }
+.transport-settings label { font-size:12px; display:flex; align-items:center; gap:6px; }
+.transport-settings input { width:50px; }
+#seek { width:140px; }
+#progress { font-size:12px; }
+.practice-layout { padding-bottom:220px; }
 @media(max-width:700px) { #toggle-editor { display:block; } #editor-controls { display:none; } .editor.expanded #editor-controls { display:block; max-height:40vh; overflow:auto; } .editor-head { gap:5px; } .editor-head strong { font-size:12px; } #reroll { font-size:12px; padding:5px; } }
 @media(max-width:1000px) { .desk { padding-left:20px; padding-right:20px; } .workspace { grid-template-columns:210px minmax(0,1fr); } .editor { left:210px; } .paper { padding:25px 15px; } .practice-layout { gap:18px; grid-template-columns:minmax(0,1fr) 205px; } }
 @media(max-width:700px) { .topbar { padding:12px 16px; gap:12px; height:auto; flex-wrap:wrap; } .nav a { padding:6px 9px; } .top-end { gap:5px; } .workspace { display:block; } .margin { min-height:0; border:0; padding:15px; } #phrases { display:flex; overflow:auto; } .phrase-row { min-width:180px; } .margin-note { display:none; } .desk { padding:15px 10px 30px; } .paper { min-height:400px; } .editor { position:sticky; left:0; padding:12px; } .transport { gap:10px; } .lessons { grid-template-columns:1fr; } .practice-home { padding:30px 20px; } .hero h1 { font-size:44px; } .practice-layout { display:block; padding:20px 12px 180px; } .collection { position:static; border:0; padding:0; } .sentence { font-size:27px; } .practice-transport { padding:12px; } .score { min-width:0; } }

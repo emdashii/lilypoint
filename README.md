@@ -67,9 +67,9 @@ Then open http://localhost:8000 in your browser.
 
 ### Testing
 
--   `bun run test:all` — Typecheck, run the TypeScript suite, build, and run all four built-module scripts. The manual GitHub Actions workflow runs this command.
+-   `bun run test:all` — Typecheck, run the TypeScript suite, build, and run all six built-module scripts. The manual GitHub Actions workflow runs this command.
 -   `bun test` — Run the TypeScript suite; this excludes `test/*.mjs` and the optional C++ comparison.
--   `bun run test:built` — Run the four built-module scripts against the current `dist/`. Build first when source or public files change.
+-   `bun run test:built` — Run the six built-module scripts against the current `dist/`. Build first when source or public files change.
 -   `bun test tests/unit` — Unit tests only
 -   `bun test tests/integration` — Integration tests only
 -   `bun test tests/e2e` — E2E tests only
@@ -150,9 +150,9 @@ Notes store duration in integer ticks, with 4096 ticks per whole note, and prese
 
 The latest pair combines feedback on the first six: `07-studio.html` is an editable sheet with a live phrase editor; `08-lessons.html` opens lessons into an endless practice feed. Both use abcjs with separate staves, sampled piano, highlighting, and PDF export of complete systems. The practice collection stays in memory across filter and lesson changes; **Open as a sheet** transfers the exact notes to Write through a snapshot URL. Reloading clears unsaved lesson exercises; saved scores remain available.
 
-The writing room keeps its exact score draft in session storage for the current browser tab. Plain navigation back to Write restores the phrases, order, tempos, title, composer, and selected phrase, including an intentionally empty sheet. A URL containing `p`, such as **Open as a sheet**, intentionally replaces the draft.
+The writing room keeps its exact score draft in session storage for the current browser tab. Plain navigation back to Write restores the phrases, order, tempos, title, composer, and selected phrase, including an intentionally empty sheet. A URL containing `p` or `score` intentionally replaces the draft.
 
-Practice uses a continuous sheet with controls in the margin. Its filters allow multiple species, keys, modes, and lengths of 2, 4, 8, 12, or 16 bars. Random mode and random length enable every option in their row. Lessons follow explicit sequences until species, key, or mode filters change. Kept phrases are snapshots, so rerolling an exercise preserves the earlier kept version. Both rooms export LilyPond; 07 also exports MIDI. Print session includes completed exercises and kept phrases without duplicates.
+Practice uses a continuous sheet with controls in the margin. Its filters allow multiple species, keys, modes, and lengths of 2, 4, 8, 12, or 16 bars. Random mode and random length enable every option in their row. Lessons follow explicit sequences until species, key, or mode filters change. Kept phrases are snapshots, so rerolling an exercise preserves the earlier kept version. Both rooms export LilyPond and MIDI. Print session includes completed exercises and kept phrases without duplicates.
 
 In 07, tempo belongs to each phrase and is saved as an optional seventh field in its URL spec. Six-field links still load at 80 BPM. An appended phrase inherits the previous phrase's tempo. Tempo edits preserve the notes and update playback, PDF, MIDI, and LilyPond. Tempo and meter markings appear initially and at changes. `shared/midi.js` writes a conductor track because abcjs's MIDI writer omits inline tempo changes. Run `bun test/proto-score-state.mjs` after building to check URL compatibility, notation changes, MIDI tempo events, and the shared signature of C minor and E-flat major.
 
@@ -164,6 +164,18 @@ The new rooms retry exhausted cantus searches with up to six consecutive seeds w
 
 Save an exercise by naming it and choosing **Save exercise**. In Write, **Save sheet** uses the piece title. Saved scores appear in both rooms. **Open in Write** and **Practice** restore stored notes without invoking the generator. **Practice sheet** returns the current sheet to Practice. Existing `?p=` links retain their six/seven-field format and generation behavior. Snapshot handoffs use `?score=`.
 
-`shared/collection.js` owns schema version 1 and the generator version marker. Each snapshot stores requested/effective seeds, settings, clefs, pitch spelling, integer timing, rests, and ties. Imports validate the entire file before merging. A failed storage write leaves saved entries unchanged and offers the proposed change through **Export collection**. Corrupt or unsupported stored files remain untouched and can be exported for recovery. **Delete** removes only the selected local score.
+`shared/collection.js` owns schema version 1 and the generator version marker. Each snapshot stores requested/effective seeds, settings, key metadata, clefs, pitch spelling, integer timing, rests, and ties. Imports validate the entire file before merging. A failed storage write leaves saved entries unchanged and offers the proposed change through **Export collection**. Corrupt or unsupported stored files remain untouched and can be exported for recovery. **Delete** removes only the selected local score.
 
 After building, run `bun test/practice-collection.mjs` for exact note/export restoration and storage/import failure cases.
+
+## Deliberate practice sessions
+
+Choose **Add to session** on saved scores, then edit their order, target tempos, repetitions, and notes. **Start session** begins again. **Resume session** restores the saved exercise, repetition, playback position, and settings without starting audio automatically. Sessions contain independent score copies, so deleting a collection entry does not remove its session exercise.
+
+Practice offers upper/lower clefs, an inclusive first/last measure range, pause/resume, and a position slider. The range applies to each repetition. **Loop** repeats the complete session; a single-exercise session loops its selected measures. Count-in runs once when starting playback at the range beginning. Voice selection applies across exercise transitions. Tempo changes preserve the tick position and rebuild the audio buffer. **Exercise MIDI** downloads the complete focused score through the same exporter as Write, including its tempo, pitches, rests, and merged ties. Playback range, repetitions, and voice muting are rehearsal settings, not edits to the exported score.
+
+`shared/practice-session.js` validates session backups and owns exercise/repetition advancement. Session progress uses `lilypoint-practice-session-v1` in local storage. It saves about once per second during playback and immediately on pause, settings changes, and navigation. A sudden browser/process crash can lose up to one second of position. **Export session** includes exact scores, settings, notes, and progress. Import validates the whole file before replacing the local session. Denied/quota-limited storage offers the pending session as a file; corrupt or unsupported stored data remains untouched and can be exported.
+
+Audio startup and sample-loading errors leave playback ready to retry with **Play**. Sample loading has a 15-second timeout. The audio clock drives the slider, highlights, and range boundaries. Animation uses the current abcjs note timings, while score duration and seeking use the stored integer ticks.
+
+After building, run `bun test/practice-session.mjs` for exact session restoration, range/progress rules, MIDI note/tie/timing parity, and failed imports/storage writes. See [overnight verification](plans/overnight-practice.md) for the browser evidence and remaining limits.

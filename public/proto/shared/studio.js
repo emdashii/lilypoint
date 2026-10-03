@@ -77,62 +77,102 @@ export async function downloadLilyPond(results,title,composer='lilypoint') {
   try { downloadText(safeFilename(title)+'.ly',await toLilyPond(results,{title,composer}));status('LilyPond downloaded'); }
   catch(e){status('LilyPond export failed: '+e.message);}
 }
+// One audio-clock position governs range boundaries, progress and notation highlighting.
 export class Piano {
-  constructor(onState) { this.onState=onState; this.epoch=0; this.active=false; this.timers=[]; }
-  stop() {
-    this.epoch++; this.active=false;
-    this.timers.forEach(clearTimeout); this.timers=[];
-    this.timing?.stop(); this.synth?.stop(); this.synth=null;
-    this.clicks?.forEach(o => { try { o.stop(); } catch {} }); this.clicks=[];
-    document.querySelectorAll('.highlight').forEach(n=>n.classList.remove('highlight'));
-    this.onState(false); status('Ready');
+  constructor(onState) {this.onState=onState;this.epoch=0;this.active=false;this.paused=false;this.timers=[];this.clicks=[];this.ticks=0;}
+  release() {
+    this.epoch++;this.timers.forEach(clearTimeout);this.timers=[];clearInterval(this.clock);
+    this.synth?.stop();this.synth=null;
+    this.clicks.forEach(o=>{try{o.stop();}catch{}});this.clicks=[];
   }
-  async play(entries, options, onDone) {
-    this.stop();
-    if (!entries.length) return;
-    this.ctx ||= new AudioContext();
-    await this.ctx.resume();
-    const epoch=++this.epoch; this.active=true; this.onState(true); status('Loading piano…');
-    const run = async index => {
-      if(epoch!==this.epoch) return;
-      const { result:r, visual } = entries[index];
-      const synth = new ABCJS.synth.CreateSynth(); this.synth=synth;
-      const tempo = entries[index].tempo ?? options.tempo;
-      const ms = 60000/tempo * r.beats * 4/r.unit;
-      try {
-        const loaded = await synth.init({ audioContext:this.ctx, visualObj:visual, millisecondsPerMeasure:ms, options:{ voicesOff:options.hands==='upper'?[1]:options.hands==='lower'?[0]:[] } });
-        if(epoch!==this.epoch) return;
-        if(loaded?.error?.length) throw new Error('Piano samples could not load. Check your connection and try Play again.');
-        await synth.prime(); if(epoch!==this.epoch) return;
-        let delay=0;
-        if(options.countin && index===0) {
-          const beats=r.unit===8&&r.beats%3===0?r.beats/3:r.beats;
-          const beatMs=ms/beats; delay=ms;
-          for(let i=0;i<beats;i++) {
-            const o=this.ctx.createOscillator(), g=this.ctx.createGain(), at=this.ctx.currentTime+i*beatMs/1000;
-            o.frequency.value=i===0?1400:1000; g.gain.setValueAtTime(.12,at); g.gain.exponentialRampToValueAtTime(.001,at+.06); o.connect(g); g.connect(this.ctx.destination); o.start(at); o.stop(at+.07); this.clicks.push(o);
-            this.timers.push(setTimeout(()=>status(`Count in · ${i+1} / ${beats}`),i*beatMs));
-          }
-        }
-        this.timers.push(setTimeout(()=>{
-          if(epoch!==this.epoch) return;
-          this.timing=new ABCJS.TimingCallbacks(visual,{qpm:tempo,eventCallback:ev=>{
-            document.querySelectorAll('.highlight').forEach(n=>n.classList.remove('highlight'));
-            for(const group of ev?.elements||[]) for(const n of group) n.classList.add('highlight');
-          }});
-          synth.start(); this.timing.start(); status(`Playing · ${r.spec.key} ${r.spec.mode} · ♩ ${tempo}`);
-          this.timers.push(setTimeout(()=>{
-            if(epoch!==this.epoch) return;
-            this.timing.stop(); synth.stop();
-            if(index+1<entries.length) run(index+1);
-            else if(options.loop) run(0);
-            else { this.stop(); status('Finished'); onDone?.(); }
-          },ms*r.spec.measures+120));
-        },delay));
-      } catch(e) { if(epoch===this.epoch) { this.stop(); status(e.message); } }
+  clearHighlight(){document.querySelectorAll('.highlight').forEach(n=>n.classList.remove('highlight'));}
+  position(){
+    if(this.stage==='playing')this.ticks=Math.min(this.endTicks,this.originTicks+(this.ctx.currentTime-this.startedAt)*this.ticksPerSecond);
+    return {index:this.index||0,ticks:Math.round(this.ticks)};
+  }
+  stop(){this.release();this.active=false;this.paused=false;this.stage='ready';this.current=null;this.timing=null;this.entries=null;this.options=null;this.clearHighlight();this.onState(false);status('Ready');}
+  pause(){
+    if(!this.active)return;const pos=this.position();this.highlight(pos.ticks);this.options.onProgress?.(pos);
+    this.release();this.active=false;this.paused=true;this.stage='paused';this.onState(false);status('Paused');
+  }
+  resume(){return this.play(this.entries,{...this.options,countin:false,startIndex:this.index,startTicks:this.ticks},this.onDone);}
+  highlight(ticks=this.ticks){
+    this.clearHighlight();
+    if(!this.timing)return;
+    const ms=ticks/this.current.result.totalTicks*this.timing.lastMoment;
+    let event;
+    for(const ev of this.timing.noteTimings){if(ev.milliseconds>ms+.1)break;if(ev.type==='event')event=ev;}
+    for(const group of event?.elements||[])for(const node of group)node.classList.add('highlight');
+  }
+  seek(ticks){
+    const wasActive=this.active;if(wasActive)this.pause();
+    this.ticks=Math.max(this.startTicks,Math.min(this.endTicks-1,ticks));this.options?.onProgress?.(this.position());this.highlight();
+    if(wasActive)return this.resume();
+  }
+  async play(entries,options,onDone){
+    this.stop();if(!entries.length)return;
+    this.entries=entries;this.options=options;this.onDone=onDone;this.index=options.startIndex||0;
+    this.ticks=options.startTicks??entries[this.index].startTicks??0;
+    const epoch=++this.epoch;this.active=true;this.stage='loading';this.onState(true);status('Loading piano…');
+    try {
+      this.stage='starting';this.ctx ||= new AudioContext();
+      await this.ctx.resume();if(epoch!==this.epoch)return;
+      if(this.ctx.state!=='running')throw new Error('Audio did not start. Allow audio in your browser, then try Play again.');
+      await this.run(epoch,true);
+    }catch(e){if(epoch===this.epoch){const pos=this.position(),message=this.stage==='starting'?'Audio could not start. Allow audio in your browser.':e.message;this.stop();this.ticks=pos.ticks;this.paused=true;options.onProgress?.(pos);status(message+' Try Play again.');}}
+  }
+  async run(epoch,first=false){
+    if(epoch!==this.epoch)return;
+    const entry=this.entries[this.index],r=entry.result;this.current=entry;
+    this.startTicks=entry.startTicks??0;this.endTicks=entry.endTicks??r.totalTicks;
+    this.ticks=Math.max(this.startTicks,Math.min(this.endTicks-1,this.ticks));
+    this.options.onEntry?.(this.index);this.options.onProgress?.(this.position());
+    this.stage='loading';status('Loading piano…');
+    const tempo=entry.tempo??this.options.tempo,ms=60000/tempo*r.beats*4/r.unit;
+    const synth=new ABCJS.synth.CreateSynth();this.synth=synth;
+    const load=async()=>{
+      let response;
+      try {response=await synth.init({audioContext:this.ctx,visualObj:entry.visual,millisecondsPerMeasure:ms,
+        options:{voicesOff:this.options.hands==='upper'?[1]:this.options.hands==='lower'?[0]:[],fadeLength:0}});}
+      catch {throw new Error('Piano samples could not load. Check your connection.');}
+      if(response?.error?.length)throw new Error('Piano samples could not load. Check your connection.');
+      const primed=await synth.prime();
+      if(primed?.status&&primed.status!=='running')throw new Error('Allow audio in your browser.');
     };
-    run(0);
+    let timeout;
+    try{await Promise.race([load(),new Promise((_,reject)=>{timeout=setTimeout(()=>reject(new Error('Piano samples timed out. Check your connection.')),15000);})]);}
+    finally{clearTimeout(timeout);}
+    if(epoch!==this.epoch){synth.stop();return;}
+    this.timing=new ABCJS.TimingCallbacks(entry.visual,{qpm:tempo});this.highlight();
+    const begin=()=>{
+      if(epoch!==this.epoch)return;
+      this.ticksPerSecond=4096/4*tempo/60;this.originTicks=this.ticks;this.startedAt=this.ctx.currentTime;
+      synth.seek(this.ticks/this.ticksPerSecond,'seconds');synth.start();this.stage='playing';
+      status(`Playing · ${r.spec.key} ${r.spec.mode} · ♩ ${tempo}`);
+      this.clock=setInterval(()=>{
+        if(epoch!==this.epoch)return;
+        if(this.ctx.state!=='running'){this.pause();status('Audio interrupted. Try Play again.');return;}
+        this.position();this.highlight();this.options.onProgress?.(this.position());
+        if(this.ticks>=this.endTicks){
+          clearInterval(this.clock);synth.stop();this.clearHighlight();this.stage='loading';
+          if(this.index+1<this.entries.length){this.index++;this.ticks=this.entries[this.index].startTicks??0;this.run(epoch).catch(e=>this.failRun(epoch,e));}
+          else if(this.options.loop){this.index=0;this.ticks=this.entries[0].startTicks??0;this.run(epoch).catch(e=>this.failRun(epoch,e));}
+          else {const done=this.onDone;this.stop();status('Finished');done?.();}
+        }
+      },40);
+    };
+    if(first&&this.options.countin&&this.ticks===this.startTicks){
+      this.stage='countin';const beats=r.unit===8&&r.beats%3===0?r.beats/3:r.beats;
+      for(let i=0;i<beats;i++){
+        const o=this.ctx.createOscillator(),g=this.ctx.createGain(),at=this.ctx.currentTime+i*ms/beats/1000;
+        o.frequency.value=i===0?1400:1000;g.gain.setValueAtTime(.12,at);g.gain.exponentialRampToValueAtTime(.001,at+.06);
+        o.connect(g);g.connect(this.ctx.destination);o.start(at);o.stop(at+.07);this.clicks.push(o);
+        this.timers.push(setTimeout(()=>{if(epoch===this.epoch)status(`Count in · ${i+1} / ${beats}`);},i*ms/beats));
+      }
+      this.timers.push(setTimeout(begin,ms));
+    }else begin();
   }
+  failRun(epoch,e){if(epoch===this.epoch){this.pause();status('Audio unavailable: '+e.message+' Try Play again.');}}
 }
 export function transportOptions() { return {tempo:Math.max(30,Math.min(200,Number($('tempo').value)||80)),hands:$('hands').value,countin:$('countin').checked,loop:$('loop').checked}; }
 export function wireTransport(piano) { for(const id of ['tempo','hands','countin','loop']) $(id).addEventListener('change',()=>{ piano.stop(); status('Ready'); }); addEventListener('pagehide',()=>piano.stop()); }

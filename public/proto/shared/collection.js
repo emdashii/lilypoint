@@ -24,15 +24,15 @@ export function envelope(value,kind) {
 export function snapshot(result) {
   return clone({schemaVersion:SCHEMA_VERSION,generatorVersion:result.generatorVersion||GENERATOR_VERSION,
     requestedSeed:result.requestedSeed??result.spec.seed,effectiveSeed:result.spec.seed,
-    spec:{tempo:80,upperClef:'treble',lowerClef:'treble',...result.spec},upper:result.upper,lower:result.lower});
+    spec:{tempo:80,upperClef:'treble',lowerClef:'treble',...result.spec},keyInfo:result.keyInfo,upper:result.upper,lower:result.lower});
 }
 let restoredId=-1;
 /** Parse stored notes, never regenerate them. The existing event adapter validates pitches, spelling and ties. */
 export function restore(score) {
   if(!score||score.schemaVersion!==SCHEMA_VERSION)fail('Unsupported score version.');
   text(score.generatorVersion,100,'generator version');
-  integer(score.requestedSeed,1,2147483647,'requested seed');
-  integer(score.effectiveSeed,1,2147483647,'effective seed');
+  integer(score.requestedSeed,Number.MIN_SAFE_INTEGER,Number.MAX_SAFE_INTEGER,'requested seed');
+  integer(score.effectiveSeed,Number.MIN_SAFE_INTEGER,Number.MAX_SAFE_INTEGER,'effective seed');
   const s=score.spec;
   if(!s||!KEYS.includes(s.key)||!MODES.includes(s.mode)||!TIME_SIGS.includes(s.time))fail('Invalid score settings.');
   integer(s.species,1,5,'species');integer(s.measures,1,64,'measures');integer(s.tempo,30,200,'tempo');
@@ -50,7 +50,10 @@ export function restore(score) {
     if(events.at(-1).onset+events.at(-1).ticks!==totalTicks)fail('Stored voice length does not match the score.');
     return notes;
   };
-  const upper=parseVoice(score.upper),lower=parseVoice(score.lower),keyInfo=getKey(s.key,s.mode);
+  const upper=parseVoice(score.upper),lower=parseVoice(score.lower),expectedKey=getKey(s.key,s.mode);
+  // Early schema-1 files omitted the signature; newer saves retain the exact metadata too.
+  const keyInfo=score.keyInfo?clone(score.keyInfo):expectedKey;
+  if(keyInfo.key!==expectedKey.key||keyInfo.mode!==s.mode||!['natural','is','es'].includes(keyInfo.type)||!Array.isArray(keyInfo.notes)||keyInfo.notes.length>7||keyInfo.notes.some(n=>typeof n!=='string'||!/^[a-g](?:(?:is){1,2}|(?:es){1,2})$/.test(n)))fail('Invalid stored key signature.');
   return {id:restoredId--,spec:clone(s),requestedSeed:score.requestedSeed,generatorVersion:score.generatorVersion,
     phrase:new Phrase(upper,lower,keyInfo,s.time),keyInfo,beats,unit,barTicks,totalTicks,upper:clone(score.upper),lower:clone(score.lower)};
 }
@@ -80,6 +83,7 @@ export class Collection {
     catch(e){this.error=`Collection could not load: ${e.message} Export a backup before recovering it.`;this.locked=true;this.backup=this.raw;}
   }
   write(next) {
+    if(next.entries.length>1000)throw new Error('The collection is full. Export a backup, then delete a score to make room.');
     const raw=JSON.stringify(next);
     if(this.locked){this.backup=this.raw||raw;throw new Error(this.error);}
     try {this.storage().setItem(COLLECTION_KEY,raw);}
