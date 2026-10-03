@@ -1,5 +1,7 @@
 import { KEYS, MODES, SPECIES, defaultSpec, randomSeed, speciesInfo, encodeSpecs } from './core.js';
 import { $, el, setup, status, button, pills, draw, exportScore, downloadLilyPond, generatePhrase as generate, Piano, transportOptions, wireTransport } from './studio.js';
+import { parseScore, scoreQuery } from './collection.js';
+import { mountCollection } from './collection-ui.js';
 setup();
 const lessons=[
   {title:'Ten-minute warm-up',description:'Four short phrases. First and second species, major then minor, in one key.',species:[1,2],keys:['C'],modes:['major','minor'],time:'4/4',bars:4,pattern:[{species:1,mode:'major'},{species:2,mode:'major'},{species:1,mode:'minor'},{species:2,mode:'minor'}],guide:'First species, then second. Repeat in minor.'},
@@ -13,6 +15,14 @@ const LENGTHS=[2,4,8,12,16];
 let filter={species:new Set([1]),keys:new Set(['C']),modes:new Set(['major']),lengths:new Set([4])}, items=[],kept=[],finished=new Map(),focus=0,activeLesson=null,sequence=0,followLesson=true;
 const piano=new Piano(active=>{ $('play').textContent=active?'■ Stop':'▶ Play'; document.querySelectorAll('.play-one').forEach(b=>b.textContent=active&&b.dataset.id===String(items[focus]?.result.id)?'■ Stop':'▶ Play'); });
 wireTransport(piano);
+const library=mountCollection($('home'),{onPractice:openSaved});
+function openSaved(score){
+  document.querySelector('.collection').append(document.querySelector('.library'));
+  piano.stop();activeLesson=null;items=[];focus=0;$('feed').replaceChildren();
+  $('home').hidden=true;$('session').hidden=false;$('lesson-name').textContent=score.name;
+  document.querySelector('.sentence').hidden=true;document.querySelector('.filters').hidden=true;$('guidance').hidden=true;$('more').hidden=true;
+  score.results.forEach(result=>appendExercise(result));select(0);
+}
 const pick=set=>[...set][Math.floor(Math.random()*set.size)];
 function nextSpec(){
   const pattern=followLesson?lessons[activeLesson].pattern[sequence%lessons[activeLesson].pattern.length]:{};sequence++;
@@ -70,19 +80,23 @@ function more(n=2){
   for(let i=0;i<n;i++){
     let result;
     try { result=generate(nextSpec()); } catch(e) { status('Could not write this exercise.');continue; }
+    appendExercise(result);
+  }
+  collection();
+}
+function appendExercise(result){
     const s=result.spec;
     const it={result,number:sequence};
     it.keepButton=button('+ Keep',()=>keep(it),'primary');
+    const name=el('input',{'aria-label':'Exercise name',maxlength:100,value:`${s.key} ${s.mode} · ${speciesInfo(s.species).short}`});
     it.playButton=button('▶ Play',()=>play(it),'play-one');it.playButton.dataset.id=String(result.id);
     it.score=el('div',{class:'score',role:'img','aria-label':`${speciesInfo(s.species).name}, ${s.key} ${s.mode}, ${s.measures} bars in ${s.time}`});
     it.info=el('div',{class:'exercise-info'});
     it.node=el('article',{class:'exercise',tabindex:0,onfocusin:()=>select(items.indexOf(it)),onclick:()=>select(items.indexOf(it))},
       el('aside',{class:'exercise-margin'},el('div',{class:'eyebrow'},`Exercise ${it.number}`),it.info,
-        el('div',{class:'exercise-tools'},it.playButton,it.keepButton,button('↻ Reroll',()=>reroll(it)),button('Skip →',()=>{piano.stop();const index=items.indexOf(it);items.splice(index,1);it.node.remove();if(items.length<3)more(2);select(Math.min(index,items.length-1),true);},'skip'))),it.score);
+        el('div',{class:'exercise-tools'},it.playButton,it.keepButton,name,button('Save exercise',()=>library.save([{...it.result,spec:{...it.result.spec,tempo:transportOptions().tempo}}],{name:name.value.trim()||'Untitled exercise'})),button('↻ Reroll',()=>reroll(it)),button('Skip →',()=>{piano.stop();const index=items.indexOf(it);items.splice(index,1);it.node.remove();if(items.length<3)more(2);select(Math.min(index,items.length-1),true);},'skip'))),it.score);
     describeItem(it);
     items.push(it);$('feed').append(it.node);it.visual=draw(it.score,[result],80,undefined,true);
-  }
-  collection();
 }
 function reset(custom=true){
   if(custom===true)followLesson=false;
@@ -93,20 +107,22 @@ function reset(custom=true){
   piano.stop();items=[];focus=0;sequence=0;$('feed').replaceChildren();refreshFilters();more(3);select(0);
 }
 function start(index){
+  document.querySelector('.collection').append(document.querySelector('.library'));
+  document.querySelector('.sentence').hidden=false;document.querySelector('.filters').hidden=false;$('more').hidden=false;
   const l=lessons[index];activeLesson=index;
   filter={species:new Set(l.species),keys:new Set(l.keys),modes:new Set(l.modes),lengths:new Set([l.bars])};followLesson=true;
   $('length').value=l.bars;$('time').value=l.time;$('lesson-name').textContent=l.title;
   $('home').hidden=true;$('session').hidden=false;reset(false);window.scrollTo(0,0);
 }
 $('lessons').replaceChildren(...lessons.map((l,i)=>el('button',{class:'lesson',onclick:()=>start(i)},el('span',{class:'number'},String(i+1).padStart(2,'0')),el('span',{class:'arrow'},'↗'),el('h2',{},l.title),el('p',{},l.description))));
-$('back').onclick=()=>{piano.stop();activeLesson=null;$('home').hidden=false;$('session').hidden=true;window.scrollTo(0,0);};
+$('back').onclick=()=>{piano.stop();activeLesson=null;$('home').append(document.querySelector('.library'));$('home').hidden=false;$('session').hidden=true;window.scrollTo(0,0);};
 $('length').onchange=()=>{filter.lengths=new Set($('length').value==='mix'?LENGTHS:[Number($('length').value)]);reset(false);};$('time').onchange=()=>reset();
 $('sentence-species').onchange=()=>{filter.species=new Set($('sentence-species').value==='mix'?SPECIES.map(s=>s.n):[Number($('sentence-species').value)]);reset();};
 $('sentence-key').onchange=()=>{filter.keys=new Set($('sentence-key').value==='mix'?KEYS:[$('sentence-key').value]);reset();};
 $('more').onclick=()=>more(3);$('next').onclick=()=>{piano.stop();select(focus+1,true);};$('play').onclick=()=>play();
 $('pdf').onclick=()=>exportScore(kept,'Practice session');$('print').onclick=()=>exportScore([...new Map([...finished,...kept.map(r=>[r.id,r])]).values()],'Practice session',false);
 $('ly').onclick=()=>downloadLilyPond(kept,'Practice session');
-$('open-sheet').onclick=()=>{location.href=(document.body.dataset.writeUrl || '07-studio.html')+'?p='+encodeURIComponent(encodeSpecs(kept.map(r=>r.spec)))+'&title=Practice+session';};
+$('open-sheet').onclick=()=>{location.href=(document.body.dataset.writeUrl || '07-studio.html')+'?score='+scoreQuery(kept,{name:'Practice session'});};
 new IntersectionObserver(entries=>{if(activeLesson!==null&&entries.some(e=>e.isIntersecting))more(2);},{rootMargin:'200px'}).observe($('sentinel'));
 addEventListener('keydown',e=>{
   if(activeLesson===null||e.target.closest('input,select,textarea,[contenteditable]'))return;
@@ -119,3 +135,8 @@ addEventListener('keydown',e=>{
 });
 let resize;addEventListener('resize',()=>{clearTimeout(resize);resize=setTimeout(()=>{piano.stop();for(const it of items)it.visual=draw(it.score,[it.result],80,undefined,true);},200);});
 collection();
+try {
+  const params=new URLSearchParams(location.search);
+  if(params.has('score'))openSaved(parseScore(JSON.parse(params.get('score'))));
+  else if(params.has('saved')){const entry=library.store.data.entries.find(e=>e.id===params.get('saved'));if(entry)openSaved(parseScore(entry));else status('Saved score could not be found.');}
+}catch(e){status(`Score could not load: ${e.message}`);}

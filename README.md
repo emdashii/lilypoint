@@ -16,7 +16,7 @@ The site is static. Netlify runs `bun run build` and publishes `dist/`; visitors
 - `/proto/` keeps all eight prototypes at their existing URLs. Search engines are asked not to index that gallery.
 - Unknown paths serve a site 404 page with links back to Write, Practice, and About.
 
-The main room HTML files reuse `public/proto/shared/` modules. Keep their control markup in sync with 07 and 08 when changing shared behavior. Practice's `data-write-url` selects the main Write page at `/`; the prototype defaults to 07. Write stores a tab-scoped draft and encodes scores in URLs. Practice collections last until navigation or reload. Fonts, rendering libraries, and piano samples need network access.
+The main room HTML files reuse `public/proto/shared/` modules. Keep their control markup in sync with 07 and 08 when changing shared behavior. Practice's `data-write-url` selects the main Write page at `/`; the prototype defaults to 07. Write stores a tab-scoped draft and encodes scores in URLs. Saved scores persist in local storage as versioned note snapshots. Export/import provides a JSON backup. Unsaved kept phrases last until navigation or reload. Fonts, rendering libraries, and piano samples need network access.
 
 After building, run `bun test/proto-score-state.mjs`, `bun test/proto-generation.mjs`, `bun test/proto-smoke.mjs`, and `bun test/site-static.mjs`. Serve `dist/` to check the Practice-to-Write handoff, exports, About links, and classic generator.
 
@@ -148,9 +148,9 @@ Notes store duration in integer ticks, with 4096 ticks per whole note, and prese
 
 `public/proto/` holds eight alternative interfaces that render notation in the browser. Build, serve `dist/`, and open `/proto/` to compare them.
 
-The latest pair combines feedback on the first six: `07-studio.html` is an editable sheet with a live phrase editor; `08-lessons.html` opens lessons into an endless practice feed. Both use abcjs with separate staves, sampled piano, highlighting, and PDF export of complete systems. The practice collection stays in memory across filter and lesson changes; **Open as a sheet** transfers it to 07's URL. Reloading 08 clears its session.
+The latest pair combines feedback on the first six: `07-studio.html` is an editable sheet with a live phrase editor; `08-lessons.html` opens lessons into an endless practice feed. Both use abcjs with separate staves, sampled piano, highlighting, and PDF export of complete systems. The practice collection stays in memory across filter and lesson changes; **Open as a sheet** transfers the exact notes to Write through a snapshot URL. Reloading clears unsaved lesson exercises; saved scores remain available.
 
-The writing room keeps its draft in session storage for the current browser tab. Plain navigation back to Write restores the phrases, order, tempos, title, composer, and selected phrase, including an intentionally empty sheet. A URL containing `p`, such as **Open as a sheet**, intentionally replaces the draft.
+The writing room keeps its exact score draft in session storage for the current browser tab. Plain navigation back to Write restores the phrases, order, tempos, title, composer, and selected phrase, including an intentionally empty sheet. A URL containing `p`, such as **Open as a sheet**, intentionally replaces the draft.
 
 Practice uses a continuous sheet with controls in the margin. Its filters allow multiple species, keys, modes, and lengths of 2, 4, 8, 12, or 16 bars. Random mode and random length enable every option in their row. Lessons follow explicit sequences until species, key, or mode filters change. Kept phrases are snapshots, so rerolling an exercise preserves the earlier kept version. Both rooms export LilyPond; 07 also exports MIDI. Print session includes completed exercises and kept phrases without duplicates.
 
@@ -159,3 +159,11 @@ In 07, tempo belongs to each phrase and is saved as an optional seventh field in
 `shared/studio.js` owns their engraving, audio, and export behavior. ABC uses `%%score {1 2}` for separate staves. PDF bounds must retain each SVG's viewBox origin because later systems have nonzero vertical offsets. Export every SVG, not just the first one. See `CLAUDE.md` for the original prototypes' module layout.
 
 The new rooms retry exhausted cantus searches with up to six consecutive seeds while preserving all musical settings. After building, run `bun test/proto-generation.mjs` for the seeded recovery regression check.
+
+## Saved practice collection
+
+Save an exercise by naming it and choosing **Save exercise**. In Write, **Save sheet** uses the piece title. Saved scores appear in both rooms. **Open in Write** and **Practice** restore stored notes without invoking the generator. **Practice sheet** returns the current sheet to Practice. Existing `?p=` links retain their six/seven-field format and generation behavior. Snapshot handoffs use `?score=`.
+
+`shared/collection.js` owns schema version 1 and the generator version marker. Each snapshot stores requested/effective seeds, settings, clefs, pitch spelling, integer timing, rests, and ties. Imports validate the entire file before merging. A failed storage write leaves saved entries unchanged and offers the proposed change through **Export collection**. Corrupt or unsupported stored files remain untouched and can be exported for recovery. **Delete** removes only the selected local score.
+
+After building, run `bun test/practice-collection.mjs` for exact note/export restoration and storage/import failure cases.

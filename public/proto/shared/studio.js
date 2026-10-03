@@ -8,7 +8,7 @@ export const $ = id => document.getElementById(id);
 export function generatePhrase(spec) {
   let seed=Number(spec.seed);
   for(let attempt=0;attempt<6;attempt++,seed=seed%2147483646+1) {
-    try { return generate({...spec,seed}); }
+    try { const result=generate({...spec,seed}); result.requestedSeed=Number(spec.seed); return result; }
     catch(e) { if(attempt===5||!e.message.includes('Cantus firmus search exhausted'))throw e; }
   }
 }
