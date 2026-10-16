@@ -18,7 +18,8 @@ const { midiBytes } = await import('../dist/proto/shared/midi.js');
 
 const args = process.argv.slice(2);
 const flag = (name, fallback) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : fallback; };
-const outDir = args.find(a => !a.startsWith('--') && !/^\d+$/.test(a) && args[args.indexOf(a) - 1]?.startsWith('--') !== true) || 'tests/temp/exercise-audit';
+const VALUE_FLAGS = ['--count', '--seed-base'];
+const outDir = args.find((a, i) => !a.startsWith('--') && !VALUE_FLAGS.includes(args[i - 1])) || 'tests/temp/exercise-audit';
 const count = Number(flag('--count', 40));
 const seedBase = Number(flag('--seed-base', 1000));
 const asJson = args.includes('--json');
@@ -93,9 +94,9 @@ function parseMidi(bytes) {
 		while (p < end) {
 			at += vlq();
 			let b = bytes[p];
-			if (b & 128) { status = b; p++; } else b = status;
-			if (status === 255) { const type = bytes[p++], l = vlq(), data = [...bytes.slice(p, p + l)]; p += l; events.push({ at, meta: type, data }); }
-			else if (status === 240 || status === 247) { const l = vlq(); p += l; }
+			if (b & 128) { status = b; p++; } else { assert.ok(status, 'data byte without running status'); b = status; }
+			if (status === 255) { const type = bytes[p++], l = vlq(), data = [...bytes.slice(p, p + l)]; p += l; events.push({ at, meta: type, data }); status = 0; }
+			else if (status === 240 || status === 247) { const l = vlq(); p += l; status = 0; }
 			else {
 				const kind = status & 240, channel = status & 15;
 				const d1 = bytes[p++], d2 = (kind === 192 || kind === 208) ? null : bytes[p++];
@@ -193,7 +194,7 @@ export function checkExercise({ species, mode, time, upper, lower }) {
 		const n = { 1: 1, 2: 2, 3: 4, 4: 2 }[species];
 		cf.forEach((c, i) => {
 			const events = cpIn(c), expected = i === cf.length - 1 ? 1 : n, sub = cfDur / expected;
-			const ok = events.length === expected && events.every((e, j) => Math.abs(e.start - c.start - j * sub) < 1e-9 && Math.abs(e.duration - sub) < 1e-9 && (e.pitch !== null || (species === 4 && i === 0 && j === 0)));
+			const ok = events.length === expected && events.every((e, j) => Math.abs(e.start - c.start - j * sub) < 1e-9 && Math.abs(e.duration - sub) < 1e-9 && (e.pitch !== null || (species >= 2 && i === 0 && j === 0)));
 			if (!ok) P('subdivision', c.start, `${expected} note(s) of ${sub}`, events.map(e => `${e.pitch === null ? 'r' : e.pitch}:${e.duration}`).join(' '));
 		});
 	}
@@ -322,8 +323,23 @@ export function checkExercise({ species, mode, time, upper, lower }) {
 	return { violations: out, stats: { contrary, moves, segments: segs.length } };
 }
 
+// --- sensitivity check against the historical Fux fixtures: the D-dorian first-species
+// model satisfies the student profile; the E-phrygian one ends with a whole-tone ascent.
+import { readFileSync } from 'node:fs';
+function fixtureVoices(file) {
+	const src = readFileSync(join('tests/fixtures/examples', file), 'utf8');
+	const block = n => parseLyBlock(src.match(new RegExp(`${n}\\s*=\\s*\\{([^}]*)\\}`))[1]);
+	return { species: 1, mode: 'major', time: '4/1', upper: block('counterpoint'), lower: block('cantusFirmus') };
+}
+export function selfCheck() {
+	const clean = checkExercise(fixtureVoices('species1-fux-d-dorian.ly')).violations.filter(v => v.tier === 'profile');
+	assert.deepEqual(clean, [], 'Fux D dorian model must pass the profile tier');
+	const rules = new Set(checkExercise(fixtureVoices('species1-fux-e-phrygian.ly')).violations.filter(v => v.tier === 'profile').map(v => v.rule));
+	assert.ok(rules.has('leadingTone'), 'checker must report the Phrygian whole-tone cadence');
+}
+
 // --- run
-if (import.meta.main) await run();
+if (import.meta.main) { selfCheck(); await run(); }
 async function run() {
 const results = [];
 const table = [];

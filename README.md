@@ -69,7 +69,7 @@ Then open http://localhost:8000 in your browser.
 
 -   `bun run test:all` — Typecheck, run the TypeScript suite, build, and run all five built-module scripts. The manual GitHub Actions workflow runs this command.
 -   `bun test` — Run the TypeScript suite; this excludes `test/*.mjs` and the optional C++ comparison.
--   `bun run test:built` — Run the five built-module scripts against the current `dist/`. Build first when source or public files change. `test/exercise-audit.mjs` generates 40 exercises across every species and mode, exports LilyPond and MIDI, re-parses both, and checks every note with an independent rule checker; see [the exercise audit](plans/exercise-audit.md).
+-   `bun run test:built` — Run the five built-module scripts against the current `dist/`. Build first when source or public files change. `test/exercise-audit.mjs` generates 40 exercises across every species and mode, exports LilyPond and MIDI, re-parses both, and checks every note with a separately written rule checker; see [the exercise audit](plans/exercise-audit.md).
 -   `bun test tests/unit` — Unit tests only
 -   `bun test tests/integration` — Integration tests only
 -   `bun test tests/e2e` — E2E tests only

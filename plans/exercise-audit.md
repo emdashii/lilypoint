@@ -1,6 +1,6 @@
 # Exercise audit, October 16, 2026
 
-Branch `exercise-audit`, starting from commit `c19179d`. The audit generated 40 exercises through the app's generation path (`generatePhrase` in `public/proto/shared/studio.js`), exported each as LilyPond and MIDI the way the Write room does, parsed both exports back, and checked every note against an independent implementation of the rules in [counterpoint-profiles.md](counterpoint-profiles.md) (profile tier) and the broader textbook rules in `src/counterpoint-species-definitions.md` (textbook tier). The script is `test/exercise-audit.mjs`; `bun run test:built` now runs it and fails on any profile violation.
+Branch `exercise-audit`, starting from commit `c19179d`. The audit generated 40 exercises through the app's generation path (`generatePhrase` in `public/proto/shared/studio.js`), exported each as LilyPond and MIDI the way the Write room does, parsed both exports back, and checked every note against a separately written implementation of the rules in [counterpoint-profiles.md](counterpoint-profiles.md) (profile tier) and the broader textbook rules in `src/counterpoint-species-definitions.md` (textbook tier). The script is `test/exercise-audit.mjs`; `bun run test:built` now runs it and fails on any profile violation.
 
 ## Matrix
 
@@ -10,11 +10,11 @@ Five species × two modes × four variants: 4/4 for 4 bars, 3/4 for 4 bars, 2/4 
 
 All 40 LilyPond files declare the requested key, mode, and meter, and their merged sounding notes, spellings, and total durations match the generated events. All 40 MIDI files are format 1 with a conductor track carrying the tempo, meter, and key/mode meta events, and their note on/off pairs match the LilyPond notes. No export defects were found.
 
-## Results
+## Results before the fix (commit `c19179d`)
 
-Profile tier: 0 violations in the 40 exercises, and 0 in a further 400-exercise sweep (seeds 20000 through 20399, all combinations ten times). Textbook tier: 92 findings in 32 of the 40 exercises, all in the counterpoint voice. No cantus line broke a textbook melodic rule.
+Profile tier: 0 violations in the 40 exercises, and 0 in a further 400-exercise sweep (seeds 20000 through 20399, all combinations ten times). Textbook tier: 92 findings in 32 of the 40 exercises, all in the counterpoint voice. No cantus line broke a textbook melodic rule. The per-rule table and the full table below are this pre-fix result; the post-fix result follows the generator-bug section.
 
-The checker was validated against the historical Fux fixtures in `tests/fixtures/examples/`, where it reports the documented student-profile exceptions (crossing, spacing, leap recovery, modal cadences, syncopation breaks) and nothing on the D-dorian first-species model.
+The checker was validated against the historical Fux fixtures in `tests/fixtures/examples/`, where it reports the documented student-profile exceptions (crossing, spacing, leap recovery, modal cadences, syncopation breaks) and nothing on the D-dorian first-species model. The script's `selfCheck()` repeats the D-dorian and E-phrygian cases on every run. The checker shares its alignment and dissonance-classification approach with `src/validation/species-rules.ts`, so a defect common to both would not be caught; the parsing, rhythm, melodic, cadence, and textbook checks are separate.
 
 ### Classification by rule
 
@@ -34,9 +34,28 @@ The rule ambiguities are real differences between the two in-repo documents. `sr
 
 ### Generator bug: degenerate cantus lines
 
-The 400-exercise sweep showed 103 cantus lines of 12 to 16 notes made of only three distinct pitches, such as `ab bb ab bb ab bb ab bb ab bb ab bb c ab bb ab`. Histogram of distinct pitches per cantus before the fix: 3 → 103, 4 → 119, 5 → 125, 6 → 53. Open Music Theory's cantus guidance, which the profile references, requires "no repetition of motives or licks" and a smooth shape to the climax. The cause is in `CantusFirmus.generate()`: peak candidates included scale degrees 2 and 3, and every other note had to lie strictly below the peak, so a degree-3 peak forced a two-pitch oscillation. The repair narrows the search without adding a validator rule: lines of eight or more notes require a climax at least a fourth above the tonic and at least four distinct pitches, and a climax a tritone from the forced penultimate second degree is skipped because that line can never complete. After the fix the same 400-seed sweep gives 4 → 161, 5 → 185, 6 → 54, with no search failures and still zero profile violations. Seeded output changes, so textbook findings in the 40-exercise set rose from 92 to 161, mostly similar-motion skips and consecutive skips in the counterpoint, which now has a wider cantus to move against. The regression test in `tests/unit/cantus-firmus.test.ts` generates 12- and 16-note lines for every key, mode, and 20 seeds and fails on the previous code.
+The 400-exercise sweep showed 103 cantus lines of 12 to 16 notes made of only three distinct pitches, such as `ab bb ab bb ab bb ab bb ab bb ab bb c ab bb ab`. Histogram of distinct pitches per cantus before the fix: 3 → 103, 4 → 119, 5 → 125, 6 → 53. Open Music Theory's cantus guidance, which the profile references, requires "no repetition of motives or licks" and a smooth shape to the climax. The cause is in `CantusFirmus.generate()`: peak candidates included scale degrees 2 and 3, and every other note had to lie strictly below the peak, so a degree-3 peak forced a two-pitch oscillation. The repair narrows the search without adding a validator rule: lines of eight or more notes require a climax at least a fourth above the tonic and at least four distinct pitches, and a climax a tritone from the forced penultimate second degree is skipped because that line can never complete. After the fix the same 400-seed sweep gives 4 → 161, 5 → 185, 6 → 54, with no search failures and still zero profile violations. Seeded output changes, so textbook findings in the 40-exercise set rose from 92 to 161, mostly similar-motion skips and consecutive skips in the counterpoint, which now has a wider cantus to move against. The regression test in `tests/unit/cantus-firmus.test.ts` generates 8-, 12-, and 16-note lines for every key, mode, and 20 seeds and fails on the previous code.
 
-### Full table of textbook findings (40-exercise set)
+Shared Write links and drafts store only the seed, so an existing `?p=` link with 8 or more cantus notes now regenerates different music from the same seed. Minor-key lines of 5 to 7 notes also change for most seeds because the tritone filter changes the random sequence. Major-key lines of 3 to 7 notes are unchanged.
+
+### Results after the fix (seeds 1000 through 1039)
+
+Profile tier: 0 violations. Textbook tier: 161 findings in 35 of 40 exercises. Two are in the cantus: exercises 06 (F minor, species 1) and 37 (C minor, species 5) each have consecutive skips of a third then a fourth in the same direction, which the cantus search allows (it limits only the number of consecutive leaps). Open Music Theory's cantus guidance says no consecutive leaps in the same direction, so these are rule ambiguities of the same kind as the counterpoint findings.
+
+| rule | count | class |
+|---|---|---|
+| consecutiveSkips | 40 | rule ambiguity |
+| skipsSameDirection | 37 | rule ambiguity |
+| tritoneOutline | 24 | rule ambiguity |
+| leapIntoOctave | 17 | rule ambiguity |
+| singleClimax | 15 | rule ambiguity |
+| skipOutline | 15 | rule ambiguity |
+| accentedPerfects | 9 | rule ambiguity |
+| repeatedNote | 4 | acceptable |
+
+Run `bun test/exercise-audit.mjs` after `bun run build` for the current full table.
+
+### Full table of textbook findings before the fix (40-exercise set, commit `c19179d`)
 
 | # | exercise | bar | rule | expected | actual | class |
 |---|---|---|---|---|---|---|
