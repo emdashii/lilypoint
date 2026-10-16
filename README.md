@@ -18,7 +18,7 @@ The site is static. Netlify runs `bun run build` and publishes `dist/`; visitors
 
 The main room HTML files reuse `public/proto/shared/` modules. Keep their control markup in sync with 07 and 08 when changing shared behavior. Practice's `data-write-url` selects the main Write page at `/`; the prototype defaults to 07. Write stores a tab-scoped draft and encodes scores in URLs. Practice collections last until navigation or reload. Fonts, rendering libraries, and piano samples need network access.
 
-After building, run `bun test/proto-score-state.mjs`, `bun test/proto-generation.mjs`, `bun test/proto-smoke.mjs`, and `bun test/site-static.mjs`. Serve `dist/` to check the Practice-to-Write handoff, exports, About links, and classic generator.
+After building, run `bun test/proto-score-state.mjs`, `bun test/proto-generation.mjs`, `bun test/proto-smoke.mjs`, `bun test/site-static.mjs`, and `bun test/exercise-audit.mjs`. Serve `dist/` to check the Practice-to-Write handoff, exports, About links, and classic generator.
 
 See the [counterpoint logic audit and practice roadmap](plans/counterpoint-audit.md) for the current musical guarantees, repaired defects, and remaining work before treating generated output as strict species exercises.
 
@@ -67,9 +67,9 @@ Then open http://localhost:8000 in your browser.
 
 ### Testing
 
--   `bun run test:all` — Typecheck, run the TypeScript suite, build, and run all four built-module scripts. The manual GitHub Actions workflow runs this command.
+-   `bun run test:all` — Typecheck, run the TypeScript suite, build, and run all five built-module scripts. The manual GitHub Actions workflow runs this command.
 -   `bun test` — Run the TypeScript suite; this excludes `test/*.mjs` and the optional C++ comparison.
--   `bun run test:built` — Run the four built-module scripts against the current `dist/`. Build first when source or public files change.
+-   `bun run test:built` — Run the five built-module scripts against the current `dist/`. Build first when source or public files change. `test/exercise-audit.mjs` generates 40 exercises across every species and mode, exports LilyPond and MIDI, re-parses both, and checks every note with an independent rule checker; see [the exercise audit](plans/exercise-audit.md).
 -   `bun test tests/unit` — Unit tests only
 -   `bun test tests/integration` — Integration tests only
 -   `bun test tests/e2e` — E2E tests only
