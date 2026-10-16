@@ -346,7 +346,8 @@ const table = [];
 for (const spec of exerciseSpecs(count, seedBase)) {
 	const r = generatePhrase(spec);
 	const name = `${String(results.length + 1).padStart(2, '0')}-s${spec.species}-${spec.key.replace('#', 's')}-${spec.mode}-${spec.time.replace('/', '-')}-${spec.measures}bars`;
-	const ly = await core.toLilyPond([r], { title: name, composer: 'lilypoint' });
+	const log = console.log; console.log = () => {}; // the exporter logs to stdout, which would corrupt --json output
+	const ly = await core.toLilyPond([r], { title: name, composer: 'lilypoint' }).finally(() => { console.log = log; });
 	const midi = midiBytes([r], 80);
 	writeFileSync(join(outDir, `${name}.ly`), ly);
 	writeFileSync(join(outDir, `${name}.mid`), midi);

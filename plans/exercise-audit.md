@@ -40,7 +40,7 @@ Shared Write links and drafts store only the seed, so an existing `?p=` link wit
 
 ### Results after the fix (seeds 1000 through 1039)
 
-Profile tier: 0 violations. Textbook tier: 161 findings in 35 of 40 exercises. Two are in the cantus: exercises 06 (F minor, species 1) and 37 (C minor, species 5) each have consecutive skips of a third then a fourth in the same direction, which the cantus search allows (it limits only the number of consecutive leaps). Open Music Theory's cantus guidance says no consecutive leaps in the same direction, so these are rule ambiguities of the same kind as the counterpoint findings.
+Profile tier: 0 violations. Textbook tier: 161 findings in 35 of 40 exercises. Two are in the cantus: exercises 06 (F minor, species 1) and 37 (C minor, species 5) each have a minor third followed by a major third in the same direction (F–A♭–C and C–E♭–G), which outlines the tonic minor triad. The finding fires because the second skip is larger than the first. Open Music Theory's cantus guidance says no consecutive leaps in the same direction but names Fux's F-major cantus, whose back-to-back leaps outline a consonant triad, as the accepted exception, so these two are classified acceptable.
 
 | rule | count | class |
 |---|---|---|
