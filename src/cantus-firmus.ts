@@ -320,13 +320,22 @@ export class CantusFirmus {
         const firstPeak = Math.max(1, Math.floor(this.length / 4));
         const lastPeak = Math.min(this.length - 2, Math.floor(3 * this.length / 4));
         const positions = shuffle(Array.from({ length: lastPeak - firstPeak + 1 }, (_, i) => i + firstPeak));
+        // Lines of eight or more need a climax at least a fourth above the tonic and four
+        // distinct pitches; a lower climax leaves only a two-pitch oscillation beneath it.
+        const minimumPitches = this.length >= 8 ? 4 : 1;
+        // The forced penultimate second degree ends each partial path as a turning point,
+        // so a climax a tritone from it can never be completed.
+        const peaks = this.scaleDegrees.slice(this.length >= 8 ? 3 : 1, 6)
+            .filter(peak => !this.isTritone(peak, this.scaleDegrees[1]));
         for (const peakIndex of positions) {
-            for (const peak of shuffle(this.scaleDegrees.slice(1, 6))) {
+            for (const peak of shuffle([...peaks])) {
                 const path = [new Note(this.tonic, 1)];
                 const search = (): boolean => {
                     if (--budget < 0) return false;
                     const i = path.length;
-                    if (i === this.length) return this.validateCantusFirmus(path);
+                    if (i === this.length) {
+                        return new Set(path.map(n => n.getNote())).size >= minimumPitches && this.validateCantusFirmus(path);
+                    }
                     const choices = i === this.length - 1 ? [this.tonic]
                         : i === this.length - 2 ? [this.scaleDegrees[1]]
                         : i === peakIndex ? [peak]

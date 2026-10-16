@@ -38,6 +38,16 @@ describe('Seeded cantus musical contracts', () => {
 		});
 	}
 
+	// A climax only a step or third above the tonic forces a two-pitch oscillation.
+	test.each([8, 12, 16])('length %i: every key, mode, and seed uses at least four distinct pitches', length => {
+		const degenerate: string[] = [];
+		for (const [key] of tonics) for (const mode of modes) for (let seed = 1; seed <= 20; seed++) {
+			const pitches = new CantusFirmus(key, length, mode, createRandom(seed)).generate().map(n => n.getNote());
+			if (new Set(pitches).size < 4) degenerate.push(`${key} ${mode} seed ${seed}: ${pitches.join(' ')}`);
+		}
+		expect(degenerate).toEqual([]);
+	});
+
 	test.each([8, 32, 64])('length %i: seeds reproduce melodies and provide variation', length => {
 		const generate = (seed: number) => new CantusFirmus('C', length, 'major', createRandom(seed)).generate().map(n => n.getNote());
 		const melodies = [1, 7, 42].map(generate);
