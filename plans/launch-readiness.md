@@ -106,7 +106,9 @@ Live checks (`puppeteer-core` + headless Chromium, a `securitypolicyviolation` l
 | When (UTC) | Header | Violations | Notes |
 | --- | --- | --- | --- |
 | 27 Oct 2026 02:05 | Deploy preview 4, report-only | Only `frame-src https://app.netlify.com` | Netlify's preview drawer; production does not inject it. Umami does not send on preview (`data-domains`) |
-| 27 Oct 2026 02:08 | Production, report-only | 0 | Piano played, PDF downloaded, print preview opened; Umami beacon `POST /api/send` 200 |
+| 27 Oct 2026 02:06 | Production, report-only | 0 | Piano played, PDF downloaded, print preview opened; Umami beacon `POST /api/send` 200 |
+| 27 Oct 2026 02:07 | Deploy preview 5, enforced | Only the Netlify preview drawer | Play, PDF, and print all completed |
+| 27 Oct 2026 02:09 | Production, enforced | 0 | Same journeys completed; Umami `script.js` and `POST /api/send` 200 with IPv4-pinned resolution |
 
 The only console error on these pages is an intermittent `ERR_CONNECTION_REFUSED` from this machine's missing IPv6 route to `gateway.umami.is` (`curl -6` fails, `curl -4` succeeds); the beacon still lands over IPv4. It is not a CSP report.
 
@@ -148,6 +150,7 @@ Questions it should answer later: which room is used, whether generation and exp
 | 26 Oct 2026 | Live GET shared Write URL, `/og.png` | lilypoint `og:`/`twitter:` tags; 200 `image/png` |
 | 27 Oct 2026 UTC | Lighthouse 12.8.2 mobile + desktop on `/`, practice, about | See Lighthouse lab run |
 | 26 Oct 2026 | `bun run test:all` | pass; `bun test` 390 |
+| 27 Oct 2026 UTC | Headless CSP check on production, enforced | 0 violations on `/`, shared Write URL, practice, about, classic, 404 |
 
 Limits: no physical mobile device or keyboard-only pass, no field Core Web Vitals, no `bun audit`, no legal conclusion about GDPR/CCPA.
 
