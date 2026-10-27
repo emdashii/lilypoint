@@ -33,7 +33,7 @@ These apply to a public static site and were cheap to do well. All are live as o
 - README GitHub URL typo `emdahsii` → `emdashii`
 - `noindex` on prototype pages so they do not compete with Write/Practice
 
-A cookie banner was not added (Umami sets no cookies). The Content-Security-Policy was added later; see follow-up 5.
+A cookie banner was not added (Umami sets no cookies). The Content-Security-Policy was added later and is enforced; see follow-up 5.
 
 ## Checklist
 
@@ -59,7 +59,7 @@ A cookie banner was not added (Umami sets no cookies). The Content-Security-Poli
 | Duplicate submission / abuse controls | **Not applicable** | No writable origin besides the visitor’s own browser |
 | Lighthouse / Core Web Vitals | **Lab run recorded** 27 Oct UTC | See Lighthouse below. Mobile Write performance 67 (FCP 3.9 s); no field data |
 | Secrets in the client | **Verified** | No private API keys. Theme and Write drafts are browser storage |
-| Security headers | **Verified** live 26 Oct | HSTS, nosniff, referrer-policy, frame deny, permissions-policy. CSP: see follow-up 5 |
+| Security headers | **Verified** live 27 Oct UTC | HSTS, nosniff, referrer-policy, frame deny, permissions-policy, enforced CSP (see Content-Security-Policy) |
 | Dependency audit | **Unverified** | `bun test` 441 pass; no `bun audit` pass recorded |
 | Privacy notice vs actual processing | **Verified** in source | About names Umami Cloud (cookieless pageviews), theme and draft storage, Netlify logs, Google Fonts, jsDelivr, GitHub Pages piano samples, and Hacklily. Samples were misattributed to jsDelivr until 26 Oct |
 | Cookie banner | **Not applicable** | No first-party tracking cookies. Theme is `localStorage` |
@@ -79,7 +79,7 @@ A cookie banner was not added (Umami sets no cookies). The Content-Security-Poli
 ### Follow-up (not blockers for a public beta)
 
 4. Piano-practice musical review and remaining items in `plans/counterpoint-audit.md`.
-5. **Content-Security-Policy** — shipped as `Content-Security-Policy-Report-Only` on 26 Oct 2026; enforce after a clean live check. See below.
+5. **Content-Security-Policy** — **Done.** Shipped report-only 26 Oct 2026 (PR #4), checked live with zero violations, then enforced (PR #5). See below.
 6. Manual keyboard / mobile device pass (still open). The Lighthouse lab run is recorded below.
 7. Analytics events, when wanted: Write generate / Practice start / export; exclude `?p=` contents; update the Privacy section in the same change. Pageviews are already live through Umami Cloud.
 
@@ -100,6 +100,15 @@ Lives in `public/_headers` only (not `netlify.toml`), so there is one copy. Orig
 | `font-src` | `https://fonts.gstatic.com`, `https://cdn.jsdelivr.net` | Google Fonts files; VexFlow music fonts |
 | `frame-src` | `https://www.hacklily.org` | Classic generator's LilyPond viewer |
 | `img-src` | `data:`, `blob:` | Inline SVG/data images and generated previews |
+
+Live checks (`puppeteer-core` + headless Chromium, a `securitypolicyviolation` listener installed before page scripts, then Play, Play sheet, Download PDF, and Print clicked where present). Pages: `/`, shared Write URL `/?p=D.minor.4.4.4-4.7_Bb.major.3.2.6-8.9`, `/practice.html` (lesson started, exercise played), `/about.html`, `/classic.html`, a 404 path.
+
+| When (UTC) | Header | Violations | Notes |
+| --- | --- | --- | --- |
+| 27 Oct 2026 02:05 | Deploy preview 4, report-only | Only `frame-src https://app.netlify.com` | Netlify's preview drawer; production does not inject it. Umami does not send on preview (`data-domains`) |
+| 27 Oct 2026 02:08 | Production, report-only | 0 | Piano played, PDF downloaded, print preview opened; Umami beacon `POST /api/send` 200 |
+
+The only console error on these pages is an intermittent `ERR_CONNECTION_REFUSED` from this machine's missing IPv6 route to `gateway.umami.is` (`curl -6` fails, `curl -4` succeeds); the beacon still lands over IPv4. It is not a CSP report.
 
 Changing an inline script: rebuild, run `bun test/site-static.mjs`, and replace the reported hash in `_headers`.
 
