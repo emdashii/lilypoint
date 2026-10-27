@@ -1,6 +1,8 @@
 #!/usr/bin/env bun
 /** After `bun run build`, confirm launch files landed in dist/. */
 import { existsSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { Glob } from 'bun';
 
 const required = [
 	'dist/index.html',
@@ -54,6 +56,22 @@ const notFound = readFileSync('dist/404.html', 'utf8');
 if (!notFound.includes('href="/"') || !notFound.includes('href="/practice.html"')) {
 	console.error('404.html is missing recovery links');
 	process.exit(1);
+}
+
+// Every inline <script> must be allowed by hash, or the CSP blocks it.
+const csp = readFileSync('dist/_headers', 'utf8').match(/^\s*Content-Security-Policy(?:-Report-Only)?: (.+)$/m)?.[1];
+if (!csp) {
+	console.error('_headers is missing the Content-Security-Policy');
+	process.exit(1);
+}
+for (const file of new Glob('dist/**/*.html').scanSync('.')) {
+	for (const [, body] of readFileSync(file, 'utf8').matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)) {
+		const hash = `'sha256-${createHash('sha256').update(body).digest('base64')}'`;
+		if (!csp.includes(hash)) {
+			console.error(`${file} has an inline script missing from the CSP: ${hash}`);
+			process.exit(1);
+		}
+	}
 }
 
 console.log('site static files ok');
