@@ -1,21 +1,18 @@
-import { afterEach, describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { WritePhrase } from '../../src/write-phrase.js';
-import { CantusFirmus } from '../../src/cantus-firmus.js';
 import { Note } from '../../src/note.js';
 import { Phrase } from '../../src/phrase.js';
 import { getKey } from '../../src/key.js';
 import { ExportToFile } from '../../src/export-to-file.js';
 import { phraseToTimedVoices } from '../../src/validation/timed-events.js';
-import { FirstSpeciesValidator, SecondSpeciesValidator, ThirdSpeciesValidator, FourthSpeciesValidator, FifthSpeciesValidator } from '../../src/validation/species-validator.js';
+import { FirstSpeciesValidator, FourthSpeciesValidator } from '../../src/validation/species-validator.js';
 import { alignToCantusFirmus, classifyDissonance, mergeTies } from '../../src/validation/species-rules.js';
 import { parseMusicBlock } from '../helpers/ly-parser.js';
 
-const originalRandom = Math.random;
 const keys = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
-afterEach(() => { Math.random = originalRandom; });
 
 describe('audit regressions', () => {
 	test('all 88 pitches survive LilyPond spelling in every supported key and mode', async () => {
@@ -35,16 +32,6 @@ describe('audit regressions', () => {
 		}
 	});
 
-	test.each(keys)('every species validates in %s major and minor for two seeds', key => {
-		const validators = [new FirstSpeciesValidator(), new SecondSpeciesValidator(), new ThirdSpeciesValidator(), new FourthSpeciesValidator(), new FifthSpeciesValidator()];
-		for (const mode of ['major', 'minor']) for (let species = 1; species <= 5; species++) for (const seed of [1, 42]) {
-			WritePhrase.setSeed(seed);
-			const writer = new WritePhrase(key, 2, species, '4/4');
-			writer.setMode(mode);
-			writer.writeThePhrase();
-			expect(validators[species - 1].validatePhrase(writer.getPhrase())).toEqual([]);
-		}
-	});
 
 	test('minor signatures match their relative majors', () => {
 		for (const [minor, major] of [['C', 'Eb'], ['G', 'Bb'], ['F', 'Ab'], ['Bb', 'Db'], ['Eb', 'Gb']]) {
@@ -125,22 +112,4 @@ describe('audit regressions', () => {
 		expect(classify("g'2 b'2~ b'2 bes'2", "g'1 c'1")).not.toBe('suspension');
 	});
 
-	test('generated cantus cadences satisfy the melodic checks after finalization', () => {
-		for (const length of [3, 4, 8, 16, 32, 64]) {
-			for (const seed of [1, 7, 42]) {
-				WritePhrase.setSeed(seed);
-				const pitches = new CantusFirmus('C', length).generate().map(n => n.getNote());
-				expect(pitches).toHaveLength(length);
-				expect(pitches[0]).toBe(39);
-				expect(pitches.at(-1)).toBe(39);
-				expect(pitches.at(-2)).toBe(41);
-				expect(pitches.filter(p => p === Math.max(...pitches))).toHaveLength(1);
-				for (let i = 1; i < pitches.length; i++) {
-					const leap = Math.abs(pitches[i] - pitches[i - 1]);
-					expect(leap).toBeLessThanOrEqual(12);
-					expect([6, 10, 11]).not.toContain(leap);
-				}
-			}
-		}
-	});
 });

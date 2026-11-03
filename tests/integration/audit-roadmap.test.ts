@@ -1,20 +1,8 @@
 import { test, expect } from 'bun:test';
-import { CantusFirmus } from '../../src/cantus-firmus';
 import { WritePhrase } from '../../src/write-phrase';
-test('long cantus melodies vary across seeds', () => {
-	for (const length of [32, 64]) {
-		const melodies = new Set<string>();
-		for (let seed = 1; seed <= 20; seed++) {
-			WritePhrase.setSeed(seed);
-			melodies.add(new CantusFirmus('C', length).generate().map(n => n.getNote()).join(','));
-		}
-		expect(melodies.size).toBeGreaterThanOrEqual(15);
-	}
-});
-
 import { Note, TICKS_PER_WHOLE } from '../../src/note';
 import { Phrase } from '../../src/phrase';
-import { pitchInterval } from '../../src/pitch';
+import { pitchInterval, spellPitch } from '../../src/pitch';
 import { getKey } from '../../src/key';
 import { FirstSpeciesValidator, SecondSpeciesValidator, ThirdSpeciesValidator, FourthSpeciesValidator, FifthSpeciesValidator } from '../../src/validation/species-validator';
 import { alignToCantusFirmus, mergeTies } from '../../src/validation/species-rules';
@@ -37,12 +25,12 @@ const generate = (species: number, key = 'C', mode = 'major', seed = 42, measure
 	return writer.getPhrase();
 };
 
-test('student generation validates across keys, modes, species, and lengths', () => {
+test('student generation validates across keys, modes, species, seeds, and lengths', () => {
 	const validators = [FirstSpeciesValidator, SecondSpeciesValidator, ThirdSpeciesValidator, FourthSpeciesValidator, FifthSpeciesValidator];
 	for (const key of ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']) {
 		for (const mode of ['major', 'minor']) for (let species = 1; species <= 5; species++) {
-			for (const measures of [2, 4]) {
-				const phrase = generate(species, key, mode, 42, measures);
+			for (const [seed, measures] of [[42, 2], [42, 4], [1, 2]]) {
+				const phrase = generate(species, key, mode, seed, measures);
 				expect(new validators[species - 1]('student').validatePhrase(phrase)).toEqual([]);
 				for (const voice of [phrase.getUpperVoice(), phrase.getLowerVoice()]) expect(voiceToMusicalEvents(musicalEventsToVoice(voiceToMusicalEvents(voice)))).toEqual(voiceToMusicalEvents(voice));
 			}
@@ -144,6 +132,28 @@ test('independent validation rejects solver drift before publishing a phrase', (
 		writer.setSeed(9);
 		expect(() => writer.writeThePhrase()).toThrow('failed validation');
 		expect(writer.getPhrase().getUpperVoice()).toHaveLength(0);
+	} finally { FirstSpecies.prototype.generateCounterpoint = original; }
+});
+
+test('the publishing gate applies student rules that the historical profile does not', () => {
+	// Respell the opening note one letter lower (C as B-sharp, G as F-double-sharp):
+	// the sound is unchanged, so only the student spelling rule can reject it.
+	const respell = (notes: Note[]) => {
+		const first = notes[0], letter = spellPitch(first.getNote(), getKey('C')).letter;
+		first.setSpelling(spellPitch(first.getNote(), getKey('C'), 'cdefgab'[('cdefgab'.indexOf(letter) + 6) % 7]));
+		return notes;
+	};
+	const reference = generate(1, 'C', 'major', 9);
+	respell(reference.getUpperVoice());
+	expect(new FirstSpeciesValidator('historical').validatePhrase(reference)).toEqual([]);
+	expect(new FirstSpeciesValidator('student').validatePhrase(reference).map(v => v.rule)).toContain('spelling');
+
+	const original = FirstSpecies.prototype.generateCounterpoint;
+	try {
+		FirstSpecies.prototype.generateCounterpoint = function (cf) { return respell(original.call(this, cf)); };
+		const writer = new WritePhrase('C', 2, 1, '4/4');
+		writer.setSeed(9);
+		expect(() => writer.writeThePhrase()).toThrow('failed validation');
 	} finally { FirstSpecies.prototype.generateCounterpoint = original; }
 });
 

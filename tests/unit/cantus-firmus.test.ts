@@ -12,10 +12,12 @@ const tonics: [string, number][] = [
 const modes: ('major' | 'minor')[] = ['major', 'minor'];
 
 describe('Seeded cantus musical contracts', () => {
+	// Three notes is the shortest line; 32 and 64 are the cantus lengths of eight-
+	// and sixteen-bar 4/4 phrases.
 	for (const [key, tonic] of tonics) for (const mode of modes) {
-		test(`${key} ${mode}: tonic cadence, one climax, diatonic pitches, legal leaps`, () => {
+		test(`${key} ${mode}: tonic cadence, one climax, diatonic pitches, legal and recovered leaps`, () => {
 			const scale = mode === 'major' ? [0, 2, 4, 5, 7, 9, 11] : [0, 2, 3, 5, 7, 8, 10];
-			for (const seed of [1, 7, 42]) for (const length of [4, 8, 16]) {
+			for (const seed of [1, 7, 42]) for (const length of [3, 4, 8, 16, 32, 64]) {
 				const pitches = new CantusFirmus(key, length, mode, createRandom(seed)).generate().map(n => n.getNote());
 				expect(pitches).toHaveLength(length);
 				expect(pitches[0]).toBe(tonic);
@@ -33,6 +35,11 @@ describe('Seeded cantus musical contracts', () => {
 					expect(interval).toBeGreaterThan(0);
 					expect(interval).toBeLessThanOrEqual(12);
 					expect([6, 10, 11]).not.toContain(interval);
+				}
+				// Student profile: a leap larger than a third is followed by a contrary step.
+				for (let i = 1; i < pitches.length - 1; i++) {
+					const leap = pitches[i] - pitches[i - 1], next = pitches[i + 1] - pitches[i];
+					if (Math.abs(leap) > 4) expect({ at: i, leap, next: Math.abs(next) <= 2 && Math.sign(next) === -Math.sign(leap) }).toEqual({ at: i, leap, next: true });
 				}
 			}
 		});
@@ -53,5 +60,13 @@ describe('Seeded cantus musical contracts', () => {
 		const melodies = [1, 7, 42].map(generate);
 		expect(generate(7)).toEqual(melodies[1]);
 		expect(new Set(melodies.map(pitches => JSON.stringify(pitches))).size).toBeGreaterThan(1);
+	});
+
+	test.each([32, 64])('length %i: twenty seeds give at least fifteen different melodies', length => {
+		const melodies = new Set<string>();
+		for (let seed = 1; seed <= 20; seed++) {
+			melodies.add(new CantusFirmus('C', length, 'major', createRandom(seed)).generate().map(n => n.getNote()).join(','));
+		}
+		expect(melodies.size).toBeGreaterThanOrEqual(15);
 	});
 });
