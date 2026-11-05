@@ -1,5 +1,34 @@
 # lilypoint clean-copy audit — 2026-11-05
 
+## Implementation — 2026-11-05
+
+Re-checked all six findings against the current source before editing. Copy changes landed in `df511ef`.
+
+| Finding | Status | Commit |
+|---|---|---|
+| 1 | Cut the architecture paragraph. | `df511ef` |
+| 2 | Cut the heading and build paragraph. Omitted the proposed sharing sentence: 06 keeps its collection in memory, and 08 transfers kept phrases to 07 but does not restore its own collection from the URL. The blanket promise is unsupported. | `df511ef` |
+| 3 | Shortened the writing-room description and metadata as proposed. | `df511ef` |
+| 4 | Cut the permanent Kept caption. | `df511ef` |
+| 5 | Replaced the deck empty-state sentence as proposed. | `df511ef` |
+| 6 | Cleared the initial hint text; preserved the error target and render assignments. | `df511ef` |
+
+Validation: `bun run test:all` passed (390 tests, zero failures; typecheck, build, and built-site checks passed). The exercise audit reported zero profile violations and 161 textbook findings. No tests asserted the removed strings, so no test edits were needed. No CSS, layout rules, or behavior changed.
+
+Headless screenshots reviewed at 390 × 844 and 1440 × 1000 CSS pixels for the gallery, deck empty state, sentence editor, and roll. Browser tab and local static server closed after capture. Existing phone overflow remains outside this copy-only scope.
+
+Screenshot artifacts (local to this machine):
+
+- gallery-phone: `/home/mazzy/.t3/userdata/browser-artifacts/browser-screenshot-localhost-mw458lvt-087b0616.png`
+- gallery-desktop: `/home/mazzy/.t3/userdata/browser-artifacts/browser-screenshot-localhost-mw458mce-bb78e6c5.png`
+- deck-phone: `/home/mazzy/.t3/userdata/browser-artifacts/browser-screenshot-localhost-mw458n53-e1100769.png`
+- deck-desktop: `/home/mazzy/.t3/userdata/browser-artifacts/browser-screenshot-localhost-mw458nhx-fbf8473e.png`
+- sentence-phone: `/home/mazzy/.t3/userdata/browser-artifacts/browser-screenshot-localhost-mw458nwv-4c6ebe3c.png`
+- sentence-desktop: `/home/mazzy/.t3/userdata/browser-artifacts/browser-screenshot-localhost-mw458omg-4dfd5684.png`
+- roll-phone: `/home/mazzy/.t3/userdata/browser-artifacts/browser-screenshot-localhost-mw458p7l-4ace5409.png`
+- roll-desktop: `/home/mazzy/.t3/userdata/browser-artifacts/browser-screenshot-localhost-mw458ppr-6e21c24c.png`
+
+
 Scope: user-facing strings across the main pages, classic interface, public prototypes, and shared UI scripts, reviewed with the clean-copy skill. Recommendations only; no application changes. Ranked by expected reader value and confidence. Paths are relative to this repository.
 
 Source snapshot: HEAD `669705cd22369ed767509a0264c89ea32f320731`. The working tree was clean when checked. The public prototype gallery is in scope: `public/about.html:47` links readers to it.
