@@ -33,6 +33,15 @@ Scope: user-facing strings across the main pages, classic interface, public prot
 
 Source snapshot: HEAD `669705cd22369ed767509a0264c89ea32f320731`. The working tree was clean when checked. The public prototype gallery is in scope: `public/about.html:47` links readers to it.
 
+Additional footer screenshots:
+
+- gallery-footer-390: `/home/mazzy/.t3/userdata/browser-artifacts/browser-screenshot-localhost-mw45a24o-14858953.png`
+- gallery-footer-1440: `/home/mazzy/.t3/userdata/browser-artifacts/browser-screenshot-localhost-mw45a2ul-15692dd0.png`
+- roll-kept-390: `/home/mazzy/.t3/userdata/browser-artifacts/browser-screenshot-localhost-mw45a3rm-93c5c304.png`
+- roll-kept-1440: `/home/mazzy/.t3/userdata/browser-artifacts/browser-screenshot-localhost-mw45a4ok-44da05e5.png`
+
+After merging the incoming test-audit PR in `0e611e6`, reran `bun run test:all`: passed, 377 tests and zero failures, including typecheck, build, and built-site checks. The incoming PR removed redundant tests; application copy was unchanged by the merge.
+
 ## Ranked findings
 
 ### 1. Cut implementation architecture from the public prototype gallery
