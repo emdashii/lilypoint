@@ -36,7 +36,7 @@
 	<p class="lede">Every page below runs the counterpoint engine and draws notation in the browser.</p>
 
 	<ol class="list">
-		<li><span class="n">7</span><div><a href="07-studio.html">The writing room</a><p>The sheet, with a live editor. Select any phrase in the margin, change its settings, reroll it, or move it into place. Sampled piano, highlighted notes, and complete staves in the PDF.</p><p class="meta">New synthesis. White paper in either theme. Keyboard: space, R, N.</p></div></li>
+		<li><span class="n">7</span><div><a href="07-studio.html">The writing room</a><p>The sheet, with a live editor. Select any phrase in the margin, change its settings, reroll it, or move it into place. Sampled piano and highlighted notes.</p><p class="meta">Keyboard: space, R, N.</p></div></li>
 		<li><span class="n">8</span><div><a href="08-lessons.html">The practice room</a><p>Choose a lesson, then explore an endless feed. Edit the sentence, combine filters, and keep your favorite phrases. Open the collection as a sheet when you are ready.</p><p class="meta">New synthesis. Count-in, voices, looping, 2/4/8/12 bars, and a choice of meter.</p></div></li>
 		<li><span class="n">1</span><div><a href="01-sheet.html">The sheet</a><p>The page is a piece of engraved paper. A tray at the bottom adds the next phrase; the margin lists what is on the page with reroll and remove. Title and composer are typed straight onto the sheet.</p><p class="meta">Verovio engraving, direct PDF download, MIDI, playback with highlight.</p></div></li>
 		<li><span class="n">2</span><div><a href="02-deck.html">Phrase deck</a><p>One card per phrase. Every setting is a single tap on a pill, and the card re-engraves the moment you tap. Drag to reorder, duplicate, reroll by seed.</p><p class="meta">VexFlow, fastest to load, PDF through the print dialog.</p></div></li>
@@ -54,10 +54,7 @@
 		<tr><td>abcjs 6.7</td><td>ABC text</td><td>0.5 MB</td><td>Small, built-in piano playback with a cursor</td><td>Plainer engraving; long scores need manual line breaks</td></tr>
 		<tr><td>Verovio 6.3</td><td>MusicXML</td><td>7 MB once, then cached</td><td>Closest to LilyPond quality; real pages, titles, MIDI, timing map</td><td>Slow first load; re-engraves the whole score on each change</td></tr>
 	</table>
-	<p class="note">Shared code lives in <code>public/proto/shared/</code>: a small adapter over the generator, converters to ABC and MusicXML, the three renderers, a Web Audio player, and the PDF helpers. Any page can swap its renderer for another one.</p>
 
-	<h2>Running them</h2>
-	<p class="note">Build once with <code>bun run build</code>, serve <code>dist/</code>, and open <code>/proto/</code>. Each page keeps its phrases in the URL, so a link reproduces the same score.</p>
 </div>
 <script type="module">
 import { initTheme, themeButton } from './shared/ui.js';
