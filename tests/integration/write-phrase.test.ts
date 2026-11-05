@@ -78,58 +78,46 @@ describe('WritePhrase Integration', () => {
 			}
 		});
 
-		test('Species 5: upper voice should use valid LilyPond durations', () => {
-			const wp = new WritePhrase('C', 4, 5, '4/4');
-			wp.setSeed(12345);
-			wp.writeThePhrase();
-			const phrase = wp.getPhrase();
-			const validDurations = [1, 2, 4, 8, 16, 32];
+		test('Species 5: upper voice divides each quarter-note cantus beat into whole, half, or quarter parts in 4/4', () => {
+			for (const seed of [1, 2, 3, 12345]) {
+				const wp = new WritePhrase('C', 4, 5, '4/4');
+				wp.setSeed(seed);
+				wp.writeThePhrase();
+				const phrase = wp.getPhrase();
 
-			for (const note of phrase.getUpperVoice()) {
-				expect(validDurations).toContain(note.getLength());
-			}
-			for (const note of phrase.getLowerVoice()) {
-				expect(note.getLength()).toBe(4);
+				// Florid rhythm uses whole, half, and quarter subdivisions of a cantus note:
+				// quarters, eighths, and sixteenths against quarter-note cantus beats.
+				for (const note of phrase.getUpperVoice()) {
+					expect([4, 8, 16]).toContain(note.getLength());
+				}
+				for (const note of phrase.getLowerVoice()) {
+					expect(note.getLength()).toBe(4);
+				}
 			}
 		});
 
-		test('all species should have equal total duration in both voices (4/4 time)', () => {
+		test('all species fill four bars of 4/4 (sixteen quarter beats) in both voices', () => {
 			for (const species of [1, 2, 3, 4, 5]) {
 				const wp = new WritePhrase('C', 4, species, '4/4');
 				wp.setSeed(12345);
 				wp.writeThePhrase();
 				const phrase = wp.getPhrase();
 
-				const upperBeats = totalBeats(phrase.getUpperVoice());
-				const lowerBeats = totalBeats(phrase.getLowerVoice());
-
-				expect(upperBeats).toBe(lowerBeats);
+				expect(totalBeats(phrase.getLowerVoice())).toBe(16);
+				expect(totalBeats(phrase.getUpperVoice())).toBe(16);
 			}
 		});
 
-		test('all species should have equal total duration in both voices (3/4 time)', () => {
+		test('all species fill four bars of 3/4 (twelve quarter beats) in both voices', () => {
 			for (const species of [1, 2, 3, 4, 5]) {
 				const wp = new WritePhrase('C', 4, species, '3/4');
 				wp.setSeed(12345);
 				wp.writeThePhrase();
 				const phrase = wp.getPhrase();
 
-				const upperBeats = totalBeats(phrase.getUpperVoice());
-				const lowerBeats = totalBeats(phrase.getLowerVoice());
-
-				expect(upperBeats).toBe(lowerBeats);
+				expect(totalBeats(phrase.getLowerVoice())).toBe(12);
+				expect(totalBeats(phrase.getUpperVoice())).toBe(12);
 			}
-		});
-
-		test('total duration should match expected beats for the phrase', () => {
-			// 4 measures of 4/4 = 16 quarter-note beats
-			const wp = new WritePhrase('C', 4, 1, '4/4');
-			wp.setSeed(12345);
-			wp.writeThePhrase();
-			const phrase = wp.getPhrase();
-
-			expect(totalBeats(phrase.getLowerVoice())).toBe(16);
-			expect(totalBeats(phrase.getUpperVoice())).toBe(16);
 		});
 
 		test('Species 2: note lengths should scale with time signature beat unit', () => {
