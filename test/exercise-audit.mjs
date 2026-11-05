@@ -331,11 +331,58 @@ function fixtureVoices(file) {
 	const block = n => parseLyBlock(src.match(new RegExp(`${n}\\s*=\\s*\\{([^}]*)\\}`))[1]);
 	return { species: 1, mode: 'major', time: '4/1', upper: block('counterpoint'), lower: block('cantusFirmus') };
 }
+// Hand-written two-voice exercises in C major (A minor where marked), cantus
+// below. Each clean line passes the profile tier; each broken line changes
+// one or two notes of a clean line and must report exactly the listed
+// profile rules, so a dropped or misfiring check changes the set.
+//   [species, mode, cantus, counterpoint, expected profile rules]
+const SELF_CHECK = [
+	[1, 'major', "c'1 d'1 e'1 f'1 d'1 c'1", "g'1 f'1 g'1 a'1 b'1 c''1", []],
+	[1, 'major', "c'1 d'1 e'1 f'1 d'1 c'1", "e'1 f'1 g'1 a'1 b'1 c''1", ['beginsPerfect']],
+	[1, 'major', "c'1 d'1 c'1", "g'1 fis'1 g'1", ['endsPerfect']],
+	[1, 'major', "c'1 d'1 e'1 f'1 d'1 c'1", "g'1 f'1 g'1 c''1 b'1 c''1", ['directPerfect']],
+	[1, 'major', "c'1 d'1 e'1 f'1 d'1 c'1", "g'1 a'1 g'1 a'1 b'1 c''1", ['directPerfect', 'parallelPerfect']],
+	[1, 'major', "c'1 d'1 e'1 f'1 d'1 c'1", "g'1 f'1 a'1 a'1 b'1 c''1", ['allConsonant']],
+	[1, 'major', "c'1 d'1 c'1", "c'1 b1 c'1", ['crossing']],
+	[1, 'major', "c'1 d'1 e'1 f'1 d'1 c'1", "g''1 f''1 g''1 a''1 b''1 c'''1", ['spacing']],
+	[1, 'major', "c'1 d'1 e'1 f'1 d'1 c'1", "g'1 eis'1 g'1 a'1 b'1 c''1", ['harmonicSpelling', 'melodicSpelling']],
+	[1, 'major', "c'1 d'1 e'1 f'1 d'1 c'1", "g'1 f'1 gis'1 a'1 b'1 c''1", ['melodicSpelling']],
+	[1, 'major', "c'1 d'1 e'1 f'1 d'1 c'1", "g'1 f'1 c''1 c''1 b'1 c''1", ['leapRecovery']],
+	[1, 'major', "c'1 d'1 e'1 f'1 d'1 c'1", "g'1 f'1 b'1 a'1 b'1 c''1", ['directPerfect', 'dissonantLeap', 'melodicSpelling']],
+	[1, 'major', "c'1 d''1 c''1 b'1 c''1", "c''1 f''1 e''1 d''1 c''1", ['leapSize']],
+	[1, 'major', "c'1 d'1 e'1 f'1 d'1 c'1", "g'1 f'1 g'1 a'1 f'1 c''1", ['cadence']],
+	[1, 'major', "c'1 d'1 e'1 f'1 d'1 c'1", "g'1 f'1 g'1 a'1 b'1 c''2", ['equalDuration', 'subdivision']],
+	[1, 'major', "c'1 d'1 e'1 f'1 d'2 d'2 c'1", "g'1 f'1 g'1 a'1 b'1 c''1", ['cantusRhythm', 'subdivision']],
+	[1, 'major', "c'1 d'1 e'1 f'1 d'1 c'1", "g'1~ f'1 g'1 a'1 b'1 c''1", ['tie']],
+	[1, 'minor', "a1 b1 a1", "e'1 gis'1 a'1", []],
+	[1, 'minor', "a1 b1 a1", "e'1 aes'1 a'1", ['harmonicSpelling', 'leadingToneSpelling', 'melodicSpelling']],
+	[2, 'major', "e'1 f'1 d'1 c'1", "b'2 g'2 a'2 f'2 a'2 b'2 c''1", []],
+	[2, 'major', "e'1 f'1 d'1 c'1", "b'2 g'2 a'2 g'2 a'2 b'2 c''1", ['dissonanceTreatment']],
+	[2, 'major', "e'1 f'1 d'1 c'1", "b'2 g'2 g'2 a'2 a'2 b'2 c''1", ['strongDissonance']],
+	[2, 'major', "e'1 f'1 d'1 c'1", "b'2. g'4 a'2 f'2 a'2 b'2 c''1", ['subdivision']],
+	[3, 'major', "c'1 d'1 c'1", "g'4 a'4 g'4 e'4 f'4 g'4 a'4 b'4 c''1", []],
+	[3, 'major', "c'1 d'1 c'1", "g'4 e'4 f'4 g'4 f'4 g'4 a'4 b'4 c''1", ['metric']],
+	[3, 'major', "c'1 d'1 c'1", "g'4 a'4 g'4 e'4 e'4 f'4 a'4 b'4 c''1", ['strongDissonance']],
+	[3, 'major', "c'1 d'1 c'1", "g'4 d''4 c''4 a'4 f'4 g'4 a'4 b'4 c''1", ['dissonanceTreatment']],
+	[4, 'major', "c'1 d'1 e'1 d'1 c'1", "r2 c''2~ c''2 b'2~ b'2 c''2~ c''2 b'2 c''1", []],
+	[4, 'major', "c'1 d'1 e'1 d'1 c'1", "g'2 c''2~ c''2 b'2~ b'2 c''2~ c''2 b'2 c''1", ['syncopation']],
+	[4, 'major', "c'1 d'1 e'1 d'1 c'1", "r2 c''2~ c''2 b'2 b'2 c''2~ c''2 b'2 c''1", ['syncopation']],
+	[4, 'major', "c'1 e'1 d'1 c'1", "r2 c''2~ c''2 b'2~ b'2 b'2 c''1", ['cadentialSuspension']],
+	[4, 'major', "c'1 d'1 e'1 d'1 c'1", "r2 c''2~ c''2 d''2~ d''2 c''2~ c''2 b'2 c''1", ['afterbeatPerfects', 'strongDissonance']],
+	[4, 'major', "c'1 a1 c'1 d'1 c'1", "r2 c''2~ c''2 a'2~ a'2 c''2~ c''2 b'2 c''1", ['afterbeatPerfects']],
+	[5, 'major', "c'1 d'1 c'1", "g'4 a'4 c''2~ c''2 b'4 b'4 c''1", []],
+	[5, 'major', "c'1 d'1 c'1", "g'4 a'8 b'8 c''2~ c''2 b'4 b'4 c''1", ['floridDuration']],
+	[5, 'major', "c'1 d'1 c'1", "g'4 a'4 b'2 a'2 b'4 b'4 c''1", ['metric']],
+];
 export function selfCheck() {
 	const clean = checkExercise(fixtureVoices('species1-fux-d-dorian.ly')).violations.filter(v => v.tier === 'profile');
 	assert.deepEqual(clean, [], 'Fux D dorian model must pass the profile tier');
 	const rules = new Set(checkExercise(fixtureVoices('species1-fux-e-phrygian.ly')).violations.filter(v => v.tier === 'profile').map(v => v.rule));
 	assert.ok(rules.has('leadingTone'), 'checker must report the Phrygian whole-tone cadence');
+	for (const [species, mode, lower, upper, expected] of SELF_CHECK) {
+		const found = checkExercise({ species, mode, time: '4/4', upper: parseLyBlock(upper), lower: parseLyBlock(lower) }).violations.filter(v => v.tier === 'profile');
+		assert.deepEqual([...new Set(found.map(v => v.rule))].sort(), expected, `self-check, species ${species} ${mode}: ${upper} over ${lower}`);
+	}
 }
 
 // --- run
