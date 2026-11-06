@@ -52,6 +52,31 @@ if (!about.includes('id="privacy"') || !about.includes('umami.is/privacy')) {
 	process.exit(1);
 }
 
+// Pageviews count rooms, not editor state: the score, title, and composer live in the
+// query string, which the tracker must drop from both url and referrer. Production only.
+const trackedPages = ['index', 'practice', 'about', 'classic', '404'].map(name => `dist/${name}.html`);
+for (const file of new Glob('dist/**/*.html').scanSync('.')) {
+	const tags = readFileSync(file, 'utf8').match(/<script[^>]*cloud\.umami\.is[^>]*>/g) ?? [];
+	const expected = trackedPages.includes(file) ? 1 : 0;
+	if (tags.length !== expected) {
+		console.error(`${file} has ${tags.length} analytics tags; expected ${expected}`);
+		process.exit(1);
+	}
+	for (const tag of tags) {
+		for (const attribute of ['data-exclude-search="true"', 'data-exclude-hash="true"', 'data-domains="lilypoint.mazzaella.com"']) {
+			if (!tag.includes(attribute)) {
+				console.error(`${file} analytics tag is missing ${attribute}`);
+				process.exit(1);
+			}
+		}
+		const extra = tag.match(/data-(?:errors|performance|auto-track|auto-pageview)=/);
+		if (extra) {
+			console.error(`${file} analytics tag adds ${extra[0]}`);
+			process.exit(1);
+		}
+	}
+}
+
 const notFound = readFileSync('dist/404.html', 'utf8');
 if (!notFound.includes('href="/"') || !notFound.includes('href="/practice.html"')) {
 	console.error('404.html is missing recovery links');
