@@ -1,4 +1,4 @@
-import { KEYS, MODES, SPECIES, TIME_SIGS, defaultSpec, randomSeed, speciesInfo, readUrlState, encodeSpecs, decodeSpecs } from './core.js';
+import { KEYS, MODES, SPECIES, TIME_SIGS, defaultSpec, randomSeed, speciesInfo, readUrlState, encodeSpecs, decodeSpecs, normalizeTempo } from './core.js';
 import { $, el, setup, status, button, pills, draw, exportScore, downloadMidi, downloadLilyPond, generatePhrase as generate, Piano, transportOptions, wireTransport } from './studio.js';
 setup();
 const state=readUrlState();
@@ -78,7 +78,8 @@ function render() {
 }
 $('add').onclick=()=>{piano.stop();results.push(generate(defaultSpec({...results[selected]?.spec,tempo:results.at(-1)?.spec.tempo||80,seed:randomSeed()})));selected=results.length-1;render();$('sheet').lastElementChild.scrollIntoView({block:'center',behavior:'smooth'});};
 $('reroll').onclick=()=>update({seed:randomSeed()});
-$('tempo').oninput=()=>{const value=Number($('tempo').value);if(Number.isInteger(value)&&value>=30&&value<=200)changeTempo(value);};
+// While typing, apply only a finished tempo; leaving the field normalizes anything else.
+$('tempo').oninput=()=>{const value=Number($('tempo').value);if(value===normalizeTempo($('tempo').value))changeTempo(value);};
 $('tempo').onchange=()=>changeTempo(transportOptions().tempo);
 $('play').onclick=()=>piano.active?piano.stop():piano.play(results[selected]?[{result:results[selected],visual:visuals[selected],tempo:results[selected].spec.tempo}]:[],transportOptions());
 $('play-all').onclick=()=>piano.active?piano.stop():piano.play(results.map((r,i)=>({result:r,visual:visuals[i],tempo:r.spec.tempo})),transportOptions());

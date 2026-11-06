@@ -88,6 +88,11 @@ export async function toLilyPond(results, meta = {}) {
 }
 
 // --- URL state -------------------------------------------------------------
+/** Tempo is a whole number from 30 to 200. Blank, zero, or unreadable input means 80. */
+export function normalizeTempo(value) {
+	const n = Number(value);
+	return n ? Math.max(30, Math.min(200, Math.round(n))) : 80;
+}
 const FIELDS = ['key', 'mode', 'species', 'measures', 'time', 'seed'];
 export function encodeSpecs(specs) {
 	return specs.map(s => [...FIELDS.map(f => String(s[f])), ...(s.tempo == null ? [] : [String(s.tempo)])].join('.')).join('_').replace(/#/g, 's').replace(/\//g, '-');
@@ -96,8 +101,10 @@ export function decodeSpecs(text) {
 	if (!text) return [];
 	return text.split('_').map(part => {
 		const v = part.split('.');
+		// Earlier builds could save a fractional tempo, which split into two digit fields.
+		if (v.length === 8 && /^\d+$/.test(v[6]) && /^\d+$/.test(v[7])) v.splice(6, 2, `${v[6]}.${v[7]}`);
 		if (v.length !== 6 && v.length !== 7) return null;
-		return { key: v[0].replace('s', '#'), mode: v[1], species: Number(v[2]), measures: Number(v[3]), time: v[4].replace('-', '/'), seed: Number(v[5]), ...(v[6] == null ? {} : {tempo:Math.max(30,Math.min(200,Number(v[6])||80))}) };
+		return { key: v[0].replace('s', '#'), mode: v[1], species: Number(v[2]), measures: Number(v[3]), time: v[4].replace('-', '/'), seed: Number(v[5]), ...(v[6] == null ? {} : {tempo:normalizeTempo(v[6])}) };
 	}).filter(Boolean);
 }
 export function writeUrlState(specs, extra = {}) {

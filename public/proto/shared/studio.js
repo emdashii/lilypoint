@@ -1,5 +1,5 @@
 import { toABC, layoutPhrase } from './notation.js';
-import { toLilyPond, downloadText, safeFilename, generate } from './core.js';
+import { toLilyPond, downloadText, safeFilename, generate, normalizeTempo } from './core.js';
 import { downloadPdf, printSvgs } from './pdf.js';
 import { midiBytes } from './midi.js';
 import { el, initTheme, themeButton } from './ui.js';
@@ -134,5 +134,8 @@ export class Piano {
     run(0);
   }
 }
-export function transportOptions() { return {tempo:Math.max(30,Math.min(200,Number($('tempo').value)||80)),hands:$('hands').value,countin:$('countin').checked,loop:$('loop').checked}; }
-export function wireTransport(piano) { for(const id of ['tempo','hands','countin','loop']) $(id).addEventListener('change',()=>{ piano.stop(); status('Ready'); }); addEventListener('pagehide',()=>piano.stop()); }
+export function transportOptions() { return {tempo:normalizeTempo($('tempo').value),hands:$('hands').value,countin:$('countin').checked,loop:$('loop').checked}; }
+export function wireTransport(piano) {
+  // Show the tempo that will be played and saved.
+  $('tempo').addEventListener('change',()=>{ $('tempo').value=transportOptions().tempo; });
+  for(const id of ['tempo','hands','countin','loop']) $(id).addEventListener('change',()=>{ piano.stop(); status('Ready'); }); addEventListener('pagehide',()=>piano.stop()); }

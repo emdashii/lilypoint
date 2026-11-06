@@ -1,12 +1,27 @@
 import assert from 'node:assert/strict';
 import { defaultSpec, encodeSpecs, decodeSpecs, toLilyPond } from '../dist/proto/shared/core.js';
-import { abc, generatePhrase } from '../dist/proto/shared/studio.js';
+import { abc, generatePhrase, transportOptions } from '../dist/proto/shared/studio.js';
 import { midiBytes } from '../dist/proto/shared/midi.js';
 
 const specs=[defaultSpec({key:'C',seed:42,tempo:80}),defaultSpec({key:'C',seed:43,tempo:110}),defaultSpec({key:'C',seed:44,tempo:110,time:'3/4'})];
 assert.deepEqual(decodeSpecs(encodeSpecs(specs)),specs);
 const legacy=defaultSpec({seed:42});
 assert.deepEqual(decodeSpecs(encodeSpecs([legacy])),[legacy]);
+assert.deepEqual(decodeSpecs(''),[],'An intentionally empty sheet stays empty');
+// Typed tempo becomes a whole number from 30 to 200, so a saved phrase reopens intact.
+const typedTempo=value=>{
+  const fields={tempo:{value},hands:{value:'both'},countin:{checked:false},loop:{checked:false}};
+  globalThis.document={getElementById:id=>fields[id]};
+  try { return transportOptions().tempo; } finally { delete globalThis.document; }
+};
+for(const [typed,tempo] of [['',80],['0',80],['29',30],['30',30],['30.5',31],['200',200],['201',200]]) {
+  const spec=defaultSpec({key:'C',seed:1,measures:2,tempo:typedTempo(typed)});
+  assert.equal(spec.tempo,tempo,`Typed tempo ${JSON.stringify(typed)}`);
+  assert.deepEqual(decodeSpecs(encodeSpecs([spec])),[spec],`Typed tempo ${JSON.stringify(typed)} keeps its phrase`);
+}
+// Links saved before that rule split a fractional tempo into two fields.
+assert.deepEqual(decodeSpecs('C.major.1.2.2-4.1.30.5_D.minor.2.4.4-4.7.80'),
+  [defaultSpec({key:'C',measures:2,time:'2/4',seed:1,tempo:31}),defaultSpec({key:'D',mode:'minor',species:2,seed:7,tempo:80})]);
 const results=specs.map(generatePhrase);
 const score=abc(results);
 assert.equal((score.match(/^Q:/gm)||[]).length,1);
