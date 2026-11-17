@@ -79,6 +79,10 @@ export async function toLilyPond(results, meta = {}) {
 	const exporter = new ExportToFile('lilypoint', meta.title || 'lilypoint', meta.composer || 'lilypoint');
 	for (const r of results) exporter.addPhrase(r.phrase);
 	let output = await exporter.writeOutput();
+	for (const voice of ['top','bottom']) {
+		let clefIndex=0;
+		output=output.replace(new RegExp('('+voice+'Phrase\\w+\\s*=\\s*\\{ )\\\\clef "treble"','g'),head=>head.replace('"treble"','"'+(results[clefIndex++].spec[voice==='top'?'upperClef':'lowerClef']||'treble')+'"'));
+	}
 	let index=0;
 	output=output.replace(/(topPhrase\w+\s*=\s*\{[^\n]*\n)/g, head=>{
 		const current=results[index], previous=results[index-1]; index++;
