@@ -155,7 +155,8 @@ export function toABC(results, meta = {}) {
 		const change = previous ? (abcKey(previous)!==abcKey(r.spec) ? '[K:' + abcKey(r.spec) + ']' : '') + (previous.time!==r.spec.time ? '[M:' + r.spec.time + ']' : '') : '';
 		const tempoChange = previous && (r.spec.tempo || meta.tempo || 80)!==(previous.tempo || meta.tempo || 80) ? '[Q:1/4='+(r.spec.tempo || meta.tempo || 80)+']' : '';
 		for (const v of ['upper', 'lower']) {
-			let line = change + (v==='upper' ? tempoChange : '');
+			const clef=r.spec[v+'Clef']||'treble',previousClef=previous?.[v+'Clef']||'treble';
+			let line = change + (previous&&clef!==previousClef?'[K:clef='+clef+']':'') + (v==='upper' ? tempoChange : '');
 			layout[v].forEach((m, mi) => {
 				const lastOfPhrase = mi === layout.count - 1;
 				const finalBar = ri === results.length - 1 && lastOfPhrase;
@@ -168,7 +169,7 @@ export function toABC(results, meta = {}) {
 		}
 		barCount += layout.count;
 	});
-	return head + 'V:1 clef=treble name="' + (meta.upperName || '') + '"\n' + voices.upper.trim() + '\nV:2 clef=treble name="' + (meta.lowerName || '') + '"\n' + voices.lower.trim() + '\n';
+	return head + 'V:1 clef='+(first.upperClef||'treble')+' name="' + (meta.upperName || '') + '"\n' + voices.upper.trim() + '\nV:2 clef='+(first.lowerClef||'treble')+' name="' + (meta.lowerName || '') + '"\n' + voices.lower.trim() + '\n';
 }
 
 // --- MusicXML --------------------------------------------------------------
@@ -198,7 +199,8 @@ export function toMusicXML(results, meta = {}) {
 			layout[v].forEach((m, mi) => {
 				let x = '<measure number="' + (number + mi) + '">';
 				if (mi === 0) {
-					x += '<attributes><divisions>' + (TICKS_PER_WHOLE / 4) + '</divisions><key><fifths>' + keyFifths(r.keyInfo) + '</fifths><mode>' + r.spec.mode + '</mode></key><time><beats>' + r.beats + '</beats><beat-type>' + r.unit + '</beat-type></time>' + (ri === 0 ? '<clef><sign>G</sign><line>2</line></clef>' : '') + '</attributes>';
+					const clefs={treble:['G',2],bass:['F',4],alto:['C',3],tenor:['C',4]},clef=clefs[r.spec[v+'Clef']||'treble'];
+					x += '<attributes><divisions>' + (TICKS_PER_WHOLE / 4) + '</divisions><key><fifths>' + keyFifths(r.keyInfo) + '</fifths><mode>' + r.spec.mode + '</mode></key><time><beats>' + r.beats + '</beats><beat-type>' + r.unit + '</beat-type></time><clef><sign>'+clef[0]+'</sign><line>'+clef[1]+'</line></clef></attributes>';
 				}
 				x += m.map(c => xmlNote(c, 1)).join('');
 				if (mi === layout.count - 1) x += '<barline location="right"><bar-style>' + (ri === results.length - 1 ? 'light-heavy' : 'light-light') + '</bar-style></barline>';

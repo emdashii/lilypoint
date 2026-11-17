@@ -28,7 +28,7 @@ export function options(select, list, value, label = x => x) {
 // --- theme -----------------------------------------------------------------
 const THEME_KEY = 'theme'; // same key the current site uses
 export function initTheme() {
-	const saved = localStorage.getItem(THEME_KEY);
+	let saved; try { saved = localStorage.getItem(THEME_KEY); } catch { /* Theme works without storage. */ }
 	if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
 }
 export function currentTheme() {
@@ -37,7 +37,7 @@ export function currentTheme() {
 export function toggleTheme() {
 	const next = currentTheme() === 'dark' ? 'light' : 'dark';
 	document.documentElement.dataset.theme = next;
-	localStorage.setItem(THEME_KEY, next);
+	try { localStorage.setItem(THEME_KEY, next); } catch { /* Keep this page's theme. */ }
 	document.dispatchEvent(new CustomEvent('themechange', { detail: next }));
 	return next;
 }

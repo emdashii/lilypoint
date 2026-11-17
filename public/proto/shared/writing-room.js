@@ -1,8 +1,16 @@
 import { KEYS, MODES, SPECIES, TIME_SIGS, defaultSpec, randomSeed, speciesInfo, readUrlState, encodeSpecs, decodeSpecs, normalizeTempo } from './core.js';
 import { $, el, setup, status, button, pills, draw, exportScore, downloadMidi, downloadLilyPond, generatePhrase as generate, Piano, transportOptions, wireTransport } from './studio.js';
+import { parseScore, scoreFile, scoreQuery } from './collection.js';
+import { mountCollection } from './collection-ui.js';
 setup();
 const state=readUrlState();
 const DRAFT_KEY='lilypoint-writing-room-draft-v1';
+const EXACT_DRAFT_KEY='lilypoint-writing-room-snapshot-v1';
+let exact=null;
+try {
+  if(state.params.has('score'))exact=parseScore(JSON.parse(state.params.get('score')));
+  else if(!state.params.has('p')) {const raw=sessionStorage.getItem(EXACT_DRAFT_KEY);if(raw)exact=JSON.parse(raw);if(exact?.scores?.length)exact=parseScore(exact);}
+} catch(e) {status(`Score could not load: ${e.message}`);}
 // A phrase URL is an intentional load. Plain navigation resumes this tab's draft.
 if(!state.params.has('p')) {
   try {
@@ -10,12 +18,16 @@ if(!state.params.has('p')) {
     if(saved){state.params=new URLSearchParams(saved);state.specs=decodeSpecs(state.params.get('p'));}
   } catch { /* Storage may be disabled; phrase URLs remain usable. */ }
 }
-let results=(state.params.has('p')?state.specs:[defaultSpec({key:'D',mode:'minor',species:1}),defaultSpec({key:'D',mode:'minor',species:2}),defaultSpec({key:'D',mode:'minor',species:3})]).map(s=>generate({tempo:80,...s}));
+let results=exact?(exact.results||[]):(state.params.has('p')?state.specs:[defaultSpec({key:'D',mode:'minor',species:1}),defaultSpec({key:'D',mode:'minor',species:2}),defaultSpec({key:'D',mode:'minor',species:3})]).map(s=>generate({tempo:80,...s}));
 let selected=Math.max(0,Math.min(results.length-1,Number(state.params.get('selected'))||0)), visuals=[], dragged=null;
-$('title').value=state.params.get('title')??'A little counterpoint';
-$('composer').value=state.params.get('composer')??'Studies for two voices';
+$('title').value=exact?.name??state.params.get('title')??'A little counterpoint';
+$('composer').value=exact?.composer??state.params.get('composer')??'Studies for two voices';
+if(exact)selected=Math.max(0,Math.min(results.length-1,exact.selected||0));
 const piano=new Piano(active=>{ $('play').textContent=active?'■ Stop':'▶ Play phrase'; $('play-all').textContent=active?'■ Stop':'Play sheet'; });
 wireTransport(piano);
+const library=mountCollection(document.querySelector('.margin'),{onWrite:score=>{piano.stop();exact=score;results=score.results;selected=0;$('title').value=score.name;$('composer').value=score.composer;render();}});
+document.querySelector('.margin').insertBefore(el('div',{class:'library-tools'},button('Save sheet',()=>library.save(results,{name:$('title').value.trim()||'Untitled score',composer:$('composer').value}),'save-sheet'),button('Practice sheet →',()=>{if(results.length)location.href=(document.body.dataset.practiceUrl||'/practice.html')+'?score='+scoreQuery(results,{name:$('title').value,composer:$('composer').value});},'practice-sheet')),libraryNode());
+function libraryNode(){return document.querySelector('.margin .library');}
 $('toggle-editor').onclick=()=>{const expanded=document.querySelector('.editor').classList.toggle('expanded');$('toggle-editor').setAttribute('aria-expanded',expanded);};
 function save() {
   const url=new URL(location.href);
@@ -23,8 +35,11 @@ function save() {
   url.searchParams.set('title',$('title').value);
   url.searchParams.set('composer',$('composer').value);
   url.searchParams.set('selected',selected);
+  if(exact&&results.length)url.searchParams.set('score',JSON.stringify(scoreFile(results,{name:$('title').value,composer:$('composer').value})));
+  else url.searchParams.delete('score');
   history.replaceState(null,'',url);
   try { sessionStorage.setItem(DRAFT_KEY,url.search); } catch { /* Keep editing through URL state. */ }
+  try { sessionStorage.setItem(EXACT_DRAFT_KEY,JSON.stringify({...scoreFile(results,{name:$('title').value,composer:$('composer').value}),selected})); } catch { /* Collection export is available. */ }
 }
 function select(i) { piano.stop(); selected=i; list(); editor(); document.querySelectorAll('.sheet-phrase').forEach((n,k)=>n.classList.toggle('selected',k===i)); save(); }
 function move(from,to) { if(to<0||to>=results.length)return; piano.stop(); const [r]=results.splice(from,1); results.splice(to,0,r); selected=to; render(); }
@@ -55,6 +70,7 @@ function editor() {
   const s=results[selected]?.spec;
   $('editing').textContent=s?`Editing phrase ${String(selected+1).padStart(2,'0')}`:'Add a phrase to begin';
   for(const id of ['play','play-all','reroll','pdf','midi','ly','print'])$(id).disabled=!s;
+  document.querySelectorAll('.save-sheet,.practice-sheet').forEach(b=>b.disabled=!s);
   if(!s){for(const id of ['species','keys','modes','bars','meter'])$(id).replaceChildren();return;}
   $('tempo').value=s.tempo||80;
   $('tempo').setAttribute('aria-label',`Tempo for phrase ${selected+1}`);
