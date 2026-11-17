@@ -41,7 +41,7 @@ function renderPlan(){
     return el('div',{class:'practice-session-entry',dataset:{id:ex.id}},el('strong',{},`${i+1}. ${ex.name}`),
       el('label',{},'Target tempo ',el('input',{type:'number',min:30,max:200,value:ex.tempo,'aria-label':`Target tempo ${i+1}`,onchange:e=>{const n=Number(e.target.value);if(Number.isInteger(n)&&n>=30&&n<=200)edit('tempo',n);else e.target.value=ex.tempo;}})),
       el('label',{},'Repetitions ',el('input',{type:'number',min:1,max:99,value:ex.repetitions,'aria-label':`Repetitions ${i+1}`,onchange:e=>{const n=Number(e.target.value);if(Number.isInteger(n)&&n>=1&&n<=99)edit('repetitions',n);else e.target.value=ex.repetitions;}})),
-      el('label',{},'Notes ',el('textarea',{maxlength:500,value:ex.notes,'aria-label':`Practice notes ${i+1}`,onchange:e=>edit('notes',e.target.value)})),
+      el('label',{},'Notes ',el('textarea',{maxlength:500,'aria-label':`Practice notes ${i+1}`,onchange:e=>edit('notes',e.target.value)},ex.notes)),
       el('div',{class:'library-tools'},el('button',{'aria-label':`Move exercise ${i+1} up`,disabled:i===0,onclick:()=>move(-1)},'↑'),
         el('button',{'aria-label':`Move exercise ${i+1} down`,disabled:i===plan.exercises.length-1,onclick:()=>move(1)},'↓'),
         button('Remove',()=>{captureProgress();piano.stop();plan.exercises.splice(i,1);resetProgress();persistSession();renderPlan();if(deliberate)startSession();})),
@@ -216,7 +216,7 @@ $('length').onchange=()=>{filter.lengths=new Set($('length').value==='mix'?LENGT
 $('sentence-species').onchange=()=>{filter.species=new Set($('sentence-species').value==='mix'?SPECIES.map(s=>s.n):[Number($('sentence-species').value)]);reset();};
 $('sentence-key').onchange=()=>{filter.keys=new Set($('sentence-key').value==='mix'?KEYS:[$('sentence-key').value]);reset();};
 $('more').onclick=()=>more(3);$('next').onclick=()=>select(focus+1,true);$('play').onclick=()=>play();
-$('pdf').onclick=()=>exportScore(kept,'Kept phrases');$('print').onclick=()=>exportScore([...new Map([...finished,...kept.map(r=>[r.id,r])]).values()],'Kept phrases',false);
+$('pdf').onclick=()=>exportScore(kept,'Kept phrases');$('print').onclick=()=>exportScore([...new Map([...finished,...kept.map(r=>[r.id,r])]).values()],'Played and kept phrases',false);
 $('ly').onclick=()=>downloadLilyPond(kept,'Kept phrases');
 $('open-sheet').onclick=()=>{location.href=(document.body.dataset.writeUrl || '07-studio.html')+'?score='+scoreQuery(kept,{name:'Kept phrases'});};
 new IntersectionObserver(entries=>{if(activeLesson!==null&&entries.some(e=>e.isIntersecting))more(2);},{rootMargin:'200px'}).observe($('sentinel'));
