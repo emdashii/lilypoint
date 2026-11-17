@@ -57,7 +57,7 @@ if (!about.includes('id="privacy"') || !about.includes('umami.is/privacy')) {
 const trackedPages = ['index', 'practice', 'about', 'classic', '404'].map(name => `dist/${name}.html`);
 for (const file of new Glob('dist/**/*.html').scanSync('.')) {
 	const tags = readFileSync(file, 'utf8').match(/<script[^>]*cloud\.umami\.is[^>]*>/g) ?? [];
-	const expected = trackedPages.includes(file) ? 1 : 0;
+	const expected = trackedPages.includes(file.replaceAll('\\', '/')) ? 1 : 0;
 	if (tags.length !== expected) {
 		console.error(`${file} has ${tags.length} analytics tags; expected ${expected}`);
 		process.exit(1);
